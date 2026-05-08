@@ -761,7 +761,7 @@ def create_app() -> Flask:
     # Priority: env var > persisted file > generated + saved.
     _secret = os.environ.get("SECRET_KEY", "")
     if not _secret:
-        _persistent_path = Path(os.environ.get("DATA_DIR", str(ROOT))) / ".secret_key"
+        _persistent_path = DATA_DIR / ".secret_key"
         if _persistent_path.exists():
             try:
                 _secret = _persistent_path.read_text().strip()
@@ -2928,8 +2928,8 @@ Relay team broke club record"></textarea>
         conn.close()
         n_files = sum(1 for _ in RUNS_DIR.glob("*.json"))
         n_uploads = sum(1 for _ in UPLOADS_DIR.iterdir())
-        cache_dir = ROOT / ".cache" / "pb_lookup"
-        legacy_cache = ROOT / ".cache" / "swimmingresults"
+        cache_dir = DATA_DIR / ".cache" / "pb_lookup"
+        legacy_cache = DATA_DIR / ".cache" / "swimmingresults"
         n_cache = (
             (sum(1 for _ in cache_dir.glob("*.json")) if cache_dir.exists() else 0)
             + (sum(1 for _ in legacy_cache.glob("*.json")) if legacy_cache.exists() else 0)
@@ -2976,7 +2976,7 @@ Relay team broke club record"></textarea>
 
     @app.route("/privacy/cache/clear", methods=["POST"])
     def privacy_cache_clear():
-        for d in [ROOT / ".cache" / "pb_lookup", ROOT / ".cache" / "swimmingresults"]:
+        for d in [DATA_DIR / ".cache" / "pb_lookup", DATA_DIR / ".cache" / "swimmingresults"]:
             if d.exists():
                 for f in d.glob("*.json"):
                     try: f.unlink()
@@ -2995,18 +2995,18 @@ Relay team broke club record"></textarea>
             c = _db()
             c.execute("SELECT 1").fetchone()
             c.close()
-            checks["database"] = {"ok": True, "path": str(DB_PATH.relative_to(ROOT))}
+            checks["database"] = {"ok": True, "path": str(DB_PATH.relative_to(DATA_DIR))}
         except Exception as e:
             checks["database"] = {"ok": False, "error": str(e)}
         # writable dirs
         for label, p in [("uploads", UPLOADS_DIR), ("runs", RUNS_DIR),
-                         ("pb_cache", ROOT / ".cache" / "pb_lookup")]:
+                         ("pb_cache", DATA_DIR / ".cache" / "pb_lookup")]:
             try:
                 p.mkdir(parents=True, exist_ok=True)
                 test = p / ".write_test"
                 test.write_text("ok")
                 test.unlink()
-                checks[label] = {"ok": True, "path": str(p.relative_to(ROOT))}
+                checks[label] = {"ok": True, "path": str(p.relative_to(DATA_DIR))}
             except Exception as e:
                 checks[label] = {"ok": False, "error": str(e)}
         # V8.2: profiles UI removed; health check no longer requires any profiles.
