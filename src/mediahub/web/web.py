@@ -4558,9 +4558,10 @@ function copyText(btn, taId) {{
         for a in assets[:200]:
             ad = a.to_dict() if hasattr(a, "to_dict") else a
             athlete_names = ", ".join(ad.get("linked_athlete_names") or [])
+            _file_url = url_for('api_media_library_file', asset_id=ad.get('id', ''))
             rows_html += f"""
 <tr>
-  <td><img src=\"/api/media-library/file/{ad.get('id')}\" style=\"max-height:60px;border-radius:4px;\" /></td>
+  <td><img src=\"{_file_url}\" style=\"max-height:60px;border-radius:4px;\" /></td>
   <td>{ad.get('type','')}</td>
   <td>{athlete_names}</td>
   <td>{ad.get('linked_venue') or ad.get('linked_event') or ''}</td>
