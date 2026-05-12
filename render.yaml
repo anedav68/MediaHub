@@ -1,11 +1,11 @@
 # Render.com one-click deploy
 # https://render.com/docs/blueprint-spec
+
 services:
   - type: web
     name: mediahub
     runtime: python
     plan: starter
-    pythonVersion: "3.12"
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
