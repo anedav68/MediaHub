@@ -2091,7 +2091,8 @@ function _fetchCaption(captionUrl, tone, panel, cacheKey, isAi, cardId) {{
       var fallbackNote = '';
       // V8.1: explicit no-key state — do NOT masquerade voice as AI.
       if (isAi && j.live === false) {{
-        var settingsHref = (window._API_BASE || '') + (j.settings_url || '/settings');
+        // j.settings_url is server-generated and already includes any URL prefix.
+        var settingsHref = j.settings_url || ((window._API_BASE || '') + '/settings');
         if (captionDiv) {{
           captionDiv.innerHTML = '<div style="padding:10px;border:1px dashed var(--border);border-radius:6px;background:rgba(255,174,59,0.06);color:var(--ink-muted)">'
             + '<div style="font-weight:600;color:var(--ink);margin-bottom:4px">✦ AI captions are disabled</div>'
@@ -4570,7 +4571,7 @@ function copyText(btn, taId) {{
 <div class=\"card\">
   <h2>Media library — {profile_id}</h2>
   <p>Upload reusable photos. Each gets parsed for athlete/venue/event metadata.</p>
-  <form method=\"POST\" action=\"/api/media-library\" enctype=\"multipart/form-data\">
+  <form method=\"POST\" action=\"{url_for('api_media_library_upload')}\" enctype=\"multipart/form-data\">
     <p><input type=\"file\" name=\"file\" accept=\"image/*\" required></p>
     <p>Description: <input type=\"text\" name=\"description\" placeholder=\"e.g. Eira Hughes at Welsh National Open\" style=\"width:60%\"></p>
     <p>Type: <select name=\"asset_type\">
@@ -4582,7 +4583,7 @@ function copyText(btn, taId) {{
       <option value=\"logo\">logo</option>
     </select></p>
     <input type=\"hidden\" name=\"profile_id\" value=\"{profile_id}\">
-    <button type=\"submit\">Upload</button>
+    <button type=\"submit\" class=\"btn\">Upload photo</button>
   </form>
 </div>
 <div class=\"card\">
@@ -4636,7 +4637,11 @@ function copyText(btn, taId) {{
             tags=meta.get("tags") or [],
         )
         asset = store.save(asset)
-        return jsonify({"ok": True, "asset": asset.to_dict() if hasattr(asset, "to_dict") else asset})
+        # AJAX callers get JSON; plain form submissions redirect back to the library.
+        if (_req.headers.get("Accept", "").find("application/json") != -1
+                or _req.headers.get("X-Requested-With") == "XMLHttpRequest"):
+            return jsonify({"ok": True, "asset": asset.to_dict() if hasattr(asset, "to_dict") else asset})
+        return redirect(url_for("media_library_page", profile_id=profile_id))
 
     @app.route("/api/media-library/file/<asset_id>")
     def api_media_library_file(asset_id: str):
