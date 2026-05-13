@@ -278,14 +278,6 @@ def generate_caption_for_tone(
     base_system = _TONE_SYSTEM_PROMPTS.get(tone, _SYSTEM_PROMPT)
     voice_instructions = _voice_profile_instructions(voice_profile or {})
     system = base_system + voice_instructions if voice_instructions else base_system
-    If ``club_profile`` is provided and carries a populated
-    ``voice_profile`` dict, the system prompt is extended with that
-    club's learned voice fingerprint (openers, hashtag count, swimmer
-    address style, phrases to avoid). Profiles with no voice_profile
-    are accepted and behave exactly like the old single-arg call.
-
-    Raises ClaudeUnavailableError if no LLM provider is reachable.
-    """
     system = _TONE_SYSTEM_PROMPTS.get(tone, _SYSTEM_PROMPT)
     voice_profile = _resolve_voice_profile(club_profile)
     addendum = _voice_profile_addendum(voice_profile)

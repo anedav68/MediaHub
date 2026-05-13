@@ -273,20 +273,7 @@ def analyse_examples(examples: list[str]) -> dict:
 
 
 __all__ = ["analyse_examples", "_redact_pii"]
-    Returns a voice_profile dict — see ClubProfile.voice_profile for the
-    schema. Safe to call without an LLM key — the numeric stats are
-    always populated; the qualitative fields fall back to [] when the
-    LLM is unreachable.
-
-redact_pii(caption: str) -> str
-    Strip obvious personal names from a caption. Exposed for tests and
-    for the /organisation route to apply before storing voice_examples.
-"""
-from __future__ import annotations
-
-import json
 import logging
-import re
 from typing import Iterable, Optional
 
 log = logging.getLogger(__name__)
@@ -572,14 +559,15 @@ def analyse_examples(
         use_llm: True forces the LLM call, False forces the deterministic
             path only. Default (None) means "call the LLM if available".
 
-    The returned dict always contains every key from the documented
-    schema, with sensible defaults when the input is too thin to draw
-    conclusions from.
+    Returns {} when no usable examples are provided.
     """
     cleaned = [c.strip() for c in (examples or []) if c and c.strip()]
+    if not cleaned:
+        return {}
     redacted = _redact_examples(cleaned)
 
     stats = _compute_stats(redacted)
+    cap_style = _capitalisation_style(redacted)
 
     if use_llm is False:
         qual = {
@@ -591,7 +579,7 @@ def analyse_examples(
     else:
         qual = _qualitative_via_llm(redacted)
 
-    return {**stats, **qual}
+    return {**stats, "capitalisation_style": cap_style, **qual}
 
 
 __all__ = [
