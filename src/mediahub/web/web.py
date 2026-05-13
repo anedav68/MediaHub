@@ -488,6 +488,263 @@ def _delete_run(run_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------
+# Schedule (Buffer) modal — shared between classic + grouped pack pages
+# ---------------------------------------------------------------------
+
+def _schedule_modal_html() -> str:
+    """Return the hidden Buffer schedule modal markup.
+
+    The modal is populated by mhScheduleOpen() with channel checkboxes
+    fetched from /api/buffer/channels. When the token is missing the
+    fetch returns 401 and the open-handler shows "Connect Buffer in
+    Settings" instead of opening the dialog.
+    """
+    return """
+<div id="mh-sched-modal" class="no-print"
+     style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(8,12,20,0.72);
+            align-items:center;justify-content:center;padding:20px"
+     onclick="if(event.target===this) mhScheduleClose()">
+  <div role="dialog" aria-modal="true" aria-labelledby="mh-sched-title"
+       style="background:var(--panel,#10141d);border:1px solid var(--border,#252a36);
+              border-radius:12px;max-width:560px;width:100%;max-height:90vh;
+              overflow:auto;padding:22px;color:var(--ink,#e9eef5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 id="mh-sched-title" style="margin:0;font-size:18px">Schedule with Buffer</h2>
+      <button class="btn secondary" style="font-size:14px;padding:4px 10px"
+              onclick="mhScheduleClose()" aria-label="Close">&times;</button>
+    </div>
+    <div id="mh-sched-error" style="display:none;color:#ff8a99;margin-bottom:10px"></div>
+    <div id="mh-sched-channels-wrap" style="margin-bottom:12px">
+      <div style="font-weight:600;margin-bottom:6px">Channels</div>
+      <div id="mh-sched-channels" style="display:flex;flex-direction:column;gap:6px;
+           max-height:180px;overflow:auto;border:1px solid var(--border,#252a36);
+           border-radius:8px;padding:8px">
+        <p class="muted" style="margin:0">Loading channels…</p>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label for="mh-sched-caption" style="font-weight:600;display:block;margin-bottom:4px">Caption</label>
+      <textarea id="mh-sched-caption" rows="6"
+        style="width:100%;padding:8px;border:1px solid var(--border,#252a36);
+               border-radius:8px;background:rgba(255,255,255,0.04);
+               color:inherit;font-family:inherit;resize:vertical"></textarea>
+    </div>
+    <div style="margin-bottom:12px">
+      <label for="mh-sched-when" style="font-weight:600;display:block;margin-bottom:4px">
+        Schedule for <span class="muted" style="font-weight:400">(leave blank for next queue slot)</span>
+      </label>
+      <input id="mh-sched-when" type="datetime-local"
+             style="padding:8px;border:1px solid var(--border,#252a36);border-radius:8px;
+                    background:rgba(255,255,255,0.04);color:inherit;font-family:inherit"/>
+    </div>
+    <input type="hidden" id="mh-sched-media-url"/>
+    <input type="hidden" id="mh-sched-run-id"/>
+    <input type="hidden" id="mh-sched-card-id"/>
+    <input type="hidden" id="mh-sched-pill-id"/>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+      <button class="btn secondary" onclick="mhScheduleClose()">Cancel</button>
+      <button id="mh-sched-send" class="btn" onclick="mhScheduleSend()">Send to Buffer</button>
+    </div>
+  </div>
+</div>
+"""
+
+
+def _schedule_modal_js() -> str:
+    """Return the JS that drives the Buffer schedule modal.
+
+    Pulls channels from /api/buffer/channels (401 → redirect to /settings),
+    POSTs to /api/runs/<id>/card/<cid>/schedule, and preserves the user's
+    edited caption when Buffer returns an error.
+    """
+    return """
+<script>
+(function(){
+  var API_BASE = window._API_BASE || '';
+
+  function fmtDt(d) {
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+      + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function localToIso(local) {
+    if (!local) return '';
+    var d = new Date(local);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString();
+  }
+
+  function pickActiveCaption(cardEl) {
+    if (!cardEl) return '';
+    var activePanel = cardEl.querySelector('.tone-panel:not([style*="display:none"]) textarea');
+    if (activePanel && activePanel.value && activePanel.value.trim()) return activePanel.value.trim();
+    var firstPanel = cardEl.querySelector('.tone-panel textarea');
+    if (firstPanel && firstPanel.value && firstPanel.value.trim()) return firstPanel.value.trim();
+    var ta = cardEl.querySelector('textarea[id^="cap-text-"], textarea[id^="cap-"]');
+    if (ta && ta.value) return ta.value.trim();
+    var fallback = cardEl.textContent || '';
+    return fallback.trim().slice(0, 480);
+  }
+
+  function pickMediaUrl(cardEl) {
+    if (!cardEl) return '';
+    var img = cardEl.querySelector('img[src]');
+    if (img && img.getAttribute('src')) {
+      var src = img.getAttribute('src');
+      if (/^https?:/i.test(src)) return src;
+      try { return new URL(src, window.location.href).toString(); }
+      catch (e) { return ''; }
+    }
+    return '';
+  }
+
+  window.mhScheduleOpen = function(runId, cardId, cardElId) {
+    var modal = document.getElementById('mh-sched-modal');
+    if (!modal) return;
+    var cardEl = document.getElementById(cardElId);
+    document.getElementById('mh-sched-run-id').value = runId || '';
+    document.getElementById('mh-sched-card-id').value = cardId || '';
+    document.getElementById('mh-sched-pill-id').value = cardElId || '';
+    document.getElementById('mh-sched-caption').value = pickActiveCaption(cardEl);
+    document.getElementById('mh-sched-when').value = '';
+    document.getElementById('mh-sched-media-url').value = pickMediaUrl(cardEl);
+    var err = document.getElementById('mh-sched-error');
+    err.style.display = 'none'; err.textContent = '';
+
+    var chWrap = document.getElementById('mh-sched-channels');
+    chWrap.innerHTML = '<p class="muted" style="margin:0">Loading channels…</p>';
+
+    fetch(API_BASE + '/api/buffer/channels', {cache:'no-store'}).then(function(r){
+      return r.json().then(function(j){ return {status:r.status, body:j}; });
+    }).then(function(o){
+      if (o.status === 401 || !o.body.connected) {
+        var settings = (o.body && o.body.settings_url) || (API_BASE + '/settings');
+        alert((o.body && o.body.message) || 'Connect Buffer in Settings first.');
+        window.location.href = settings;
+        return;
+      }
+      if (o.status >= 400) {
+        chWrap.innerHTML = '<p style="color:#ff8a99;margin:0">' +
+          ((o.body && o.body.message) || ('Buffer error ' + o.status)) + '</p>';
+        modal.style.display = 'flex';
+        return;
+      }
+      var channels = (o.body && o.body.channels) || [];
+      if (!channels.length) {
+        chWrap.innerHTML = '<p class="muted" style="margin:0">No channels connected to this Buffer account.</p>';
+      } else {
+        chWrap.innerHTML = '';
+        channels.forEach(function(c, i){
+          var lbl = document.createElement('label');
+          lbl.style.display = 'flex';
+          lbl.style.alignItems = 'center';
+          lbl.style.gap = '8px';
+          lbl.style.cursor = 'pointer';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = c.id;
+          cb.dataset.mhChannel = '1';
+          cb.checked = !!c.default || (i === 0 && channels.length === 1);
+          var name = c.formatted_username || c.service_username || c.id;
+          var service = c.service ? ' (' + c.service + ')' : '';
+          lbl.appendChild(cb);
+          var span = document.createElement('span');
+          span.textContent = name + service;
+          lbl.appendChild(span);
+          chWrap.appendChild(lbl);
+        });
+      }
+      modal.style.display = 'flex';
+    }).catch(function(e){
+      chWrap.innerHTML = '<p style="color:#ff8a99;margin:0">Network error: ' + (e && e.message || e) + '</p>';
+      modal.style.display = 'flex';
+    });
+  };
+
+  window.mhScheduleClose = function() {
+    var modal = document.getElementById('mh-sched-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.mhScheduleSend = function() {
+    var runId  = document.getElementById('mh-sched-run-id').value;
+    var cardId = document.getElementById('mh-sched-card-id').value;
+    var pillId = document.getElementById('mh-sched-pill-id').value;
+    var caption = (document.getElementById('mh-sched-caption').value || '').trim();
+    var whenLocal = document.getElementById('mh-sched-when').value;
+    var mediaUrl = document.getElementById('mh-sched-media-url').value;
+    var err = document.getElementById('mh-sched-error');
+    err.style.display = 'none'; err.textContent = '';
+
+    var cbs = document.querySelectorAll('#mh-sched-channels input[data-mh-channel]:checked');
+    var ids = Array.prototype.map.call(cbs, function(cb){ return cb.value; });
+    if (!ids.length) { err.style.display = 'block'; err.textContent = 'Pick at least one channel.'; return; }
+    if (!caption) { err.style.display = 'block'; err.textContent = 'Caption is required.'; return; }
+
+    var btn = document.getElementById('mh-sched-send');
+    var orig = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Sending…';
+
+    fetch(API_BASE + '/api/runs/' + encodeURIComponent(runId)
+            + '/card/' + encodeURIComponent(cardId) + '/schedule', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        channel_ids: ids,
+        caption: caption,
+        scheduled_at: localToIso(whenLocal) || null,
+        media_url: mediaUrl || null
+      })
+    }).then(function(r){
+      return r.json().then(function(j){ return {status:r.status, body:j}; });
+    }).then(function(o){
+      btn.disabled = false; btn.textContent = orig;
+      if (o.body && typeof o.body.caption === 'string') {
+        document.getElementById('mh-sched-caption').value = o.body.caption;
+      }
+      if (o.status >= 200 && o.status < 300 && o.body && o.body.ok) {
+        var pill = document.querySelector('[data-schedule-pill="' + pillId + '"]');
+        if (pill) {
+          pill.style.display = '';
+          pill.textContent = 'scheduled';
+          pill.classList.remove('bad'); pill.classList.add('good');
+        }
+        var warn = o.body.warning ? (' Warning: ' + o.body.warning) : '';
+        if (window.MH && typeof window.MH.toast === 'function') {
+          window.MH.toast('Scheduled to Buffer.' + warn, warn ? 'info' : 'success');
+        } else {
+          alert('Scheduled to Buffer.' + warn);
+        }
+        mhScheduleClose();
+      } else {
+        var msg = (o.body && (o.body.message || o.body.error)) || ('HTTP ' + o.status);
+        err.style.display = 'block'; err.textContent = msg;
+        var pill = document.querySelector('[data-schedule-pill="' + pillId + '"]');
+        if (pill) {
+          pill.style.display = '';
+          pill.textContent = 'failed';
+          pill.classList.remove('good'); pill.classList.add('bad');
+        }
+      }
+    }).catch(function(e){
+      btn.disabled = false; btn.textContent = orig;
+      err.style.display = 'block';
+      err.textContent = 'Network error: ' + (e && e.message || e);
+    });
+  };
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      var m = document.getElementById('mh-sched-modal');
+      if (m && m.style.display !== 'none') mhScheduleClose();
+    }
+  });
+})();
+</script>
+"""
+
+
+# ---------------------------------------------------------------------
 # Background pipeline worker
 # ---------------------------------------------------------------------
 
@@ -4278,8 +4535,10 @@ Relay team broke club record"></textarea>
         """
         from mediahub.web.secrets_store import (
             get_anthropic_key, set_secret, mask_key, get_secret,
+            get_buffer_access_token, set_buffer_access_token,
         )
         message_html = ""
+        buffer_message_html = ""
         # Fall through to original handler logic (preserved below).
         if request.method == "POST":
             action = (request.form.get("action") or "").strip()
@@ -4346,6 +4605,27 @@ Relay team broke club record"></textarea>
                     set_secret("replicate_api_token", key)
                     message_html = (
                         '<p class="tag good">Replicate API token saved.</p>'
+                    )
+            elif action == "clear_buffer":
+                set_buffer_access_token(None)
+                buffer_message_html = (
+                    '<p class="tag good">Buffer access token cleared.</p>'
+                )
+            elif action == "save_buffer":
+                token = (request.form.get("buffer_access_token") or "").strip()
+                if not token:
+                    buffer_message_html = (
+                        '<p class="tag bad">No Buffer token submitted.</p>'
+                    )
+                elif len(token) < 10:
+                    buffer_message_html = (
+                        '<p class="tag bad">That looks too short to be a '
+                        'Buffer access token.</p>'
+                    )
+                else:
+                    set_buffer_access_token(token)
+                    buffer_message_html = (
+                        '<p class="tag good">Buffer access token saved.</p>'
                     )
             else:
                 # Default action: save Anthropic key.
@@ -4446,6 +4726,88 @@ Relay team broke club record"></textarea>
         )
         replicate_clear_btn = _cutout_clear(
             "clear_replicate", "Replicate API token", bool(replicate_disk)
+        )
+
+        # --- Buffer (publishing) state -----------------------------------
+        buffer_env = bool(os.environ.get("BUFFER_ACCESS_TOKEN"))
+        buffer_disk = get_secret("buffer_access_token")
+        buffer_active = get_buffer_access_token()
+        buffer_status_dot = "#2cc97f" if buffer_active else "#ffae3b"
+        buffer_status_text = "Connected" if buffer_active else "Not connected"
+        if buffer_env:
+            buffer_source = "environment variable"
+        elif buffer_disk:
+            buffer_source = "saved token"
+        else:
+            buffer_source = "none — paste a token below"
+        buffer_masked_html = (
+            f' — <code>{_h(mask_key(buffer_active))}</code>' if buffer_active else ""
+        )
+        # Probe Buffer for the live channel count so users see "Connected"
+        # + an actual number after a save+reload. Failures degrade silently
+        # to a "—" so a transient network blip doesn't look like a config
+        # problem.
+        buffer_channel_count: Optional[int] = None
+        buffer_probe_error = ""
+        if buffer_active:
+            try:
+                from mediahub.publishing.buffer import (
+                    list_channels as _buf_list,
+                    BufferError as _BufError,
+                )
+                buffer_channel_count = len(_buf_list(buffer_active))
+            except Exception as exc:
+                buffer_probe_error = str(exc)
+        buffer_count_html = (
+            f'<span class="tag good">{buffer_channel_count} '
+            f'channel{"s" if buffer_channel_count != 1 else ""}</span>'
+            if buffer_channel_count is not None else ""
+        )
+        buffer_probe_html = (
+            f'<p class="muted" style="font-size:12px;margin-top:6px">'
+            f'Could not list channels: {_h(buffer_probe_error)}</p>'
+            if buffer_probe_error else ""
+        )
+        buffer_clear_btn = ""
+        if buffer_disk:
+            buffer_clear_btn = (
+                '<form method="POST" style="display:inline-block;margin-left:8px">'
+                '<input type="hidden" name="action" value="clear_buffer"/>'
+                '<button type="submit" class="btn secondary" '
+                'onclick="return confirm(\'Remove the saved Buffer access token?\')">'
+                'Disconnect Buffer</button></form>'
+            )
+        buffer_card = (
+            '<div class="card" style="margin-top:16px">'
+            '<h2 style="margin-top:0">Buffer — schedule posts to your channels</h2>'
+            f'{buffer_message_html}'
+            '<p style="display:flex;align-items:center;gap:8px;margin:8px 0">'
+            f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{buffer_status_dot}"></span>'
+            f'<strong>{buffer_status_text}</strong>'
+            f'<span class="muted">— source: {buffer_source}</span>'
+            f'{buffer_count_html}'
+            '</p>'
+            f'<p>Current token: {_h(mask_key(buffer_active)) if buffer_active else "<em>none</em>"}</p>'
+            f'{buffer_probe_html}'
+            '<form method="POST" style="margin-top:12px">'
+            '<input type="hidden" name="action" value="save_buffer"/>'
+            '<label for="buffer_access_token" style="display:block;font-weight:600;margin-bottom:4px">'
+            'Paste your Buffer access token'
+            '</label>'
+            '<input type="password" id="buffer_access_token" name="buffer_access_token" '
+            'placeholder="1/xxxxxxxxxxxxx" autocomplete="off" spellcheck="false" '
+            'style="width:100%;max-width:560px;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:monospace"/>'
+            '<p class="muted" style="margin-top:6px;font-size:12px">'
+            'Generate a personal access token at '
+            '<a href="https://publish.buffer.com/account/apps" target="_blank" rel="noopener">publish.buffer.com/account/apps</a>. '
+            'MediaHub uses this only to list your channels and queue posts you explicitly schedule — no autopost.'
+            '</p>'
+            '<div style="margin-top:10px">'
+            '<button type="submit" class="btn">Save token</button>'
+            f'{buffer_clear_btn}'
+            '</div>'
+            '</form>'
+            '</div>'
         )
 
         def _opt(value: str) -> str:
@@ -4617,8 +4979,11 @@ Relay team broke club record"></textarea>
     <li>Photoroom key: <strong>{photoroom_state}</strong>{photoroom_masked_html}</li>
     <li>Replicate token: <strong>{replicate_state}</strong>{replicate_masked_html}</li>
     <li>Cutout provider: <strong>{cutout_provider}</strong></li>
+    <li>Buffer: <strong>{buffer_status_text}</strong>{(' · ' + str(buffer_channel_count) + ' channels') if buffer_channel_count is not None else ''}</li>
   </ul>
 </div>
+
+{buffer_card}
 
 {cutout_card}
 """
@@ -4656,6 +5021,218 @@ Relay team broke club record"></textarea>
             "settings_url": url_for("settings_page"),
         })
 
+
+    # ---- Buffer publishing -------------------------------------------
+    @app.route("/api/buffer/channels")
+    def api_buffer_channels():
+        """List the user's connected Buffer channels.
+
+        Returns 401 when no token is configured so the UI can show
+        "Connect Buffer in Settings" instead of opening the modal.
+        """
+        from mediahub.web.secrets_store import get_buffer_access_token
+        from mediahub.publishing.buffer import (
+            list_channels as _buf_list,
+            BufferAuthError, BufferAPIError,
+        )
+        token = get_buffer_access_token()
+        if not token:
+            return jsonify({
+                "connected": False,
+                "channels": [],
+                "error": "no_token",
+                "message": "Connect Buffer in Settings to schedule posts.",
+                "settings_url": url_for("settings_page"),
+            }), 401
+        try:
+            channels = _buf_list(token)
+        except BufferAuthError as exc:
+            return jsonify({
+                "connected": False,
+                "channels": [],
+                "error": "auth",
+                "message": str(exc),
+                "settings_url": url_for("settings_page"),
+            }), 401
+        except BufferAPIError as exc:
+            return jsonify({
+                "connected": True,
+                "channels": [],
+                "error": "api",
+                "message": str(exc),
+            }), 502
+        return jsonify({
+            "connected": True,
+            "channels": channels,
+            "count": len(channels),
+        })
+
+    @app.route(
+        "/api/runs/<run_id>/card/<path:card_id>/schedule",
+        methods=["POST"],
+    )
+    def api_card_schedule(run_id, card_id):
+        """Schedule a card to one or more Buffer channels.
+
+        Body JSON:
+            {
+              "channel_ids":  ["...", ...],   # required, non-empty
+              "scheduled_at": "2026-06-01T10:00:00Z" | null,
+              "caption":      "the edited caption text",
+              "media_url":    "https://..." | null
+            }
+
+        Returns 200 with the per-channel results on success, 4xx on bad
+        input / missing token, 502 if Buffer rejects the call. The
+        user's edited caption is echoed back in `caption` so the UI
+        can preserve it even after a failure.
+        """
+        from mediahub.web.secrets_store import get_buffer_access_token
+        from mediahub.publishing.buffer import (
+            schedule_post as _buf_schedule,
+            BufferAuthError, BufferAPIError,
+        )
+
+        payload = request.get_json(silent=True) or {}
+        channel_ids = payload.get("channel_ids") or []
+        if not isinstance(channel_ids, list) or not channel_ids:
+            return jsonify({
+                "ok": False,
+                "error": "no_channels",
+                "message": "Pick at least one Buffer channel.",
+                "caption": payload.get("caption", ""),
+            }), 400
+
+        caption = (payload.get("caption") or "").strip()
+        if not caption:
+            return jsonify({
+                "ok": False,
+                "error": "no_caption",
+                "message": "Caption is required.",
+                "caption": "",
+            }), 400
+
+        media_url = (payload.get("media_url") or "").strip()
+        media_urls = [media_url] if media_url else None
+
+        scheduled_at_iso = (payload.get("scheduled_at") or "").strip()
+        scheduled_at_dt: Optional[datetime] = None
+        if scheduled_at_iso:
+            try:
+                normalised = scheduled_at_iso.replace("Z", "+00:00")
+                scheduled_at_dt = datetime.fromisoformat(normalised)
+                if scheduled_at_dt.tzinfo is None:
+                    scheduled_at_dt = scheduled_at_dt.replace(tzinfo=timezone.utc)
+            except ValueError:
+                return jsonify({
+                    "ok": False,
+                    "error": "bad_time",
+                    "message": "Scheduled time was not a valid ISO 8601 datetime.",
+                    "caption": caption,
+                }), 400
+
+        token = get_buffer_access_token()
+        if not token:
+            return jsonify({
+                "ok": False,
+                "error": "no_token",
+                "message": "Connect Buffer in Settings before scheduling.",
+                "settings_url": url_for("settings_page"),
+                "caption": caption,
+            }), 401
+
+        ws = _get_wf_store()
+        results: list[dict] = []
+        update_ids: list[str] = []
+        failure: Optional[str] = None
+
+        for cid in channel_ids:
+            try:
+                res = _buf_schedule(
+                    token=token,
+                    channel_id=str(cid),
+                    text=caption,
+                    media_urls=media_urls,
+                    scheduled_at=scheduled_at_dt,
+                )
+                results.append({
+                    "channel_id": str(cid),
+                    "ok": True,
+                    "update_id": res.get("update_id", ""),
+                })
+                if res.get("update_id"):
+                    update_ids.append(res["update_id"])
+            except BufferAuthError as exc:
+                failure = str(exc)
+                results.append({
+                    "channel_id": str(cid),
+                    "ok": False,
+                    "error": "auth",
+                    "message": str(exc),
+                })
+                break  # Stop early — token is the same for every channel.
+            except BufferAPIError as exc:
+                failure = str(exc)
+                results.append({
+                    "channel_id": str(cid),
+                    "ok": False,
+                    "error": "api",
+                    "message": str(exc),
+                })
+
+        any_ok = any(r.get("ok") for r in results)
+        try:
+            from mediahub.workflow.status import ScheduleStatus
+        except Exception:
+            ScheduleStatus = None  # type: ignore
+
+        if ws is not None and ScheduleStatus is not None:
+            if any_ok and not failure:
+                ws.set_schedule(
+                    run_id, card_id,
+                    schedule_status=ScheduleStatus.SCHEDULED,
+                    buffer_update_id=";".join(update_ids) or None,
+                    scheduled_at=scheduled_at_dt.isoformat() if scheduled_at_dt else None,
+                    schedule_error=None,
+                )
+            elif any_ok and failure:
+                # Partial success: at least one channel went through but
+                # another failed. Record the success and surface the
+                # failure to the user.
+                ws.set_schedule(
+                    run_id, card_id,
+                    schedule_status=ScheduleStatus.SCHEDULED,
+                    buffer_update_id=";".join(update_ids) or None,
+                    scheduled_at=scheduled_at_dt.isoformat() if scheduled_at_dt else None,
+                    schedule_error=failure,
+                )
+            else:
+                ws.set_schedule(
+                    run_id, card_id,
+                    schedule_status=ScheduleStatus.FAILED,
+                    buffer_update_id=None,
+                    scheduled_at=None,
+                    schedule_error=failure or "Scheduling failed.",
+                )
+
+        if not any_ok:
+            return jsonify({
+                "ok": False,
+                "error": "buffer_failed",
+                "message": failure or "Buffer rejected the request.",
+                "results": results,
+                "caption": caption,
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "schedule_status": "scheduled",
+            "buffer_update_ids": update_ids,
+            "scheduled_at": scheduled_at_dt.isoformat() if scheduled_at_dt else None,
+            "results": results,
+            "caption": caption,
+            "warning": failure,  # non-empty if a partial failure occurred
+        })
 
     # ====================================================================
     # V7 NEW ROUTES
@@ -5948,6 +6525,18 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 _plain_raw = f"{active_cap.get('headline','')} {active_cap.get('body','')} {active_cap.get('cta','')}".strip()
                 cap_plain_only = cap_plain_hash = cap_plain_full = _plain_raw
 
+            # Schedule-state pill from workflow sidecar (queued|scheduled|published|failed).
+            wf_dict = card.get("workflow") or {}
+            sched_state = (wf_dict.get("schedule_status") or "queued").lower()
+            sched_pill_class = {
+                "scheduled": "good",
+                "published": "good",
+                "failed":    "bad",
+            }.get(sched_state, "")
+            sched_pill = (
+                f'<span class="tag {sched_pill_class}" data-schedule-pill="pc-{card_uuid}" '
+                f'style="font-size:11px;{"display:none" if sched_state == "queued" else ""}">{_h(sched_state)}</span>'
+            )
             # V9: "Why this card?" — explanation for the approved card.
             why_html_pack = _render_why_this_card(card, card_uuid=f"pc-{card_uuid}")
 
@@ -5958,16 +6547,23 @@ function copySpotlightCaption(btn, cardIdSafe) {{
       <div style="font-size:13px;font-weight:700;color:var(--ink)">{swimmer} · {event}</div>
       <div style="font-size:12px;color:var(--ink-dim);margin-top:2px">{headline}</div>
     </div>
-    <span class="tag good" style="flex-shrink:0">approved</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      {sched_pill}
+      <span class="tag good" style="flex-shrink:0">approved</span>
+    </div>
   </div>
   <div style="padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px">
     {inner_html}
   </div>
+  <div class="no-print" style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
   {why_html_pack}
   <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button class="btn secondary" style="font-size:12px;padding:5px 12px" onclick="copyActiveTone(this, 'pc-{card_uuid}')">Copy caption</button>
     <button class="btn secondary" style="font-size:12px;padding:5px 12px" onclick="copyCaption(this, 'cap-text-{card_id}-2')">Copy + hashtags</button>
     <button class="btn secondary" style="font-size:12px;padding:5px 12px" onclick="copyCaption(this, 'cap-text-{card_id}-3')">Copy full brief</button>
+    <button class="btn" style="font-size:12px;padding:5px 12px"
+      onclick="mhScheduleOpen({json.dumps(run_id)}, {json.dumps(str(card_id_raw))}, 'pc-{card_uuid}')"
+      data-mh-schedule-btn>Schedule…</button>
     <textarea id="cap-text-{card_id}-1" style="display:none">{cap_plain_only}</textarea>
     <textarea id="cap-text-{card_id}-2" style="display:none">{cap_plain_hash}</textarea>
     <textarea id="cap-text-{card_id}-3" style="display:none">{cap_plain_full}</textarea>
@@ -5998,6 +6594,8 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 </div>
 
 {cards_html}
+
+{_schedule_modal_html()}
 
 <script>
 // Robust copy with execCommand fallback for browsers without clipboard API.
@@ -6039,6 +6637,7 @@ function copyWhyCard(btn, taId) {{
   }}
 }}
 </script>
+{_schedule_modal_js()}
 """
         return _layout(f"Content Pack — {meet_name}", body, active="home")
 
@@ -6463,10 +7062,33 @@ function tiRegenerate() {{
                 cap_only = _h(item.get("caption_only") or ach.get("headline") or "")
                 cap_hash = _h(item.get("caption_with_hashtags") or "")
                 cap_full = _h(item.get("caption_full_brief") or "")
-                card_id = _h(ach.get("swim_id") or item.get("card_id") or "")
+                card_id_raw = ach.get("swim_id") or item.get("card_id") or ""
+                card_id = _h(card_id_raw)
+                card_uuid = str(card_id_raw).replace(":", "_").replace(",", "_")
                 band = _h(item.get("quality_band") or "")
                 prio = item.get("priority", 0)
                 n_ach = item.get("n_achievements", 0)
+                # Schedule state pill (queued|scheduled|published|failed).
+                sched_state_raw = (item.get("schedule_status")
+                                   or (item.get("workflow") or {}).get("schedule_status")
+                                   or "queued")
+                sched_state = str(sched_state_raw).lower()
+                sched_pill_class = {
+                    "scheduled": "good",
+                    "published": "good",
+                    "failed":    "bad",
+                }.get(sched_state, "")
+                sched_pill_html = (
+                    f'<span class="tag {sched_pill_class}" data-schedule-pill="g-{card_uuid}" '
+                    f'style="font-size:11px;{"display:none" if sched_state == "queued" else ""}">{_h(sched_state)}</span>'
+                )
+                schedule_btn = (
+                    f'<button class="btn" style="font-size:12px;padding:4px 10px" data-mh-schedule-btn '
+                    f'onclick="mhScheduleOpen({json.dumps(run_id)}, {json.dumps(str(card_id_raw))}, \'g-{card_uuid}\')">'
+                    f'Schedule…</button>'
+                ) if card_id_raw else ""
+                rows += f"""
+<div class="card" id="g-{card_uuid}" style="margin-bottom:12px">
                 # V9: "Why this card?" — derive from factors + evidence on this item.
             _ra_for_why = {
                 "achievement": ach if isinstance(ach, dict) else (item.get("achievement") or {}),
@@ -6484,6 +7106,7 @@ function tiRegenerate() {{
       <div style="font-size:12px;color:var(--ink-dim);margin-top:2px">{headline}</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      {sched_pill_html}
       {f'<span class="tag">{angle}</span>' if angle else ""}
       <span class="tag {s2p_cls}" title="{s2p_reason}">{s2p_level}</span>
       {f'<span class="tag">{band}</span>' if band else ""}
@@ -6497,6 +7120,7 @@ function tiRegenerate() {{
     <textarea id="cap-{card_id}-2" style="display:none">{cap_hash}</textarea>
     <button class="btn secondary" style="font-size:12px;padding:4px 10px" onclick="copyText(this,'cap-{card_id}-3')">Copy full brief</button>
     <textarea id="cap-{card_id}-3" style="display:none">{cap_full}</textarea>
+    {schedule_btn}
   </div>
 </div>"""
             if not rows:
@@ -6598,6 +7222,8 @@ function tiRegenerate() {{
 {_section_html("Needs review", grouped.get("needs_review", []), icon="⚠")}
 {_section_html("Rejected / not recommended", grouped.get("rejected", []), icon="✕")}
 
+{_schedule_modal_html()}
+
 <script>
 function copyText(btn, taId) {{
   var ta = document.getElementById(taId);
@@ -6657,6 +7283,7 @@ function generateReelGrouped(btn, reelUrl) {{
     }});
 }}
 </script>
+{_schedule_modal_js()}
 """
         return _layout(f"Content Pack (grouped) — {meet_name}", body, active="home")
 
