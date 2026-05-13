@@ -435,6 +435,42 @@ def _scale_for_format(width: int, height: int) -> dict[str, float]:
     return {"surname": 0.30, "first": 0.07, "event": 0.024, "result": 0.050, "ribbon": 0.032}
 
 
+def _detect_medal_tier(brief) -> Optional[str]:
+    """Return 'gold' | 'silver' | 'bronze' | 'pb' | None based on the brief.
+
+    Looks at achievement_label, post_angle, inspiration_pattern_id, and place
+    so any layout (not just medal_card) can colour itself appropriately.
+    A swimmer that medalled should always read as "medalled" at a glance,
+    regardless of which layout the brief picked.
+    """
+    layers = brief.text_layers or {}
+    label = (layers.get("achievement_label") or "").lower()
+    angle = (layers.get("post_angle") or "").lower()
+    pattern = (getattr(brief, "inspiration_pattern_id", "") or "").lower()
+    place = str(layers.get("place") or "").strip()
+    combined = " ".join([label, angle, pattern])
+
+    if "gold" in combined or place in ("1", "1st") or place.startswith("1"):
+        return "gold"
+    if "silver" in combined or place in ("2", "2nd") or place.startswith("2"):
+        return "silver"
+    if "bronze" in combined or place in ("3", "3rd") or place.startswith("3"):
+        return "bronze"
+    if "new pb" in combined or "personal best" in combined or "pb swim" in combined:
+        return "pb"
+    return None
+
+
+# Medal palette overrides — applied on top of the club's brand colours so
+# tier is unmistakable at a glance while the brand still dominates.
+_MEDAL_ACCENTS = {
+    "gold":   {"accent": "#FFD24A", "accent_deep": "#A77A07", "badge": "GOLD"},
+    "silver": {"accent": "#E8EAED", "accent_deep": "#6F757B", "badge": "SILVER"},
+    "bronze": {"accent": "#E2A26A", "accent_deep": "#7E481B", "badge": "BRONZE"},
+    "pb":     {"accent": "#22D3EE", "accent_deep": "#0E7C8F", "badge": "NEW PB"},
+}
+
+
 def _common_replacements(brief, width: int, height: int, brand_kit, *,
                          athlete_data_uri: str | None,
                          logo_block: str,
@@ -445,6 +481,34 @@ def _common_replacements(brief, width: int, height: int, brand_kit, *,
     secondary = palette.get("secondary", "#000000")
     accent = palette.get("accent", "#FFFFFF")
     primary_deep = darken(primary, 0.30)
+
+    # Medal-tier override: gold/silver/bronze should be unmistakable in the
+    # accent colour without losing the club's brand identity in the primary.
+    tier = _detect_medal_tier(brief)
+    medal_badge_html = ""
+    if tier and tier in _MEDAL_ACCENTS:
+        ovr = _MEDAL_ACCENTS[tier]
+        # Override accent so result-chip border, label-ribbon, and event
+        # subtitle all pick up the tier colour automatically.
+        accent = ovr["accent"]
+        # Tier badge — placed below the result chip, top-right, so it
+        # sits next to the time (which is the hero element) and never
+        # collides with the .label-ribbon top-left achievement label.
+        # PB uses a lighter, less-shouty treatment than medal tiers.
+        badge_top = int(height * 0.20)
+        font_size = max(36, int(height * 0.038))
+        medal_badge_html = (
+            f'<div class="tier-badge" style="position:absolute;'
+            f'top:{badge_top}px;right:56px;z-index:10;'
+            f'background:linear-gradient(135deg,{ovr["accent"]} 0%,{ovr["accent_deep"]} 100%);'
+            f'color:#1a1a1a;padding:14px 28px;border-radius:999px;'
+            f'font-family:\'Bebas Neue\',\'Anton\',sans-serif;'
+            f'font-size:{font_size}px;letter-spacing:0.14em;'
+            f'font-weight:700;box-shadow:0 10px 26px rgba(0,0,0,0.50),'
+            f'inset 0 2px 0 rgba(255,255,255,0.5);'
+            f'border:2px solid rgba(255,255,255,0.25)">'
+            f'&#9733; {ovr["badge"]}</div>'
+        )
 
     base_css = _read_text(_BASE_CSS_PATH)
     try:
@@ -521,6 +585,7 @@ def _common_replacements(brief, width: int, height: int, brand_kit, *,
         "LOGO_BLOCK": logo_block,
         "RESULT_CHIP_BLOCK": result_chip,
         "SPONSOR_BLOCK": sponsor_block,
+        "MEDAL_BADGE_BLOCK": medal_badge_html,
     }
 
 
