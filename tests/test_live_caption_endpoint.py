@@ -186,9 +186,9 @@ class TestEndpointAIWithKey:
         _llm._anthropic_client = None
         _llm._anthropic_client_key = None
 
-        # Stub call_claude so we don't make a real network call.
-        # Must patch the fully-qualified name that web.py imports from.
-        with mock.patch("mediahub.media_ai.llm.call_claude", return_value="Stubbed AI caption."):
+        # Stub call_claude where ai_caption.py bound it (the generate_caption_for_tone
+        # path imports call_claude by reference, so patch the ai_caption module).
+        with mock.patch("mediahub.web.ai_caption.call_claude", return_value="Stubbed AI caption."):
             resp = client.post(
                 f"/api/runs/{fake_run_id}/swim/test_swim_001/caption?tone=ai"
             )

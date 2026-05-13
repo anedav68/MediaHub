@@ -3360,6 +3360,8 @@ function addGraphicToPack(btn, visualId) {{
                     "tone": tone,
                     "live": True,
                     "generated_at": now_iso,
+                    "fallback": False,
+                    "fallback_voice": None,
                 })
             except _ClaudeUE as e:
                 return jsonify({
