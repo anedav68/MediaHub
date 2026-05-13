@@ -89,6 +89,16 @@ class ClubProfile:
     brand_captured_at: str = ""
     brand_capture_status: str = ""
 
+    # ---- Step 2: Voice Imitation (all optional, backward-compatible) ----
+    # Raw example captions pasted by the user (5-20 past social posts).
+    voice_examples: list[str] = field(default_factory=list)
+
+    # Structured voice profile computed by brand.voice_imitation.analyse_examples().
+    # Keys: sentence_length_avg, sentence_length_p90, emoji_rate_per_caption,
+    # hashtag_count_avg, characteristic_openers, characteristic_closers,
+    # forbidden_phrases, preferred_swimmer_address.
+    voice_profile: dict = field(default_factory=dict)
+
     def to_dict(self) -> dict:
         return asdict(self)
 

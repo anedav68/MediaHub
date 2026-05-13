@@ -3328,6 +3328,17 @@ function addGraphicToPack(btn, visualId) {{
             "meet_name": (data.get("meet") or {}).get("name", ""),
         }
 
+        # Load voice profile from the club profile (best-effort; None is fine)
+        _run_voice_profile: Optional[dict] = None
+        try:
+            _run_profile_id = data.get("profile_id") or ""
+            if _run_profile_id:
+                _club_prof = load_profile(_run_profile_id)
+                if _club_prof and _club_prof.voice_profile:
+                    _run_voice_profile = _club_prof.voice_profile
+        except Exception:
+            pass
+
         now_iso = datetime.now(_tz.utc).isoformat()
 
         from mediahub.media_ai.llm import is_available as _llm_available
@@ -3354,7 +3365,8 @@ function addGraphicToPack(btn, visualId) {{
                     "settings_url": url_for("settings_page"),
                 }), 200
             try:
-                caption_text = _gen_tone(ach_dict, club_brand, tone=tone)
+                caption_text = _gen_tone(ach_dict, club_brand, tone=tone,
+                                         voice_profile=_run_voice_profile)
                 return jsonify({
                     "caption": caption_text,
                     "tone": tone,
@@ -4966,8 +4978,10 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         saved_msg = ""
         capture_preview = ""      # rendered preview HTML when a capture has just run
         capture_error = ""        # rendered error banner when capture failed
-        # The capture preview is kept in-memory only — the user must click
-        # "Save organisation" to persist it (no silent writes).
+        voice_preview = ""        # rendered preview HTML after voice analysis
+        voice_error = ""          # rendered error banner when voice analysis failed
+        # The capture/voice previews are kept in-memory only — the user must
+        # click "Save organisation" to persist them (no silent writes).
         if request.method == "POST":
             action = (request.form.get("action") or "save").strip().lower()
             raw_id = (request.form.get("profile_id") or "default").strip().lower()
@@ -5040,6 +5054,43 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                         )
                 profile = existing
 
+            elif action == "analyse_voice":
+                # ---- Voice imitation analysis ----
+                raw_examples = (request.form.get("voice_examples") or "").strip()
+                if not raw_examples:
+                    voice_error = (
+                        '<p class="tag bad" style="margin-bottom:20px">'
+                        'Paste at least 3 captions (one per line) to analyse voice.</p>'
+                    )
+                    profile = existing
+                else:
+                    examples = [e.strip() for e in raw_examples.split("\n") if e.strip()]
+                    if len(examples) < 2:
+                        voice_error = (
+                            '<p class="tag bad" style="margin-bottom:20px">'
+                            'Paste at least 3 captions to get meaningful results.</p>'
+                        )
+                        profile = existing
+                    else:
+                        try:
+                            from mediahub.brand.voice_imitation import analyse_examples as _analyse
+                            vp = _analyse(examples)
+                        except Exception as exc:
+                            vp = {}
+                            voice_error = (
+                                f'<p class="tag bad" style="margin-bottom:20px">'
+                                f'Analysis failed: {_h(str(exc))}</p>'
+                            )
+                        if vp:
+                            existing.voice_examples = examples[:20]
+                            existing.voice_profile = vp
+                            voice_preview = (
+                                '<p class="tag info" style="margin-bottom:20px">'
+                                'Voice profile analysed — review below and click '
+                                'Save organisation to persist.</p>'
+                            )
+                    profile = existing
+
             else:
                 # ---- Save organisation (existing behaviour) ----
                 existing.display_name = (request.form.get("display_name") or existing.display_name).strip()
@@ -5106,6 +5157,9 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 existing.brand_phrases_to_use = _hidden_list("brand_phrases_to_use_json")
                 existing.brand_phrases_to_avoid = _hidden_list("brand_phrases_to_avoid_json")
                 existing.brand_palette_extracted = _hidden_dict("brand_palette_extracted_json")
+                # Voice imitation — persist any analysed voice_profile from hidden inputs
+                existing.voice_profile = _hidden_dict("voice_profile_json")
+                existing.voice_examples = _hidden_list("voice_examples_json")
                 save_profile(existing)
                 saved_msg = '<p class="tag good" style="margin-bottom:20px">Organisation saved.</p>'
                 profile = existing
@@ -5239,10 +5293,60 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             f'<input type="hidden" name="brand_phrases_to_use_json" value="{_h(json.dumps(profile.brand_phrases_to_use or []))}"/>'
             f'<input type="hidden" name="brand_phrases_to_avoid_json" value="{_h(json.dumps(profile.brand_phrases_to_avoid or []))}"/>'
             f'<input type="hidden" name="brand_palette_extracted_json" value="{_h(json.dumps(profile.brand_palette_extracted or {}))}"/>'
+            f'<input type="hidden" name="voice_profile_json" value="{_h(json.dumps(profile.voice_profile or {}))}"/>'
+            f'<input type="hidden" name="voice_examples_json" value="{_h(json.dumps(profile.voice_examples or []))}"/>'
         )
 
+        # ---- Voice profile preview block ----
+        voice_profile_html = ""
+        vp = profile.voice_profile or {}
+        if vp:
+            def _stat_row(label: str, val) -> str:
+                return (
+                    f'<div style="display:flex;justify-content:space-between;'
+                    f'padding:4px 0;border-bottom:1px solid var(--border);font-size:13px">'
+                    f'<span style="color:var(--ink-dim)">{_h(label)}</span>'
+                    f'<strong style="color:var(--ink)">{_h(str(val))}</strong></div>'
+                )
+
+            openers_html = " ".join(_chip(o, "neutral") for o in (vp.get("characteristic_openers") or [])[:6])
+            closers_html = " ".join(_chip(c, "neutral") for c in (vp.get("characteristic_closers") or [])[:4])
+            forbidden_html = " ".join(_chip(f, "bad") for f in (vp.get("forbidden_phrases") or [])[:6])
+            hashtags_html = " ".join(_chip(h, "neutral") for h in (vp.get("common_hashtags") or [])[:8])
+            address = _h(vp.get("preferred_swimmer_address") or "first_name")
+            cap_style = _h(vp.get("capitalisation_style") or "sentence")
+            n_examples = len(profile.voice_examples or [])
+            voice_profile_html = f"""
+<div class="card" style="margin-bottom:20px;border:1px dashed var(--border);background:rgba(167,139,250,0.04)">
+  <h3 style="margin-top:0;margin-bottom:12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-dim)">Voice profile preview · {n_examples} example{'s' if n_examples != 1 else ''}</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+    <div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:8px">Style metrics</div>
+      {_stat_row('Avg sentence length (words)', vp.get('sentence_length_avg', 0))}
+      {_stat_row('Sentence length p90', vp.get('sentence_length_p90', 0))}
+      {_stat_row('Avg emoji per caption', vp.get('emoji_rate_per_caption', 0))}
+      {_stat_row('Avg hashtags per caption', vp.get('hashtag_count_avg', 0))}
+      {_stat_row('Capitalisation style', cap_style)}
+      {_stat_row('Swimmer address', address)}
+    </div>
+    <div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:6px">Typical openers</div>
+      <div style="margin-bottom:10px">{openers_html or '<span class="dim" style="font-size:12px">(none detected)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:6px">Typical closers</div>
+      <div style="margin-bottom:10px">{closers_html or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:6px">Common hashtags</div>
+      <div style="margin-bottom:10px">{hashtags_html or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:6px">Phrases to avoid</div>
+      <div>{forbidden_html or '<span class="dim" style="font-size:12px">(none identified)</span>'}</div>
+    </div>
+  </div>
+</div>
+"""
+
+        voice_examples_text = "\n".join(profile.voice_examples or [])
+
         body = f"""
-{saved_msg}{capture_preview}{capture_error}
+{saved_msg}{capture_preview}{capture_error}{voice_preview}{voice_error}
 <h1>Organisation</h1>
 <p class="dim" style="margin-bottom:24px">Tell MediaHub about your club, society or team so the AI can produce on-brand content.</p>
 
@@ -5261,6 +5365,22 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 </div>
 
 {brand_preview_html}
+
+<div class="card" style="margin-bottom:20px;border:1px solid rgba(167,139,250,0.4);background:rgba(167,139,250,0.04)">
+  <h2 style="margin-top:0">Analyse voice from past posts</h2>
+  <p class="dim" style="margin-bottom:12px;font-size:13px">Paste 5–20 recent captions (one per line). MediaHub measures sentence length, emoji density, hashtag style, and extracts opening/closing phrase patterns so generated captions sound like you.</p>
+  <form method="POST">
+    <input type="hidden" name="action" value="analyse_voice"/>
+    <input type="hidden" name="profile_id" value="{_h(profile.profile_id)}"/>
+    <input type="hidden" name="display_name" value="{_h(profile.display_name)}"/>
+    <textarea name="voice_examples" rows="8"
+              placeholder="Paste one caption per line&#10;e.g.&#10;Huge PB for the squad this weekend — 200 free goes sub-2 for the first time &#127946;&#10;What a meet! Five PBs and a county standard from our junior group. #swimming #clublife"
+              style="{_ta_style};max-width:640px;display:block;margin-bottom:10px">{_h(voice_examples_text)}</textarea>
+    <button type="submit" class="btn">Analyse voice →</button>
+  </form>
+</div>
+
+{voice_profile_html}
 
 <form method="POST">
 <input type="hidden" name="action" value="save"/>
