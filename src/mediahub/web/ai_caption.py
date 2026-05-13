@@ -190,6 +190,57 @@ def _build_user_message(achievement: dict, club_brand: Optional[dict],
     return "\n".join(parts)
 
 
+def _voice_profile_instructions(vp: dict) -> str:
+    """Build a voice-style instruction block from a voice_profile dict."""
+    if not vp:
+        return ""
+    lines: list[str] = []
+
+    avg = vp.get("sentence_length_avg")
+    if avg:
+        lines.append(f"Target sentence length: ~{int(round(float(avg)))} words.")
+
+    emoji_rate = vp.get("emoji_rate_per_caption", 0)
+    if float(emoji_rate) < 0.1:
+        lines.append("Use no emoji.")
+    elif float(emoji_rate) < 0.8:
+        lines.append("Use emoji sparingly (0-1 per caption).")
+    else:
+        lines.append(f"Use emoji freely (~{float(emoji_rate):.0f} per caption).")
+
+    hashtag_avg = vp.get("hashtag_count_avg", 0)
+    if float(hashtag_avg) < 0.3:
+        lines.append("Do not add hashtags.")
+    elif float(hashtag_avg) < 2:
+        lines.append(f"Include ~{float(hashtag_avg):.0f}-1 relevant hashtag(s).")
+    else:
+        lines.append(f"Include ~{int(round(float(hashtag_avg)))} hashtags.")
+
+    address = vp.get("preferred_swimmer_address") or "first_name"
+    if address == "last_name":
+        lines.append("Refer to the swimmer by last name only.")
+    elif address in ("surname_only", "last_name"):
+        lines.append("Refer to the swimmer by surname only.")
+    else:
+        lines.append("Refer to the swimmer by first name.")
+
+    openers = vp.get("characteristic_openers") or []
+    if openers:
+        sample = "; ".join(f'"{o}"' for o in openers[:3])
+        lines.append(f"Opening style similar to: {sample}.")
+
+    forbidden = vp.get("forbidden_phrases") or []
+    if forbidden:
+        sample = ", ".join(f'"{p}"' for p in forbidden[:4])
+        lines.append(f"Avoid these phrases or patterns: {sample}.")
+
+    cap_style = vp.get("capitalisation_style") or "sentence"
+    if cap_style == "all_caps_emphasis":
+        lines.append("Use ALL-CAPS for emphasis on key words.")
+
+    if not lines:
+        return ""
+    return "\nVoice style instructions (based on this club's past posts):\n" + "\n".join(f"- {l}" for l in lines)
 def _resolve_voice_profile(club_profile) -> Optional[dict]:
     """Return a usable voice_profile dict from a ClubProfile-like object.
 
@@ -210,6 +261,7 @@ def generate_caption_for_tone(
     achievement_dict: dict,
     club_brand: Optional[dict] = None,
     tone: str = "ai",
+    voice_profile: Optional[dict] = None,
     club_profile=None,
 ) -> str:
     """Generate a unique AI caption for the given tone. Returns caption text.
@@ -217,6 +269,15 @@ def generate_caption_for_tone(
     Always generates fresh — never uses a cache. A random nonce is injected
     so that repeated calls with the same data produce different captions.
 
+    voice_profile: optional dict from ClubProfile.voice_profile; if provided,
+    style instructions (sentence length, emoji rate, hashtag count, etc.) are
+    injected into the system prompt so the output sounds like the club's own posts.
+
+    Raises ClaudeUnavailableError if no LLM provider is reachable.
+    """
+    base_system = _TONE_SYSTEM_PROMPTS.get(tone, _SYSTEM_PROMPT)
+    voice_instructions = _voice_profile_instructions(voice_profile or {})
+    system = base_system + voice_instructions if voice_instructions else base_system
     If ``club_profile`` is provided and carries a populated
     ``voice_profile`` dict, the system prompt is extended with that
     club's learned voice fingerprint (openers, hashtag count, swimmer
