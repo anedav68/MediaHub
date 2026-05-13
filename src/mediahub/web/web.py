@@ -96,6 +96,122 @@ except ImportError as _v73_err:
     _load_voice_profile = None
     _save_voice_profile = None
 
+# V9: "Why this card?" explainer.
+try:
+    from mediahub.recognition.explainer import explain_achievement as _explain_achievement
+except ImportError:
+    _explain_achievement = None
+
+
+def _build_card_explanation(ra: dict) -> dict:
+    """Build the "Why this card?" explanation dict for a ranked-achievement.
+
+    Returns the explain_achievement() output, or a fallback dict when the
+    explainer module is unavailable. Always returns a dict with the three
+    expected keys so downstream code can render unconditionally.
+    """
+    if _explain_achievement is None:
+        return {
+            "headline":     "Generated for: ranked top-N by overall score.",
+            "bullets":      [],
+            "source_lines": [],
+        }
+    try:
+        return _explain_achievement(
+            ra.get("achievement") or {},
+            ra.get("factors") or [],
+            rank=ra.get("rank"),
+        )
+    except Exception:
+        return {
+            "headline":     "Generated for: ranked top-N by overall score.",
+            "bullets":      [],
+            "source_lines": [],
+        }
+
+
+def _render_why_this_card(ra: dict, *, card_uuid: str) -> str:
+    """Render the collapsible "Why this card?" disclosure HTML.
+
+    The block is grounded: the headline / bullets come from the ranker's
+    factors and the source_lines are quoted verbatim from the achievement's
+    evidence entries. A "Copy reasoning" button copies the full text so it
+    can be pasted into a sponsor report.
+    """
+    exp = _build_card_explanation(ra)
+    headline = _h(exp.get("headline", ""))
+    bullets = exp.get("bullets") or []
+    source_lines = exp.get("source_lines") or []
+
+    bullets_html = ""
+    for b in bullets:
+        bullets_html += f'<li style="margin-bottom:3px">{_h(b)}</li>'
+    if not bullets_html:
+        bullets_html = ""
+
+    src_html = ""
+    for sl in source_lines:
+        label = _h(sl.get("label", "source"))
+        raw = _h(sl.get("raw_text", ""))
+        offset = sl.get("file_offset")
+        offset_tag = (
+            f'<span class="muted" style="font-size:10px;margin-left:6px">#{int(offset)}</span>'
+            if isinstance(offset, int) else ""
+        )
+        src_html += (
+            f'<li style="margin-bottom:6px">'
+            f'<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px">'
+            f'{label}{offset_tag}</div>'
+            f'<blockquote style="margin:2px 0 0 0;padding:6px 10px;border-left:2px solid var(--accent);'
+            f'background:rgba(34,211,238,0.05);font-family:ui-monospace,Menlo,monospace;font-size:12px;'
+            f'color:var(--ink)">{raw}</blockquote>'
+            f'</li>'
+        )
+    if not src_html:
+        src_html = (
+            '<li class="muted" style="font-size:12px">'
+            'No source lines available — explanation is based on the ranker only.'
+            '</li>'
+        )
+
+    # Plain-text payload for the "Copy reasoning" button (kept in a hidden textarea
+    # so the copy works without an extra round-trip to the server).
+    plain_lines = [exp.get("headline", "")]
+    for b in bullets:
+        plain_lines.append(f"- {b}")
+    if source_lines:
+        plain_lines.append("")
+        plain_lines.append("Source lines:")
+        for sl in source_lines:
+            plain_lines.append(f"  [{sl.get('label','source')}] {sl.get('raw_text','')}")
+    plain_text = _h("\n".join(p for p in plain_lines if p is not None))
+
+    bullets_block = (
+        f'<ul style="margin:6px 0 10px 0;padding-left:20px;font-size:12px;color:var(--ink-dim)">{bullets_html}</ul>'
+        if bullets_html else ""
+    )
+
+    return f"""
+<details class="why-card" style="margin-top:10px;padding:10px 12px;background:rgba(139,92,246,0.06);
+  border:1px solid rgba(139,92,246,0.25);border-radius:8px">
+  <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#A78BFA;user-select:none;
+    list-style:none;display:flex;align-items:center;gap:6px">
+    <span aria-hidden="true">&#9432;</span> Why this card?
+  </summary>
+  <div style="margin-top:8px">
+    <div style="font-size:13px;color:var(--ink);line-height:1.45;margin-bottom:6px">{headline}</div>
+    {bullets_block}
+    <div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;
+      margin-bottom:4px">Source lines (verbatim)</div>
+    <ul style="list-style:none;margin:0;padding:0">{src_html}</ul>
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button class="btn secondary" type="button" style="font-size:11px;padding:4px 10px"
+        onclick="copyWhyCard(this, 'why-text-{card_uuid}')">Copy reasoning</button>
+      <textarea id="why-text-{card_uuid}" style="display:none">{plain_text}</textarea>
+    </div>
+  </div>
+</details>"""
+
 # V8: media generation engine
 try:
     from mediahub.media_library.store import MediaLibraryStore as _V8MediaStore, get_store as _v8_get_media_store
@@ -2337,6 +2453,15 @@ def create_app() -> Flask:
         _delete_url = url_for('privacy_delete_run', run_id=run_id)
         _status_url = url_for('api_status', run_id=run_id)
         _pack_url = url_for('content_pack', run_id=run_id)
+        _reel_url = url_for('api_run_reel', run_id=run_id)
+        _turn_into_api = url_for('api_turn_into', run_id=run_id)
+
+        # Prior Turn-Into packs for this run (so the user can revisit them).
+        try:
+            from mediahub.turn_into import list_packs as _list_ti_packs
+            _ti_packs = _list_ti_packs(run_id, base_dir=DATA_DIR / "turn_into_packs")
+        except Exception:
+            _ti_packs = []
 
         # --- V7: Workflow state
         _wf_summary = {}
@@ -2449,6 +2574,8 @@ def create_app() -> Flask:
                 freason = _h(f.get('reason',''))
                 factors_html += f'<tr><td style="font-size:12px">{fname}</td><td style="font-size:12px">{fval:.3f}</td><td style="font-size:12px;color:var(--ink-muted)">{freason}</td></tr>'
 
+            _why_uuid = str(a.get('swim_id', f'top-{rank}')).replace(':', '_').replace(',', '_').replace('/', '_')
+            why_html = _render_why_this_card(ra, card_uuid=f"top-{_why_uuid}")
             ach_rows_html += f"""
 <div class="ach-row" data-type="{a.get('type','')}" data-conf="{conf_label}" data-swimmer="{a.get('swimmer_name','')}" data-event="{a.get('event','')}" data-band="{band}" data-post="{ra.get('suggested_post_type','')}">
   <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">
@@ -2466,6 +2593,7 @@ def create_app() -> Flask:
       </div>
       <div style="font-size:13px;font-weight:600;margin-bottom:2px">{swimmer} · {event}</div>
       <div style="font-size:13px;color:var(--ink-dim)">{headline}</div>
+      {why_html}
       <details style="margin-top:8px">
         <summary style="cursor:pointer;font-size:12px;color:var(--accent);user-select:none">Expand factors &amp; evidence</summary>
         <div style="margin-top:8px;font-size:12px">
@@ -2673,7 +2801,88 @@ def create_app() -> Flask:
                 _wf_sel = "selected" if _wf_filter == _wf_opt[0] else ""
                 _wf_opt_url = _review_base + (f"?wf={_wf_opt[0]}" if _wf_opt[0] else "")
                 _wf_filter_opts += f'<option value="{_wf_opt_url}" {_wf_sel}>{_wf_opt[1]}</option>'
-            workflow_summary_card = f"""
+            # --- Turn-Into content pack card (top of content pack section) ---
+            _ti_prior_html = ""
+            if _ti_packs:
+                rows = []
+                for p in _ti_packs[:5]:
+                    _pid = p.get("pack_id", "")
+                    _gen = p.get("generated_at", "")
+                    _n = p.get("n_artefacts", 0)
+                    _skipped = p.get("n_skipped", 0)
+                    try:
+                        _view = url_for("turn_into_pack_view", run_id=run_id, pack_id=_pid)
+                    except Exception:
+                        _view = "#"
+                    rows.append(
+                        f'<li style="font-size:12px;margin-bottom:4px">'
+                        f'<a href="{_view}">{_h(_gen)}</a> '
+                        f'<span class="muted">— {_n} artefacts'
+                        + (f", {_skipped} skipped" if _skipped else "")
+                        + '</span></li>'
+                    )
+                _ti_prior_html = (
+                    '<div style="margin-top:14px">'
+                    '<div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">'
+                    'Previously generated packs</div>'
+                    f'<ul style="margin:0;padding-left:20px">{"".join(rows)}</ul>'
+                    '</div>'
+                )
+
+            turn_into_card = f"""
+<div class="card" id="turn-into-card" style="border-left:3px solid var(--accent)">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:240px">
+      <h2 style="margin-bottom:6px">Content pack</h2>
+      <p class="dim" style="margin:0;font-size:13px;max-width:540px">
+        Turn this meet into a full pack of 7 derivative artefacts —
+        recap, swimmer spotlights, X / LinkedIn thread, parent newsletter,
+        sponsor thank-you, coach quote, and next-meet preview.
+      </p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <button id="ti-btn" class="btn" onclick="turnMeetIntoPack()" style="background:linear-gradient(135deg,#8B5CF6,#22D3EE);color:#fff;border:none">
+        ✦ Turn meet into content pack
+      </button>
+      <a class="btn secondary" href="{_pack_url}" style="align-self:flex-end">View workflow pack →</a>
+    </div>
+  </div>
+  <div id="ti-status" style="margin-top:10px;font-size:12px;color:var(--ink-muted);display:none"></div>
+  {_ti_prior_html}
+</div>
+<script>
+function turnMeetIntoPack() {{
+  var btn = document.getElementById('ti-btn');
+  var status = document.getElementById('ti-status');
+  var origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  status.style.display = '';
+  status.textContent = 'Building 7 artefacts — this can take up to 60 seconds.';
+  fetch({json.dumps(_turn_into_api)}, {{
+    method: 'POST',
+    headers: {{ 'Content-Type': 'application/json' }},
+    body: JSON.stringify({{}}),
+  }}).then(function(r) {{ return r.json(); }})
+    .then(function(j) {{
+      if (j && j.pack_url) {{
+        status.textContent = 'Done — opening pack…';
+        window.location.href = j.pack_url;
+      }} else {{
+        status.textContent = 'Failed: ' + (j && j.message ? j.message : 'unknown error');
+        btn.disabled = false;
+        btn.textContent = origText;
+      }}
+    }})
+    .catch(function() {{
+      status.textContent = 'Network error generating pack. Please retry.';
+      btn.disabled = false;
+      btn.textContent = origText;
+    }});
+}}
+</script>"""
+
+            workflow_summary_card = turn_into_card + f"""
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
     <div>
@@ -2820,6 +3029,7 @@ def create_app() -> Flask:
 
             # V8: Create-graphic API URL (lazy visual generation)
             _create_graphic_url = url_for("api_create_graphic", run_id=run_id, card_id=card_id_raw)
+            _motion_url = url_for("api_card_motion", run_id=run_id, card_id=card_id_raw)
             tone_tabs_html = (
                 f'<div class="tone-picker" data-caption-url="{_h(_caption_url)}" data-card="{card_uuid}" style="margin-top:10px;padding:12px;background:rgba(34,211,238,0.04);border:1px solid var(--border);border-radius:8px">'
                 f'<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;letter-spacing:0.5px">Caption tone</div>'
@@ -2829,14 +3039,19 @@ def create_app() -> Flask:
                 f'<button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick="copyActiveTone(this, \'{card_uuid}\')">Copy caption</button>'
                 f'<button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick="regenerateCaption(this, {repr(_caption_url)}, \'{card_uuid}\')">↺ Regenerate caption</button>'
                 f'<button class="btn" style="font-size:11px;padding:4px 10px;background:linear-gradient(135deg,#8B5CF6,#22D3EE);color:#fff;border:none" onclick="createGraphic(this, {repr(_create_graphic_url)}, \'{card_uuid}\')">✦ Create graphic</button>'
+                f'<button class="btn" style="font-size:11px;padding:4px 10px;background:linear-gradient(135deg,#F97316,#EF4444);color:#fff;border:none" onclick="generateMotion(this, {repr(_motion_url)}, \'{card_uuid}\')">▶ Generate motion</button>'
                 f'<span class="caption-timestamp" style="font-size:10px;color:var(--ink-muted)"></span>'
                 f'</div>'
                 f'<div class="visual-panel" data-card="{card_uuid}" data-create-url="{_h(_create_graphic_url)}" style="display:none;margin-top:10px;padding:12px;background:rgba(139,92,246,0.04);border:1px solid var(--border);border-radius:8px"></div>'
+                f'<div class="motion-panel" data-card="{card_uuid}" data-motion-url="{_h(_motion_url)}" style="display:none;margin-top:10px;padding:12px;background:rgba(249,115,22,0.04);border:1px solid var(--border);border-radius:8px"></div>'
                 f'</div>'
             )
             brand_cap_html = tone_tabs_html
 
             _wf_api_url = url_for("api_workflow_set", run_id=run_id, card_id=card_id_raw)
+
+            # V9: "Why this card?" — plain-English, source-grounded reasoning.
+            why_html = _render_why_this_card(ra, card_uuid=f"wf-{card_uuid}")
 
             ach_rows_html_wf += f"""
 <div class="ach-row" data-type="{a.get("type","")}" data-conf="{conf_label}" data-swimmer="{a.get("swimmer_name","")}" data-event="{a.get("event","")}" data-band="{band}" data-post="{ra.get("suggested_post_type","")}" data-status="{wf_status}">
@@ -2859,6 +3074,7 @@ def create_app() -> Flask:
       </div>
       <div style="font-size:13px;font-weight:600;margin-bottom:2px">{swimmer} · {event}</div>
       <div style="font-size:13px;color:var(--ink-dim)">{headline}</div>
+      {why_html}
       {brand_cap_html}
       <details style="margin-top:8px">
         <summary style="cursor:pointer;font-size:12px;color:var(--accent);user-select:none">Edit caption · view factors &amp; evidence</summary>
@@ -2948,7 +3164,12 @@ def create_app() -> Flask:
 {warn_html}
 
 <div class="card">
-  <h2>Top achievements</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+    <h2 style="margin:0">Top achievements</h2>
+    <button class="btn" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#F97316,#EF4444);color:#fff;border:none"
+            onclick="generateReel(this, {repr(_reel_url)})">▶ Generate reel from this meet</button>
+  </div>
+  <div id="reel-panel" style="display:none;margin-bottom:14px;padding:14px;background:rgba(249,115,22,0.04);border:1px solid var(--border);border-radius:8px"></div>
   <div class="filters-bar">
     <select id="f-type" onchange="applyFilters()">{opts(types_set, 'types')}</select>
     <select id="f-conf" onchange="applyFilters()"><option value="">All confidence</option><option>high</option><option>medium</option><option>low</option></select>
@@ -3228,6 +3449,31 @@ function regenerateCaption(btn, captionUrl, cardId) {{
   _fetchCaption(captionUrl, tone, panel, cacheKey, isAiTone, cardId);
 }}
 
+// V9: Copy "Why this card?" reasoning to clipboard (for sponsor reports etc.)
+function copyWhyCard(btn, taId) {{
+  var ta = document.getElementById(taId);
+  if (!ta) {{ return; }}
+  var text = ta.value || '';
+  var orig = btn.textContent;
+  var done = function(ok) {{
+    btn.textContent = ok ? 'Copied!' : 'Copy failed';
+    setTimeout(function() {{ btn.textContent = orig; }}, 1500);
+  }};
+  if (navigator.clipboard && window.isSecureContext) {{
+    navigator.clipboard.writeText(text).then(function() {{ done(true); }}).catch(function() {{ fallback(); }});
+  }} else {{
+    fallback();
+  }}
+  function fallback() {{
+    var t = document.createElement('textarea');
+    t.value = text; t.style.position = 'fixed'; t.style.left = '-9999px';
+    document.body.appendChild(t); t.focus(); t.select();
+    try {{ var ok = document.execCommand('copy'); done(ok); }}
+    catch (e) {{ done(false); }}
+    document.body.removeChild(t);
+  }}
+}}
+
 function copyActiveTone(btn, cardId) {{
   // Find the active tone panel
   var activePanel = document.querySelector('.tone-panel[data-card="' + cardId + '"]:not([style*="none"])');
@@ -3375,6 +3621,101 @@ function _renderVisualPanel(panel, data, cardId, createUrl) {{
         '</div>' +
       '</div>' +
     '</div>';
+}}
+
+// Motion-graphic generation: lazy, cached server-side. Streams the resulting
+// MP4 into an inline <video> on the card panel.
+var _motionCache = {{}};
+function generateMotion(btn, motionUrl, cardId) {{
+  var panel = document.querySelector('.motion-panel[data-card="' + cardId + '"]');
+  if (!panel) return;
+  panel.style.display = '';
+  var origLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Rendering motion…';
+  panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px">' +
+    '<div style="width:24px;height:24px;border:2px solid rgba(249,115,22,0.3);border-top-color:#F97316;border-radius:50%;margin:0 auto 10px;animation:spin 600ms linear infinite"></div>' +
+    'Rendering motion graphic… cached renders return in ~5s, cold renders up to 90s.</div>';
+  fetch(motionUrl, {{method:'POST'}})
+    .then(function(r) {{
+      if (r.ok && r.headers.get('content-type') && r.headers.get('content-type').indexOf('video') !== -1) {{
+        return r.blob().then(function(b) {{ return {{ok:true, blob:b}}; }});
+      }}
+      return r.json().then(function(j){{ return {{ok:false, body:j}}; }});
+    }})
+    .then(function(res) {{
+      btn.disabled = false; btn.textContent = origLabel;
+      if (!res.ok) {{
+        var msg = (res.body && (res.body.detail || res.body.error)) || 'render failed';
+        panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Motion render error: ' + msg + '</div>';
+        return;
+      }}
+      var url = URL.createObjectURL(res.blob);
+      _motionCache[cardId] = url;
+      panel.innerHTML =
+        '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">' +
+          '<div style="flex:0 0 200px;max-width:220px">' +
+            '<video src="' + url + '" controls playsinline style="width:100%;border-radius:6px;border:1px solid var(--border);background:#000"></video>' +
+          '</div>' +
+          '<div style="flex:1;min-width:200px">' +
+            '<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:4px">Motion · 1080×1920 · 6s</div>' +
+            '<div style="font-size:12px;color:var(--ink);margin-bottom:8px;line-height:1.4">Branded story-format MP4 rendered via Remotion. Same brand colours, palette, and seed as the static card.</div>' +
+            '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+              '<a class="btn secondary" href="' + url + '" download="motion-' + cardId + '.mp4" style="font-size:11px;padding:4px 10px">Download MP4</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }})
+    .catch(function(err) {{
+      btn.disabled = false; btn.textContent = origLabel;
+      panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Network error: ' + err + '</div>';
+    }});
+}}
+
+// Meet-reel generation: top-3 cards stitched into a 15-second reel.
+function generateReel(btn, reelUrl) {{
+  var panel = document.getElementById('reel-panel');
+  if (!panel) return;
+  panel.style.display = '';
+  var origLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Rendering reel…';
+  panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px">' +
+    '<div style="width:24px;height:24px;border:2px solid rgba(249,115,22,0.3);border-top-color:#F97316;border-radius:50%;margin:0 auto 10px;animation:spin 600ms linear infinite"></div>' +
+    'Producing 15-second reel from the top 3 cards… cold renders may take up to 90s.</div>';
+  fetch(reelUrl, {{method:'POST'}})
+    .then(function(r) {{
+      if (r.ok && r.headers.get('content-type') && r.headers.get('content-type').indexOf('video') !== -1) {{
+        return r.blob().then(function(b) {{ return {{ok:true, blob:b}}; }});
+      }}
+      return r.json().then(function(j){{ return {{ok:false, body:j}}; }});
+    }})
+    .then(function(res) {{
+      btn.disabled = false; btn.textContent = origLabel;
+      if (!res.ok) {{
+        var msg = (res.body && (res.body.detail || res.body.error)) || 'render failed';
+        panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Reel render error: ' + msg + '</div>';
+        return;
+      }}
+      var url = URL.createObjectURL(res.blob);
+      panel.innerHTML =
+        '<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">' +
+          '<div style="flex:0 0 240px;max-width:260px">' +
+            '<video src="' + url + '" controls playsinline style="width:100%;border-radius:6px;border:1px solid var(--border);background:#000"></video>' +
+          '</div>' +
+          '<div style="flex:1;min-width:240px">' +
+            '<div style="font-size:11px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:4px">Meet reel · 1080×1920 · 15s</div>' +
+            '<div style="font-size:13px;color:var(--ink);margin-bottom:10px;line-height:1.4">Top-3 ranked moments stitched into a branded reel with smooth crossfades, club colours, and the meet headline.</div>' +
+            '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+              '<a class="btn secondary" href="' + url + '" download="meet-reel.mp4" style="font-size:12px;padding:4px 12px">Download MP4</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }})
+    .catch(function(err) {{
+      btn.disabled = false; btn.textContent = origLabel;
+      panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Network error: ' + err + '</div>';
+    }});
 }}
 
 function regenerateGraphic(btn, createUrl, cardId) {{
@@ -3551,10 +3892,12 @@ function addGraphicToPack(btn, visualId) {{
 
         # Find the achievement for this swim_id
         achievement = {}
+        matched_ra = None
         for ra in ranked:
             a = ra.get("achievement") or {}
             if a.get("swim_id") == swim_id_dec:
                 achievement = a
+                matched_ra = ra
                 break
         # Fallback: partial match
         if not achievement:
@@ -3562,6 +3905,7 @@ function addGraphicToPack(btn, visualId) {{
                 a = ra.get("achievement") or {}
                 if swim_id_dec in (a.get("swim_id") or ""):
                     achievement = a
+                    matched_ra = ra
                     break
 
         # Build achievement dict suitable for caption generation
@@ -3585,7 +3929,22 @@ function addGraphicToPack(btn, visualId) {{
             "meet_name": (data.get("meet") or {}).get("name", ""),
         }
 
+        # Resolve the ClubProfile so voice_profile (brand DNA voice layer)
+        # can flow into the caption prompt. Profiles with no voice_profile
+        # still work — generate_caption_for_tone treats it as a no-op.
+        club_profile_obj = None
+        run_profile_id = data.get("profile_id") or ""
+        if run_profile_id:
+            try:
+                club_profile_obj = load_profile(run_profile_id)
+            except Exception:
+                club_profile_obj = None
+
         now_iso = datetime.now(_tz.utc).isoformat()
+
+        # V9: build the plain-English explanation once per request so every
+        # response (live, fallback, error) carries it.
+        explanation = _build_card_explanation(matched_ra or {"achievement": achievement})
 
         from mediahub.media_ai.llm import is_available as _llm_available
         from mediahub.web.ai_caption import (
@@ -3609,9 +3968,13 @@ function addGraphicToPack(btn, visualId) {{
                         "Anthropic API key in Settings to generate live AI captions."
                     ),
                     "settings_url": url_for("settings_page"),
+                    "explanation": explanation,
                 }), 200
             try:
-                caption_text = _gen_tone(ach_dict, club_brand, tone=tone)
+                caption_text = _gen_tone(
+                    ach_dict, club_brand, tone=tone,
+                    club_profile=club_profile_obj,
+                )
                 return jsonify({
                     "caption": caption_text,
                     "tone": tone,
@@ -3619,6 +3982,7 @@ function addGraphicToPack(btn, visualId) {{
                     "generated_at": now_iso,
                     "fallback": False,
                     "fallback_voice": None,
+                    "explanation": explanation,
                 })
             except _ClaudeUE as e:
                 return jsonify({
@@ -3632,6 +3996,7 @@ function addGraphicToPack(btn, visualId) {{
                         "Add a Gemini API key (free) or Anthropic key in Settings."
                     ),
                     "settings_url": url_for("settings_page"),
+                    "explanation": explanation,
                 }), 200
         else:
             # Voice render — deterministic template, may be cached by client
@@ -3665,6 +4030,7 @@ function addGraphicToPack(btn, visualId) {{
                 "generated_at": now_iso,
                 "fallback": False,
                 "fallback_voice": None,
+                "explanation": explanation,
             })
 
     # ---- V6 PB AUDIT ROUTES ----------------------------------------
@@ -5541,43 +5907,191 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         ]
 
         saved_msg = ""
+        capture_preview = ""      # rendered preview HTML when a capture has just run
+        capture_error = ""        # rendered error banner when capture failed
+        # The capture preview is kept in-memory only — the user must click
+        # "Save organisation" to persist it (no silent writes).
         if request.method == "POST":
+            action = (request.form.get("action") or "save").strip().lower()
             raw_id = (request.form.get("profile_id") or "default").strip().lower()
             profile_id = re.sub(r"[^a-z0-9_-]", "-", raw_id).strip("-") or "default"
             existing = load_profile(profile_id) or ClubProfile(
                 profile_id=profile_id,
                 display_name=request.form.get("display_name") or profile_id,
             )
-            existing.display_name = (request.form.get("display_name") or existing.display_name).strip()
-            existing.short_name = (request.form.get("short_name") or "").strip()
-            existing.org_type = (request.form.get("org_type") or "other").strip()
-            existing.governing_body = (request.form.get("governing_body") or "").strip()
-            existing.country = (request.form.get("country") or "").strip()
-            # Club / result codes — comma-separated
-            codes_raw = request.form.get("club_codes") or ""
-            existing.club_codes = [c.strip() for c in codes_raw.split(",") if c.strip()]
-            # Brand colours
-            existing.brand_primary = (request.form.get("brand_primary") or existing.brand_primary or "#0A2540").strip()
-            existing.brand_secondary = (request.form.get("brand_secondary") or existing.brand_secondary or "#000000").strip()
-            # Tone
-            existing.tone = (request.form.get("tone") or "warm-club").strip()
-            existing.caption_tone = existing.tone
-            # Platforms
-            existing.platforms = [p.strip() for p in request.form.getlist("platforms") if p.strip()]
-            # Voice
-            existing.tone_notes = (request.form.get("tone_notes") or "").strip()
-            raw_exemplars = (request.form.get("exemplar_captions") or "").strip()
-            if raw_exemplars:
-                parts = [p.strip() for p in raw_exemplars.split("---") if p.strip()]
-                existing.exemplar_captions = parts[:5]
+
+            if action == "capture":
+                # ---- Brand DNA capture from website URL ----
+                target_url = (request.form.get("brand_source_url") or "").strip()
+                if not target_url:
+                    capture_error = (
+                        '<p class="tag bad" style="margin-bottom:20px">'
+                        'Enter a website URL to analyse.</p>'
+                    )
+                    profile = existing
+                else:
+                    try:
+                        from mediahub.brand.dna_capture import capture_brand_dna
+                        result = capture_brand_dna(target_url, force=False)
+                    except Exception as e:
+                        result = {"brand_capture_status": f"error: {e}"}
+                    status = (result or {}).get("brand_capture_status", "")
+                    if status in ("ok", "ok_heuristic"):
+                        # Merge captured fields into the in-memory profile so
+                        # the preview shows them, but DON'T save until the user
+                        # clicks "Save organisation".
+                        for k in (
+                            "brand_voice_summary", "brand_keywords",
+                            "brand_palette_extracted", "brand_logo_url",
+                            "brand_typography_hint", "brand_phrases_to_avoid",
+                            "brand_phrases_to_use", "brand_source_url",
+                            "brand_captured_at", "brand_capture_status",
+                        ):
+                            if k in result:
+                                setattr(existing, k, result[k])
+                        # Adopt extracted palette into primary/secondary if
+                        # the existing profile is still on the default colours.
+                        pal = result.get("brand_palette_extracted") or {}
+                        if pal.get("primary") and existing.brand_primary in (
+                            "", "#0A2540", "#A30D2D",
+                        ):
+                            existing.brand_primary = pal["primary"]
+                        if pal.get("secondary") and existing.brand_secondary in (
+                            "", "#000000",
+                        ):
+                            existing.brand_secondary = pal["secondary"]
+                        note = (
+                            "Captured from website — review below and click "
+                            "Save organisation to persist."
+                            if status == "ok"
+                            else "Captured from website (no LLM available, "
+                                 "heuristic fallback). Edit and save."
+                        )
+                        capture_preview = (
+                            f'<p class="tag info" style="margin-bottom:20px">'
+                            f'{_h(note)}</p>'
+                        )
+                    else:
+                        # Surface the failure clearly but keep the form usable.
+                        reason = {
+                            "missing_url": "No URL was provided.",
+                            "fetch_failed": "Could not reach that URL — check it loads in a browser.",
+                        }.get(status, f"Capture failed ({_h(status or 'unknown error')}).")
+                        capture_error = (
+                            f'<p class="tag bad" style="margin-bottom:20px">'
+                            f'{_h(reason)}</p>'
+                        )
+                profile = existing
+
             else:
                 existing.exemplar_captions = []
             # Sponsor
             existing.sponsor_name = (request.form.get("sponsor_name") or "").strip()
             existing.sponsor_guidelines = (request.form.get("sponsor_guidelines") or "").strip()
+            # Voice imitation layer — one caption per line. Apply PII
+            # redaction before persisting so real swimmer names never
+            # land on disk.
+            from mediahub.brand.voice_imitation import (
+                analyse_examples as _analyse_voice,
+                redact_pii as _redact_pii,
+            )
+            raw_voice_examples = (request.form.get("voice_examples") or "").strip()
+            if raw_voice_examples:
+                voice_lines = [
+                    _redact_pii(line.strip())
+                    for line in raw_voice_examples.splitlines()
+                    if line.strip()
+                ]
+                existing.voice_examples = voice_lines[:20]
+            else:
+                existing.voice_examples = []
+            # "Analyse voice" button regenerates the profile from the
+            # current voice_examples. Plain save preserves the existing
+            # voice_profile so the user can edit other fields without
+            # losing the analysis.
+            if request.form.get("analyse_voice") and existing.voice_examples:
+                existing.voice_profile = _analyse_voice(existing.voice_examples)
+                saved_msg = (
+                    '<p class="tag good" style="margin-bottom:20px">'
+                    'Voice profile analysed and saved.</p>'
+                )
+            else:
+                if not existing.voice_examples:
+                    existing.voice_profile = {}
+                saved_msg = (
+                    '<p class="tag good" style="margin-bottom:20px">'
+                    'Organisation saved.</p>'
+                )
             save_profile(existing)
-            saved_msg = '<p class="tag good" style="margin-bottom:20px">Organisation saved.</p>'
             profile = existing
+                # ---- Save organisation (existing behaviour) ----
+                existing.display_name = (request.form.get("display_name") or existing.display_name).strip()
+                existing.short_name = (request.form.get("short_name") or "").strip()
+                existing.org_type = (request.form.get("org_type") or "other").strip()
+                existing.governing_body = (request.form.get("governing_body") or "").strip()
+                existing.country = (request.form.get("country") or "").strip()
+                # Club / result codes — comma-separated
+                codes_raw = request.form.get("club_codes") or ""
+                existing.club_codes = [c.strip() for c in codes_raw.split(",") if c.strip()]
+                # Brand colours
+                existing.brand_primary = (request.form.get("brand_primary") or existing.brand_primary or "#0A2540").strip()
+                existing.brand_secondary = (request.form.get("brand_secondary") or existing.brand_secondary or "#000000").strip()
+                # Tone
+                existing.tone = (request.form.get("tone") or "warm-club").strip()
+                existing.caption_tone = existing.tone
+                # Platforms
+                existing.platforms = [p.strip() for p in request.form.getlist("platforms") if p.strip()]
+                # Voice
+                existing.tone_notes = (request.form.get("tone_notes") or "").strip()
+                raw_exemplars = (request.form.get("exemplar_captions") or "").strip()
+                if raw_exemplars:
+                    parts = [p.strip() for p in raw_exemplars.split("---") if p.strip()]
+                    existing.exemplar_captions = parts[:5]
+                else:
+                    existing.exemplar_captions = []
+                # Sponsor
+                existing.sponsor_name = (request.form.get("sponsor_name") or "").strip()
+                existing.sponsor_guidelines = (request.form.get("sponsor_guidelines") or "").strip()
+                # Brand DNA — persist any captured fields submitted via hidden
+                # inputs from a prior capture preview. We accept simple scalars
+                # plus JSON-encoded lists/dicts for the structured fields.
+                def _hidden_list(name: str) -> list[str]:
+                    raw = (request.form.get(name) or "").strip()
+                    if not raw:
+                        return []
+                    try:
+                        v = json.loads(raw)
+                        if isinstance(v, list):
+                            return [str(x) for x in v]
+                    except Exception:
+                        return []
+                    return []
+
+                def _hidden_dict(name: str) -> dict:
+                    raw = (request.form.get(name) or "").strip()
+                    if not raw:
+                        return {}
+                    try:
+                        v = json.loads(raw)
+                        if isinstance(v, dict):
+                            return v
+                    except Exception:
+                        return {}
+                    return {}
+
+                existing.brand_voice_summary = (request.form.get("brand_voice_summary") or "").strip()
+                existing.brand_logo_url = (request.form.get("brand_logo_url") or "").strip()
+                existing.brand_typography_hint = (request.form.get("brand_typography_hint") or "").strip()
+                existing.brand_source_url = (request.form.get("brand_source_url_saved") or "").strip()
+                existing.brand_captured_at = (request.form.get("brand_captured_at") or "").strip()
+                existing.brand_capture_status = (request.form.get("brand_capture_status") or "").strip()
+                existing.brand_keywords = _hidden_list("brand_keywords_json")
+                existing.brand_phrases_to_use = _hidden_list("brand_phrases_to_use_json")
+                existing.brand_phrases_to_avoid = _hidden_list("brand_phrases_to_avoid_json")
+                existing.brand_palette_extracted = _hidden_dict("brand_palette_extracted_json")
+                save_profile(existing)
+                saved_msg = '<p class="tag good" style="margin-bottom:20px">Organisation saved.</p>'
+                profile = existing
         else:
             profiles = list_profiles()
             profile = profiles[0] if profiles else ClubProfile(profile_id="default", display_name="")
@@ -5604,17 +6118,179 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         tone_radios = "".join(_radio("tone", v, l, v == (profile.tone or "warm-club")) for v, l in _TONES)
         platform_cbs = "".join(_cb("platforms", v, l, v in (profile.platforms or [])) for v, l in _PLATFORMS)
         exemplars_text = "\n---\n".join(profile.exemplar_captions or [])
+        voice_examples_text = "\n".join(profile.voice_examples or [])
+
+        # Build the voice-profile summary panel so the user can see what
+        # the engine learned the last time they ran "Analyse voice".
+        vp = profile.voice_profile or {}
+        if vp:
+            def _list_chips(items):
+                items = items or []
+                if not items:
+                    return '<span class="muted" style="font-size:12px">—</span>'
+                return "".join(
+                    f'<span style="display:inline-block;padding:2px 8px;'
+                    f'margin:2px 4px 2px 0;border:1px solid var(--border);'
+                    f'border-radius:999px;font-size:12px">{_h(s)}</span>'
+                    for s in items
+                )
+            voice_profile_html = (
+                f'<div style="margin-top:12px;padding:10px 12px;border:1px solid var(--border);'
+                f'border-radius:8px;background:var(--panel)">'
+                f'<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px">'
+                f'Voice profile (from {len(profile.voice_examples or [])} examples)</div>'
+                f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;margin-bottom:8px">'
+                f'<div>Avg sentence length: <b>{_h(vp.get("sentence_length_avg", "—"))}</b> words</div>'
+                f'<div>P90 sentence length: <b>{_h(vp.get("sentence_length_p90", "—"))}</b> words</div>'
+                f'<div>Emojis / caption: <b>{_h(vp.get("emoji_rate_per_caption", "—"))}</b></div>'
+                f'<div>Hashtags / caption: <b>{_h(vp.get("hashtag_count_avg", "—"))}</b></div>'
+                f'<div>Swimmer address: <b>{_h(vp.get("preferred_swimmer_address", "first_name"))}</b></div>'
+                f'</div>'
+                f'<div style="font-size:12px;color:var(--ink-dim);margin-top:6px">Openers</div>'
+                f'<div>{_list_chips(vp.get("characteristic_openers"))}</div>'
+                f'<div style="font-size:12px;color:var(--ink-dim);margin-top:6px">Closers</div>'
+                f'<div>{_list_chips(vp.get("characteristic_closers"))}</div>'
+                f'<div style="font-size:12px;color:var(--ink-dim);margin-top:6px">Phrases to avoid</div>'
+                f'<div>{_list_chips(vp.get("forbidden_phrases"))}</div>'
+                f'</div>'
+            )
+        else:
+            voice_profile_html = (
+                '<p class="muted" style="font-size:12px;margin-top:8px">'
+                'No voice profile yet — paste 5-20 past captions and click '
+                '<b>Analyse voice</b>.</p>'
+            )
 
         _input_style = "width:100%;max-width:480px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--ink);font-size:14px"
         _ta_style = "width:100%;max-width:600px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px"
 
+        # ---- Brand DNA preview block (rendered when fields are populated) ----
+        def _swatch(hexv: str) -> str:
+            if not hexv:
+                return ""
+            return (
+                f'<div title="{_h(hexv)}" style="display:inline-flex;align-items:center;'
+                f'gap:6px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;'
+                f'margin-right:6px;margin-bottom:6px;background:var(--panel)">'
+                f'<span style="display:inline-block;width:18px;height:18px;border-radius:4px;'
+                f'background:{_h(hexv)};border:1px solid rgba(255,255,255,0.15)"></span>'
+                f'<code style="font-size:11px;color:var(--ink)">{_h(hexv)}</code></div>'
+            )
+
+        def _chip(text: str, tone: str = "neutral") -> str:
+            colour = {
+                "good": "var(--accent)",
+                "warn": "#ffae3b",
+                "bad": "#ff5d6c",
+                "neutral": "var(--ink-dim)",
+            }.get(tone, "var(--ink-dim)")
+            return (
+                f'<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;'
+                f'border:1px solid var(--border);border-radius:999px;font-size:11px;'
+                f'color:{colour};background:rgba(255,255,255,0.02)">{_h(text)}</span>'
+            )
+
+        brand_preview_html = ""
+        has_brand = bool(
+            (profile.brand_voice_summary or "").strip()
+            or profile.brand_keywords
+            or profile.brand_palette_extracted
+            or profile.brand_logo_url
+            or profile.brand_phrases_to_use
+            or profile.brand_phrases_to_avoid
+        )
+        if has_brand:
+            pal = profile.brand_palette_extracted or {}
+            swatches = "".join(_swatch(pal.get(k, "")) for k in ("primary", "secondary", "accent") if pal.get(k))
+            keywords_html = "".join(_chip(k, "neutral") for k in (profile.brand_keywords or [])[:12])
+            use_html = "".join(_chip(p, "good") for p in (profile.brand_phrases_to_use or [])[:5])
+            avoid_html = "".join(_chip(p, "bad") for p in (profile.brand_phrases_to_avoid or [])[:5])
+            logo_html = ""
+            if profile.brand_logo_url:
+                logo_html = (
+                    f'<img src="{_h(profile.brand_logo_url)}" alt="Detected logo" '
+                    f'style="max-height:60px;max-width:200px;background:var(--panel);'
+                    f'padding:6px;border:1px solid var(--border);border-radius:6px"/>'
+                )
+            captured_meta = ""
+            if profile.brand_captured_at or profile.brand_source_url:
+                src = profile.brand_source_url or ""
+                ts = profile.brand_captured_at or ""
+                status = profile.brand_capture_status or ""
+                captured_meta = (
+                    f'<p style="font-size:11px;color:var(--ink-dim);margin-top:8px">'
+                    f'Source: <a href="{_h(src)}" target="_blank" rel="noopener" '
+                    f'style="color:var(--ink-dim)">{_h(src)}</a> · '
+                    f'captured {_h(ts)} · status {_h(status)}'
+                    f'</p>'
+                )
+            brand_preview_html = f"""
+<div class="card" style="margin-bottom:20px;border:1px dashed var(--border);background:rgba(34,211,238,0.03)">
+  <h3 style="margin-top:0;margin-bottom:12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-dim)">Brand DNA preview</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+    <div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:6px">Voice summary</div>
+      <p style="margin:0;font-size:13px;color:var(--ink);line-height:1.5">{_h(profile.brand_voice_summary or '(no summary yet)')}</p>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-top:14px;margin-bottom:6px">Palette</div>
+      <div>{swatches or '<span class="dim" style="font-size:12px">(none detected)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-top:14px;margin-bottom:6px">Typography hint</div>
+      <p style="margin:0;font-size:13px;color:var(--ink)">{_h(profile.brand_typography_hint or '—')}</p>
+    </div>
+    <div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-bottom:6px">Detected logo</div>
+      <div>{logo_html or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-top:14px;margin-bottom:6px">Keywords</div>
+      <div>{keywords_html or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-top:14px;margin-bottom:6px">Phrases to use</div>
+      <div>{use_html or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
+      <div style="font-weight:600;font-size:12px;color:var(--ink-dim);margin-top:14px;margin-bottom:6px">Phrases to avoid</div>
+      <div>{avoid_html or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
+    </div>
+  </div>
+  {captured_meta}
+</div>
+"""
+
+        # Hidden inputs that carry the captured brand fields through the
+        # next form submission so a click on Save persists them.
+        brand_hidden_inputs = (
+            f'<input type="hidden" name="brand_voice_summary" value="{_h(profile.brand_voice_summary or "")}"/>'
+            f'<input type="hidden" name="brand_logo_url" value="{_h(profile.brand_logo_url or "")}"/>'
+            f'<input type="hidden" name="brand_typography_hint" value="{_h(profile.brand_typography_hint or "")}"/>'
+            f'<input type="hidden" name="brand_source_url_saved" value="{_h(profile.brand_source_url or "")}"/>'
+            f'<input type="hidden" name="brand_captured_at" value="{_h(profile.brand_captured_at or "")}"/>'
+            f'<input type="hidden" name="brand_capture_status" value="{_h(profile.brand_capture_status or "")}"/>'
+            f'<input type="hidden" name="brand_keywords_json" value="{_h(json.dumps(profile.brand_keywords or []))}"/>'
+            f'<input type="hidden" name="brand_phrases_to_use_json" value="{_h(json.dumps(profile.brand_phrases_to_use or []))}"/>'
+            f'<input type="hidden" name="brand_phrases_to_avoid_json" value="{_h(json.dumps(profile.brand_phrases_to_avoid or []))}"/>'
+            f'<input type="hidden" name="brand_palette_extracted_json" value="{_h(json.dumps(profile.brand_palette_extracted or {}))}"/>'
+        )
+
         body = f"""
-{saved_msg}
+{saved_msg}{capture_preview}{capture_error}
 <h1>Organisation</h1>
 <p class="dim" style="margin-bottom:24px">Tell MediaHub about your club, society or team so the AI can produce on-brand content.</p>
 
+<div class="card" style="margin-bottom:20px;border:1px solid var(--accent);background:rgba(34,211,238,0.04)">
+  <h2 style="margin-top:0">Capture from website</h2>
+  <p class="dim" style="margin-bottom:12px;font-size:13px">Paste your club's website URL and MediaHub will extract the palette, logo, voice and keywords automatically. The result appears below — review and click Save organisation to persist.</p>
+  <form method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input type="hidden" name="action" value="capture"/>
+    <input type="hidden" name="profile_id" value="{_h(profile.profile_id)}"/>
+    <input type="hidden" name="display_name" value="{_h(profile.display_name)}"/>
+    <input type="url" name="brand_source_url" value="{_h(profile.brand_source_url or '')}"
+           placeholder="https://your-club.example"
+           style="{_input_style};max-width:520px;flex:1" required/>
+    <button type="submit" class="btn">Analyse →</button>
+  </form>
+</div>
+
+{brand_preview_html}
+
 <form method="POST">
+<input type="hidden" name="action" value="save"/>
 <input type="hidden" name="profile_id" value="{_h(profile.profile_id)}"/>
+{brand_hidden_inputs}
 
 <div class="card" style="margin-bottom:20px">
   <h2 style="margin-top:0">Identity</h2>
@@ -5684,6 +6360,31 @@ function copySpotlightCaption(btn, cardIdSafe) {{
               style="{_ta_style}">{_h(exemplars_text)}</textarea>
     <p style="font-size:12px;color:var(--ink-dim);margin-top:4px">Separate captions with <code>---</code> on its own line. Up to 5 examples.</p>
   </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h2 style="margin-top:0">Voice examples</h2>
+  <p class="dim" style="margin-bottom:12px;font-size:13px">
+    Paste 5–20 of your recent Instagram, Facebook or X captions — one per line.
+    MediaHub will learn your sentence length, emoji and hashtag habits, opener
+    and closer style, and how you refer to swimmers, then use that profile when
+    generating live AI captions. Names are stripped before storage.
+  </p>
+  <div>
+    <label style="display:block;font-weight:600;margin-bottom:4px;font-size:14px">Past captions (one per line)</label>
+    <textarea name="voice_examples" rows="10"
+              placeholder="Massive PB from [name] in the 200 free this morning&#10;Hard work pays off — proud of every swimmer in the pool tonight 🏊&#10;..."
+              style="{_ta_style}">{_h(voice_examples_text)}</textarea>
+    <p style="font-size:12px;color:var(--ink-dim);margin-top:4px">
+      One caption per line, up to 20. Real swimmer names will be replaced with
+      <code>[NAME]</code> before saving.
+    </p>
+  </div>
+  <div style="margin-top:12px">
+    <button type="submit" name="analyse_voice" value="1" class="btn">Analyse voice</button>
+    <span class="muted" style="font-size:12px;margin-left:8px">Re-runs the analyser on the captions above.</span>
+  </div>
+  {voice_profile_html}
 </div>
 
 <div class="card" style="margin-bottom:20px">
@@ -5836,6 +6537,8 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 f'<span class="tag {sched_pill_class}" data-schedule-pill="pc-{card_uuid}" '
                 f'style="font-size:11px;{"display:none" if sched_state == "queued" else ""}">{_h(sched_state)}</span>'
             )
+            # V9: "Why this card?" — explanation for the approved card.
+            why_html_pack = _render_why_this_card(card, card_uuid=f"pc-{card_uuid}")
 
             cards_html += f"""
 <div class="card" id="pc-{card_id}" style="page-break-inside:avoid">
@@ -5853,6 +6556,8 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     {inner_html}
   </div>
   <div class="no-print" style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  {why_html_pack}
+  <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button class="btn secondary" style="font-size:12px;padding:5px 12px" onclick="copyActiveTone(this, 'pc-{card_uuid}')">Copy caption</button>
     <button class="btn secondary" style="font-size:12px;padding:5px 12px" onclick="copyCaption(this, 'cap-text-{card_id}-2')">Copy + hashtags</button>
     <button class="btn secondary" style="font-size:12px;padding:5px 12px" onclick="copyCaption(this, 'cap-text-{card_id}-3')">Copy full brief</button>
@@ -5913,6 +6618,24 @@ function copyCaption(btn, spanId) {{
     document.body.removeChild(ta);
   }}
 }}
+// V9: Copy "Why this card?" reasoning (textarea-based).
+function copyWhyCard(btn, taId) {{
+  var ta = document.getElementById(taId);
+  if (!ta) {{ return; }}
+  var text = ta.value || '';
+  var orig = btn.textContent;
+  var done = function(ok) {{ btn.textContent = ok ? 'Copied!' : 'Copy failed'; setTimeout(function() {{ btn.textContent = orig; }}, 1500); }};
+  if (navigator.clipboard && window.isSecureContext) {{
+    navigator.clipboard.writeText(text).then(function() {{ done(true); }}).catch(function() {{ fb(); }});
+  }} else {{ fb(); }}
+  function fb() {{
+    var t = document.createElement('textarea');
+    t.value = text; t.style.position = 'fixed'; t.style.left = '-9999px';
+    document.body.appendChild(t); t.focus(); t.select();
+    try {{ var ok = document.execCommand('copy'); done(ok); }} catch(e) {{ done(false); }}
+    document.body.removeChild(t);
+  }}
+}}
 </script>
 {_schedule_modal_js()}
 """
@@ -5964,6 +6687,333 @@ function copyCaption(btn, spanId) {{
         ws.mark_all_posted(run_id)
         return redirect(url_for("content_pack", run_id=run_id))
 
+    # ---- Turn-Into: one meet → 7 derivative artefacts -------------------
+    @app.route("/api/runs/<run_id>/turn-into", methods=["POST"])
+    def api_turn_into(run_id):
+        """Generate a Turn-Into pack (up to 7 artefacts) from this run.
+
+        Body (JSON, all optional):
+          { "deterministic": bool }   force heuristic mode (no LLM)
+        """
+        run_data = _load_run(run_id)
+        if not run_data:
+            return jsonify({"error": "run not found"}), 404
+
+        profile_id = run_data.get("profile_id", "")
+        profile = load_profile(profile_id) if profile_id else None
+        if profile is None:
+            # Fall back to a minimal profile derived from the run's display name
+            # so Turn-Into still runs even when no profile is persisted.
+            profile = ClubProfile(
+                profile_id=profile_id or "default",
+                display_name=run_data.get("profile_display", "") or "Club",
+            )
+
+        payload = request.get_json(silent=True) or {}
+        deterministic = bool(payload.get("deterministic", False))
+
+        try:
+            from mediahub.turn_into import turn_meet_into_pack, save_pack
+            pack = turn_meet_into_pack(run_data, profile, deterministic=deterministic)
+            save_pack(pack, run_id, base_dir=DATA_DIR / "turn_into_packs")
+        except Exception as e:
+            return jsonify({"error": "turn_into_failed", "message": str(e)}), 500
+
+        return jsonify({
+            "ok": True,
+            "pack_id": pack["pack_id"],
+            "n_artefacts": len(pack.get("artefacts", [])),
+            "skipped": [s.get("type") for s in pack.get("skipped", [])],
+            "pack_url": url_for("turn_into_pack_view",
+                                run_id=run_id, pack_id=pack["pack_id"]),
+        })
+
+    @app.route("/api/runs/<run_id>/turn-into/<pack_id>/caption", methods=["POST"])
+    def api_turn_into_edit_caption(run_id, pack_id):
+        """Inline-edit a caption within a saved pack.
+
+        Body (JSON):
+          {
+            "artefact_index": int,
+            "caption_key":    str,   # e.g. "default" | "instagram" | "swimmer_1"
+            "text":           str,
+            # OR for x_thread:
+            "x_thread_index": int,   # 0-based
+            "text":           str,
+          }
+        """
+        from mediahub.turn_into import load_pack, save_pack
+        base = DATA_DIR / "turn_into_packs"
+        pack = load_pack(run_id, pack_id, base_dir=base)
+        if pack is None:
+            return jsonify({"error": "pack not found"}), 404
+
+        data = request.get_json(silent=True) or {}
+        try:
+            idx = int(data.get("artefact_index"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "artefact_index required"}), 400
+        artefacts = pack.get("artefacts") or []
+        if idx < 0 or idx >= len(artefacts):
+            return jsonify({"error": "artefact_index out of range"}), 400
+        text = str(data.get("text", ""))
+
+        artefact = artefacts[idx]
+        captions = artefact.setdefault("captions", {})
+
+        if "x_thread_index" in data and data["x_thread_index"] is not None:
+            try:
+                xi = int(data["x_thread_index"])
+            except (TypeError, ValueError):
+                return jsonify({"error": "x_thread_index must be int"}), 400
+            posts = captions.get("x_thread") or []
+            if xi < 0 or xi >= len(posts):
+                return jsonify({"error": "x_thread_index out of range"}), 400
+            posts[xi] = text
+            captions["x_thread"] = posts
+        else:
+            key = str(data.get("caption_key", "default"))
+            captions[key] = text
+
+        artefacts[idx] = artefact
+        pack["artefacts"] = artefacts
+        save_pack(pack, run_id, base_dir=base)
+        return jsonify({"ok": True})
+
+    @app.route("/runs/<run_id>/pack/<pack_id>")
+    def turn_into_pack_view(run_id, pack_id):
+        """Render a saved Turn-Into pack with the 7 artefacts."""
+        from mediahub.turn_into import load_pack
+        pack = load_pack(run_id, pack_id, base_dir=DATA_DIR / "turn_into_packs")
+        if pack is None:
+            return _layout("Not found",
+                           '<div class="empty">Turn-Into pack not found.</div>'), 404
+
+        _review_url = url_for("review", run_id=run_id)
+        _api_url = url_for("api_turn_into", run_id=run_id)
+        _edit_api = url_for("api_turn_into_edit_caption",
+                            run_id=run_id, pack_id=pack_id)
+        meet_name = _h(pack.get("meet_name", ""))
+        gen_at = _h(pack.get("generated_at", ""))
+
+        artefacts = pack.get("artefacts") or []
+        skipped = pack.get("skipped") or []
+
+        # --- Skipped notice band
+        skipped_html = ""
+        if skipped:
+            items = "".join(
+                f'<li><strong>{_h(s.get("type",""))}</strong>: '
+                f'{_h(s.get("reason",""))}</li>'
+                for s in skipped
+            )
+            skipped_html = (
+                '<div class="card" style="border-color:var(--warn);background:rgba(245,158,11,0.04)">'
+                '<h2 style="margin-top:0">Skipped artefacts</h2>'
+                f'<ul style="margin:0">{items}</ul>'
+                '</div>'
+            )
+
+        # --- Artefact cards
+        cards_html = ""
+        for art_idx, art in enumerate(artefacts):
+            atype = art.get("type", "")
+            title = _h(art.get("title", atype))
+            captions = art.get("captions") or {}
+            cards = art.get("cards") or []
+            draft = art.get("draft_flag", "")
+            html_block = art.get("html") or ""
+            notes_list = art.get("notes") or []
+
+            # Draft badge
+            draft_html = ""
+            if draft:
+                draft_html = (
+                    '<div style="margin-bottom:12px;padding:10px 14px;'
+                    'background:rgba(245,158,11,0.12);border:1px solid var(--warn);'
+                    f'border-radius:8px;font-weight:600;color:var(--warn)">{_h(draft)}</div>'
+                )
+
+            # Caption editor blocks — one per key
+            caption_blocks = ""
+            for cap_key, cap_val in captions.items():
+                if cap_key == "x_thread" and isinstance(cap_val, list):
+                    # Special-case: numbered thread of posts.
+                    sub = ""
+                    for ti, post in enumerate(cap_val):
+                        post_chars = len(post or "")
+                        cls = "good" if post_chars <= 280 else "bad"
+                        sub += (
+                            f'<div style="margin-bottom:10px">'
+                            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+                            f'<span class="muted" style="font-size:11px">Post {ti+1}</span>'
+                            f'<span class="tag {cls}" style="font-size:10px">{post_chars}/280</span>'
+                            f'</div>'
+                            f'<textarea class="ti-cap" data-artefact="{art_idx}" '
+                            f'data-thread="{ti}" '
+                            f'style="width:100%;min-height:60px;font-size:13px;'
+                            f'padding:8px;border:1px solid var(--border);border-radius:6px;'
+                            f'background:var(--bg);color:var(--ink);font-family:inherit">'
+                            f'{_h(post)}</textarea>'
+                            f'</div>'
+                        )
+                    caption_blocks += (
+                        '<div style="margin-bottom:14px">'
+                        f'<div style="font-size:12px;font-weight:600;text-transform:uppercase;'
+                        f'color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:8px">X thread '
+                        f'({len(cap_val)} posts, ≤280 chars each)</div>'
+                        f'{sub}'
+                        '</div>'
+                    )
+                    continue
+
+                # Single string caption
+                if not isinstance(cap_val, str):
+                    continue
+                key_label = cap_key.replace("_", " ").title()
+                char_count = len(cap_val)
+                # Show Instagram cap for ig caption.
+                cap_limit_html = ""
+                if cap_key == "instagram":
+                    cls = "good" if char_count <= 2200 else "bad"
+                    cap_limit_html = f'<span class="tag {cls}" style="font-size:10px;margin-left:8px">{char_count}/2200</span>'
+                caption_blocks += (
+                    '<div style="margin-bottom:14px">'
+                    f'<div style="font-size:12px;font-weight:600;text-transform:uppercase;'
+                    f'color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:6px">'
+                    f'{_h(key_label)}{cap_limit_html}</div>'
+                    f'<textarea class="ti-cap" data-artefact="{art_idx}" '
+                    f'data-key="{_h(cap_key)}" '
+                    f'style="width:100%;min-height:80px;font-size:13px;'
+                    f'padding:10px;border:1px solid var(--border);border-radius:6px;'
+                    f'background:var(--bg);color:var(--ink);font-family:inherit">'
+                    f'{_h(cap_val)}</textarea>'
+                    '</div>'
+                )
+
+            # Optional sub-cards strip (e.g. spotlight series)
+            sub_cards_html = ""
+            if cards and atype in ("swimmer_spotlight",):
+                rows = ""
+                for c in cards:
+                    rows += (
+                        '<div style="padding:10px;background:rgba(255,255,255,0.03);'
+                        'border:1px solid var(--border);border-radius:8px;margin-bottom:8px">'
+                        f'<div style="font-size:13px;font-weight:700">{_h(c.get("swimmer",""))} '
+                        f'· {_h(c.get("event",""))}</div>'
+                        f'<div style="font-size:12px;color:var(--ink-dim);margin-top:4px">{_h(c.get("headline",""))}</div>'
+                        '</div>'
+                    )
+                sub_cards_html = f'<div style="margin-bottom:12px">{rows}</div>'
+
+            # Newsletter HTML preview
+            html_preview_html = ""
+            if html_block:
+                # Display rendered HTML in a sandboxed-ish preview area.
+                # The templates module HTML-escapes the body, so it's safe here.
+                html_preview_html = (
+                    '<details style="margin-top:8px">'
+                    '<summary style="cursor:pointer;font-size:12px;color:var(--accent)">View HTML preview</summary>'
+                    f'<div style="margin-top:10px;padding:14px;border:1px dashed var(--border);'
+                    f'border-radius:8px;background:rgba(255,255,255,0.02)">{html_block}</div>'
+                    '</details>'
+                )
+
+            notes_html = ""
+            if notes_list:
+                lis = "".join(f"<li>{_h(n)}</li>" for n in notes_list)
+                notes_html = (
+                    '<details style="margin-top:8px">'
+                    '<summary style="cursor:pointer;font-size:12px;color:var(--ink-muted)">Why this artefact?</summary>'
+                    f'<ul style="margin:8px 0 0 0;font-size:12px;color:var(--ink-dim)">{lis}</ul>'
+                    '</details>'
+                )
+
+            cards_html += f"""
+<div class="card ti-artefact" data-type="{_h(atype)}" data-artefact-index="{art_idx}" style="margin-bottom:18px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+    <h2 style="margin:0">{title}</h2>
+    <span class="tag info" style="font-size:11px">{_h(atype)}</span>
+  </div>
+  {draft_html}
+  {sub_cards_html}
+  {caption_blocks}
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn" style="font-size:12px;padding:6px 14px"
+            onclick="tiSaveArtefact({art_idx})">Save edits</button>
+    <span class="ti-status" data-artefact="{art_idx}" style="font-size:11px;color:var(--ink-muted)"></span>
+  </div>
+  {html_preview_html}
+  {notes_html}
+</div>"""
+
+        if not cards_html:
+            cards_html = '<div class="empty">No artefacts generated.</div>'
+
+        body = f"""
+<p class="dim"><a href="{_review_url}">← Back to review</a></p>
+<h1>Turn-Into pack — {meet_name}</h1>
+<p class="dim">{len(artefacts)} artefacts · generated {gen_at}</p>
+
+<div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap">
+  <button class="btn secondary" onclick="tiRegenerate()">↺ Regenerate pack</button>
+</div>
+
+{skipped_html}
+{cards_html}
+
+<script>
+const TI_EDIT_API = {json.dumps(_edit_api)};
+const TI_REGEN_API = {json.dumps(_api_url)};
+const TI_REVIEW_URL = {json.dumps(_review_url)};
+
+function tiSaveArtefact(idx) {{
+  const root = document.querySelector('.ti-artefact[data-artefact-index="' + idx + '"]');
+  if (!root) return;
+  const status = root.querySelector('.ti-status');
+  status.textContent = 'Saving…';
+  const tas = root.querySelectorAll('textarea.ti-cap');
+  const tasks = [];
+  tas.forEach(function(ta) {{
+    const payload = {{ artefact_index: idx, text: ta.value }};
+    if (ta.dataset.thread !== undefined) {{
+      payload.x_thread_index = parseInt(ta.dataset.thread, 10);
+    }} else {{
+      payload.caption_key = ta.dataset.key || 'default';
+    }}
+    tasks.push(fetch(TI_EDIT_API, {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify(payload),
+    }}).then(r => r.json()));
+  }});
+  Promise.all(tasks).then(function(results) {{
+    const ok = results.every(function(r) {{ return r && r.ok; }});
+    status.textContent = ok ? 'Saved.' : 'Some edits failed.';
+    setTimeout(function() {{ status.textContent = ''; }}, 2200);
+  }}).catch(function() {{ status.textContent = 'Error saving.'; }});
+}}
+
+function tiRegenerate() {{
+  if (!confirm('Generate a fresh Turn-Into pack? The current pack is preserved.')) return;
+  fetch(TI_REGEN_API, {{
+    method: 'POST',
+    headers: {{ 'Content-Type': 'application/json' }},
+    body: JSON.stringify({{}}),
+  }}).then(r => r.json()).then(function(j) {{
+    if (j && j.pack_url) {{
+      window.location.href = j.pack_url;
+    }} else {{
+      alert('Regenerate failed: ' + (j && j.message ? j.message : 'unknown error'));
+    }}
+  }}).catch(function(err) {{
+    alert('Regenerate failed.');
+  }});
+}}
+</script>
+"""
+        return _layout(f"Turn-Into pack — {meet_name}", body, active="home")
+
     @app.route("/pack/<run_id>/grouped")
     def content_pack_grouped(run_id):
         """Grouped content pack page — 8 buckets."""
@@ -5978,6 +7028,7 @@ function copyCaption(btn, spanId) {{
         meet_name = _h(run_data.get("meet", {}).get("name", "") or run_data.get("profile_display", ""))
         _review_url = url_for("review", run_id=run_id)
         _pack_url = url_for("content_pack", run_id=run_id)
+        _reel_url = url_for("api_run_reel", run_id=run_id)
 
         if not _v73_ok or _build_grouped_pack is None:
             return redirect(_pack_url)
@@ -6038,6 +7089,17 @@ function copyCaption(btn, spanId) {{
                 ) if card_id_raw else ""
                 rows += f"""
 <div class="card" id="g-{card_uuid}" style="margin-bottom:12px">
+                # V9: "Why this card?" — derive from factors + evidence on this item.
+            _ra_for_why = {
+                "achievement": ach if isinstance(ach, dict) else (item.get("achievement") or {}),
+                "factors": item.get("factors") or (ach.get("factors") if isinstance(ach, dict) else None) or [],
+                "rank": item.get("rank"),
+            }
+            _why_uuid = (str(card_id) or section_id).replace(":", "_").replace(",", "_").replace("/", "_") or f"gp-{section_id}"
+            why_html = _render_why_this_card(_ra_for_why, card_uuid=f"gp-{_why_uuid}")
+
+            rows += f"""
+<div class="card" style="margin-bottom:12px">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
     <div style="flex:1">
       <div style="font-size:13px;font-weight:700">{swimmer}{(" · " + evt) if evt else ""}</div>
@@ -6050,6 +7112,7 @@ function copyCaption(btn, spanId) {{
       {f'<span class="tag">{band}</span>' if band else ""}
     </div>
   </div>
+  {why_html}
   <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn secondary" style="font-size:12px;padding:4px 10px" onclick="copyText(this,'cap-{card_id}-1')">Copy caption</button>
     <textarea id="cap-{card_id}-1" style="display:none">{cap_only}</textarea>
@@ -6139,6 +7202,16 @@ function copyCaption(btn, spanId) {{
 <p class="dim"><a href="{_review_url}">← Back to review</a> &nbsp;|&nbsp; <a href="{_pack_url}">Classic pack view</a></p>
 <h1>Content Pack (grouped) — {meet_name}</h1>
 
+<div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+  <div>
+    <div style="font-size:13px;font-weight:700">Meet reel</div>
+    <div style="font-size:12px;color:var(--ink-dim);margin-top:2px">Stitch the top 3 cards into a 15-second branded MP4 reel.</div>
+  </div>
+  <button class="btn" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#F97316,#EF4444);color:#fff;border:none"
+          onclick="generateReelGrouped(this, {repr(_reel_url)})">▶ Generate reel from this meet</button>
+</div>
+<div id="reel-panel-grouped" style="display:none;margin-bottom:14px;padding:14px;background:rgba(249,115,22,0.04);border:1px solid var(--border);border-radius:8px"></div>
+
 {visuals_strip}
 
 {_section_html("Main feed posts", grouped.get("main_feed", []), icon="📌")}
@@ -6168,6 +7241,46 @@ function copyText(btn, taId) {{
     try {{ var ok = document.execCommand('copy'); done(ok); }} catch(e) {{ done(false); }}
     document.body.removeChild(t);
   }}
+}}
+// V9: Copy "Why this card?" reasoning.
+function copyWhyCard(btn, taId) {{ copyText(btn, taId); }}
+function generateReelGrouped(btn, reelUrl) {{
+  var panel = document.getElementById('reel-panel-grouped');
+  if (!panel) return;
+  panel.style.display = '';
+  var origLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Rendering reel…';
+  panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-muted);font-size:13px">Producing 15-second reel from the top 3 cards… cold renders may take up to 90s.</div>';
+  fetch(reelUrl, {{method:'POST'}})
+    .then(function(r) {{
+      var ct = r.headers.get('content-type') || '';
+      if (r.ok && ct.indexOf('video') !== -1) {{ return r.blob().then(function(b){{ return {{ok:true, blob:b}}; }}); }}
+      return r.json().then(function(j){{ return {{ok:false, body:j}}; }});
+    }})
+    .then(function(res) {{
+      btn.disabled = false; btn.textContent = origLabel;
+      if (!res.ok) {{
+        var msg = (res.body && (res.body.detail || res.body.error)) || 'render failed';
+        panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Reel render error: ' + msg + '</div>';
+        return;
+      }}
+      var url = URL.createObjectURL(res.blob);
+      panel.innerHTML =
+        '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">' +
+          '<div style="flex:0 0 220px;max-width:240px">' +
+            '<video src="' + url + '" controls playsinline style="width:100%;border-radius:6px;border:1px solid var(--border);background:#000"></video>' +
+          '</div>' +
+          '<div style="flex:1;min-width:200px">' +
+            '<div style="font-size:11px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:6px">Meet reel · 1080×1920 · 15s</div>' +
+            '<a class="btn secondary" href="' + url + '" download="meet-reel.mp4" style="font-size:12px;padding:4px 12px">Download MP4</a>' +
+          '</div>' +
+        '</div>';
+    }})
+    .catch(function(err) {{
+      btn.disabled = false; btn.textContent = origLabel;
+      panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Network error: ' + err + '</div>';
+    }});
 }}
 </script>
 {_schedule_modal_js()}
@@ -6460,8 +7573,16 @@ function copyText(btn, taId) {{
             )
         except Exception as e:
             return jsonify({"error": f"render_failed: {e}"}), 500
+        # V9: Attach the "Why this card?" explanation so JSON consumers can
+        # render the same plain-English reasoning the UI shows.
+        explanation = _build_card_explanation(target)
         # Include the seed in the response so the UI / debugging can see it.
-        return jsonify({"ok": True, "variation_seed": variation_seed, **res})
+        return jsonify({
+            "ok": True,
+            "variation_seed": variation_seed,
+            "explanation": explanation,
+            **res,
+        })
 
     @app.route("/api/runs/<run_id>/cards/<card_id>/regenerate", methods=["POST"])
     def api_regenerate_graphic(run_id: str, card_id: str):
@@ -6557,6 +7678,183 @@ function copyText(btn, taId) {{
         with ThreadPoolExecutor(max_workers=3) as ex:
             variants = list(ex.map(_one, seeds))
         return jsonify({"ok": True, "variants": variants})
+
+    # ------------------------------------------------------------------
+    # Motion-graphic + short-form video output (Remotion)
+    # ------------------------------------------------------------------
+    @app.route("/api/runs/<run_id>/card/<card_id>/motion", methods=["POST", "GET"])
+    def api_card_motion(run_id: str, card_id: str):
+        """Render (or serve cached) MP4 story for a single card.
+
+        Lazy: returns the cached file on cache hit; renders via Remotion on
+        cache miss. Always serves the MP4 with the correct mime type so the
+        UI can use <video src=…> or a direct download.
+        """
+        from flask import send_file
+        try:
+            from mediahub.visual import motion as _motion
+        except Exception as e:
+            return jsonify({"error": f"motion_module_unavailable: {e}"}), 503
+
+        run_data = _load_run(run_id)
+        if run_data is None:
+            run_dir = RUNS_DIR / run_id
+            run_json = run_dir / "run.json"
+            if run_json.exists():
+                try:
+                    run_data = json.loads(run_json.read_text())
+                except Exception as e:
+                    return jsonify({"error": f"run_load_failed: {e}"}), 500
+            else:
+                return jsonify({"error": "run_not_found"}), 404
+
+        rr = run_data.get("recognition_report") or {}
+        ranked = rr.get("ranked_achievements") or []
+        target = None
+        for ra in ranked:
+            ach = ra.get("achievement") or {}
+            if ach.get("swim_id") == card_id or ra.get("id") == card_id:
+                target = ra
+                break
+        if target is None:
+            for c in (run_data.get("cards") or []):
+                if c.get("swim_id") == card_id or c.get("id") == card_id:
+                    target = {"achievement": c}
+                    break
+        if target is None:
+            return jsonify({"error": "card_not_found"}), 404
+
+        ach = target.get("achievement") or {}
+        meet_name = (run_data.get("meet") or {}).get("name") or run_data.get("meet_name", "")
+        card_payload = {
+            "id": ach.get("swim_id") or card_id,
+            "swim_id": ach.get("swim_id") or card_id,
+            "achievement": ach,
+            "meet_name": meet_name,
+        }
+
+        profile_id = run_data.get("profile_id") or run_data.get("club_filter") or "_run_" + run_id
+        profile_id = re.sub(r"[^a-z0-9_-]", "-", profile_id.lower()).strip("-") or ("_run_" + run_id)
+        try:
+            brand_kit = _v8_brand_kit_for(profile_id, run_id=run_id) if _v8_ok else None
+        except Exception:
+            brand_kit = None
+
+        # Honour the same per-card variation seed as the static graphic, so
+        # the motion render visually aligns with the still card.
+        try:
+            from mediahub.creative_brief.generator import auto_variation_seed_for
+            variation_seed = auto_variation_seed_for(
+                ach.get("swim_id") or card_id
+            )
+        except Exception:
+            variation_seed = 1
+
+        out_dir = RUNS_DIR / run_id / "motion"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"{card_id}.mp4"
+
+        try:
+            mp4 = _motion.render_story_card(
+                card_payload,
+                brand_kit,
+                out_path,
+                variation_seed=variation_seed,
+            )
+        except RuntimeError as e:
+            return jsonify({"error": "render_failed", "detail": str(e)}), 500
+        except Exception as e:
+            return jsonify({"error": "render_failed", "detail": str(e)}), 500
+
+        if not Path(mp4).exists():
+            return jsonify({"error": "render_failed", "detail": "mp4 missing after render"}), 500
+        return send_file(str(mp4), mimetype="video/mp4", as_attachment=False,
+                         download_name=f"{card_id}.mp4")
+
+    @app.route("/api/runs/<run_id>/reel", methods=["POST", "GET"])
+    def api_run_reel(run_id: str):
+        """Render (or serve cached) a multi-card MP4 reel for the meet.
+
+        Uses the top 3 ranked achievements by default; caller can override
+        the count with ?n=<int> up to a hard cap of 5.
+        """
+        from flask import send_file
+        try:
+            from mediahub.visual import motion as _motion
+        except Exception as e:
+            return jsonify({"error": f"motion_module_unavailable: {e}"}), 503
+
+        run_data = _load_run(run_id)
+        if run_data is None:
+            run_dir = RUNS_DIR / run_id
+            run_json = run_dir / "run.json"
+            if run_json.exists():
+                try:
+                    run_data = json.loads(run_json.read_text())
+                except Exception as e:
+                    return jsonify({"error": f"run_load_failed: {e}"}), 500
+            else:
+                return jsonify({"error": "run_not_found"}), 404
+
+        try:
+            n = int(request.args.get("n", "3"))
+        except (TypeError, ValueError):
+            n = 3
+        n = max(1, min(5, n))
+
+        rr = run_data.get("recognition_report") or {}
+        ranked = rr.get("ranked_achievements") or []
+        # ranked_achievements is generally already sorted; sort defensively.
+        ranked_sorted = sorted(
+            ranked,
+            key=lambda r: float(r.get("priority", 0.0) or 0.0),
+            reverse=True,
+        )
+        top = ranked_sorted[:n]
+        if not top:
+            # Fall back to the cards array if no recognition report.
+            top = [{"achievement": c} for c in (run_data.get("cards") or [])[:n]]
+        if not top:
+            return jsonify({"error": "no_cards_for_reel"}), 404
+
+        meet_name = (run_data.get("meet") or {}).get("name") or run_data.get("meet_name", "")
+        cards: list[dict] = []
+        for ra in top:
+            ach = ra.get("achievement") or {}
+            cards.append({
+                "id": ach.get("swim_id") or ra.get("id") or "",
+                "swim_id": ach.get("swim_id") or "",
+                "achievement": ach,
+                "meet_name": meet_name,
+            })
+
+        profile_id = run_data.get("profile_id") or run_data.get("club_filter") or "_run_" + run_id
+        profile_id = re.sub(r"[^a-z0-9_-]", "-", profile_id.lower()).strip("-") or ("_run_" + run_id)
+        try:
+            brand_kit = _v8_brand_kit_for(profile_id, run_id=run_id) if _v8_ok else None
+        except Exception:
+            brand_kit = None
+
+        out_dir = RUNS_DIR / run_id / "motion"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"reel_{n}.mp4"
+
+        try:
+            mp4 = _motion.render_meet_reel(
+                cards,
+                brand_kit,
+                out_path,
+                meet_name=meet_name,
+            )
+        except RuntimeError as e:
+            return jsonify({"error": "render_failed", "detail": str(e)}), 500
+        except Exception as e:
+            return jsonify({"error": "render_failed", "detail": str(e)}), 500
+
+        if not Path(mp4).exists():
+            return jsonify({"error": "render_failed", "detail": "mp4 missing after render"}), 500
+        return send_file(str(mp4), mimetype="video/mp4", as_attachment=False,
+                         download_name=f"meet_reel_{run_id}.mp4")
 
     @app.route("/api/visual/<vid>")
     def api_visual_get(vid: str):
