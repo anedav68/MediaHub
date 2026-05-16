@@ -6055,9 +6055,235 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     def stub_session_update():
         return _render_stub("SessionUpdateStub", "stub_session_update", "Session Update")
 
-    @app.route("/free-text", methods=["GET", "POST"])
-    def stub_free_text():
-        return _render_stub("FreeTextStub", "stub_free_text", "Free Text")
+    @app.route("/free-text/quick", methods=["GET", "POST"])
+    def stub_free_text_quick():
+        # One-shot single-textarea form (legacy). Kept under /quick because
+        # the primary /free-text experience is now the iterative chat.
+        return _render_stub("FreeTextStub", "stub_free_text_quick", "Free Text (quick)")
+
+    # ---- /free-text — Claude-driven chat brief builder -----------------------
+    @app.route("/free-text", methods=["GET"])
+    def free_text_chat_page():
+        from mediahub.free_text_chat.session import list_sessions
+        sessions = list_sessions(limit=20)
+        rows_html = ""
+        for it in sessions:
+            view_url = url_for("free_text_chat_view", chat_id=it["chat_id"])
+            ts = (it.get("updated_at") or "")[:19].replace("T", " ")
+            badge = ('<span class="tag good" style="font-size:10px">brief accepted</span>'
+                     if it.get("accepted") else
+                     '<span class="tag" style="font-size:10px">draft</span>')
+            rows_html += (
+                f'<tr><td><a href="{view_url}">{_h(it.get("title") or "Untitled chat")}</a></td>'
+                f'<td>{badge}</td>'
+                f'<td>{it.get("n_messages", 0)}</td>'
+                f'<td class="muted">{_h(ts)}</td></tr>'
+            )
+        new_url = url_for("free_text_chat_new")
+        body = f"""
+<h1>Free text — chat</h1>
+<p class="dim" style="max-width:680px">
+  Talk to Claude. Describe what you want to post, answer the assistant's
+  questions, and approve the brief when it's right. The assistant
+  researches the web on its own — names, venues, PBs, sponsor info — so
+  the brief is grounded in evidence, not invented.
+</p>
+
+<form method="post" action="{new_url}" style="margin-top:14px">
+  <button type="submit" class="btn">Start a new chat →</button>
+</form>
+
+<div class="card" style="margin-top:24px">
+  <h2 style="margin-top:0">Past chats</h2>
+  {('<table><thead><tr><th>Title</th><th>State</th><th>Messages</th>'
+    '<th>Updated</th></tr></thead><tbody>' + rows_html + '</tbody></table>')
+   if rows_html else '<p class="muted">No chats yet.</p>'}
+</div>
+
+<p style="margin-top:18px;font-size:12px;color:var(--ink-muted)">
+  Prefer the one-shot form? <a href="{url_for('stub_free_text_quick')}">Use the legacy quick generator →</a>
+</p>
+"""
+        return _layout("Free text — chat", body, active="add_input")
+
+    @app.route("/free-text/chat/new", methods=["POST"])
+    def free_text_chat_new():
+        from mediahub.free_text_chat.session import create_session
+        s = create_session()
+        return redirect(url_for("free_text_chat_view", chat_id=s.chat_id))
+
+    @app.route("/free-text/chat/<chat_id>", methods=["GET"])
+    def free_text_chat_view(chat_id):
+        from mediahub.free_text_chat.session import load_session
+        s = load_session(chat_id)
+        if not s:
+            return _layout("Chat not found",
+                           '<div class="empty">Chat not found.</div>',
+                           active="add_input"), 404
+        # Pre-render messages for the initial paint; JS keeps it live.
+        msgs_html = ""
+        for m in s.messages:
+            if m.get("role") == "system_note":
+                continue  # internal — not shown to user
+            role = m.get("role", "")
+            text = _h(m.get("content", "") or "")
+            who = "You" if role == "user" else "Assistant"
+            bg = ("rgba(34,211,238,0.06)" if role == "user"
+                  else "rgba(139,92,246,0.06)")
+            msgs_html += (
+                f'<div class="chat-msg" data-role="{_h(role)}" '
+                f'style="margin-bottom:10px;padding:10px 12px;background:{bg};'
+                f'border-radius:8px;border:1px solid var(--border)">'
+                f'<div style="font-size:10px;text-transform:uppercase;'
+                f'color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:3px">{who}</div>'
+                f'<div style="font-size:13px;color:var(--ink);white-space:pre-wrap;'
+                f'line-height:1.45">{text}</div></div>'
+            )
+        # Pending brief card (if any)
+        brief_html = ""
+        if s.pending_brief and not s.accepted_brief:
+            try:
+                pretty = json.dumps(s.pending_brief, indent=2, ensure_ascii=False)
+            except Exception:
+                pretty = str(s.pending_brief)
+            brief_html = f"""
+<div id="pending-brief" class="card" style="margin-top:14px;border-color:rgba(74,222,128,0.35);background:rgba(74,222,128,0.04)">
+  <div style="font-size:10px;text-transform:uppercase;color:#4ade80;letter-spacing:0.5px;margin-bottom:4px">Proposed brief</div>
+  <pre style="font-size:12px;white-space:pre-wrap;margin:0">{_h(pretty)}</pre>
+  <div style="margin-top:14px;display:flex;gap:10px">
+    <form method="post" action="{url_for('free_text_chat_accept', chat_id=chat_id)}" style="display:inline">
+      <button type="submit" class="btn" style="background:#4ade80;color:#000;border:none">Accept &amp; generate</button>
+    </form>
+    <form method="post" action="{url_for('free_text_chat_decline', chat_id=chat_id)}" style="display:inline">
+      <button type="submit" class="btn secondary">Decline — keep refining</button>
+    </form>
+  </div>
+</div>
+"""
+        accepted_html = ""
+        if s.accepted_brief:
+            generate_url = url_for("free_text_chat_generate", chat_id=chat_id)
+            try:
+                pretty_a = json.dumps(s.accepted_brief, indent=2, ensure_ascii=False)
+            except Exception:
+                pretty_a = str(s.accepted_brief)
+            accepted_html = f"""
+<div class="card" style="margin-top:14px;border-color:rgba(34,211,238,0.35);background:rgba(34,211,238,0.04)">
+  <div style="font-size:10px;text-transform:uppercase;color:#22D3EE;letter-spacing:0.5px;margin-bottom:4px">Accepted brief</div>
+  <pre style="font-size:12px;white-space:pre-wrap;margin:0">{_h(pretty_a)}</pre>
+  <form method="post" action="{generate_url}" style="margin-top:12px">
+    <button type="submit" class="btn">Generate content from this brief →</button>
+  </form>
+</div>
+"""
+        send_url = url_for("free_text_chat_send", chat_id=chat_id)
+        title = _h(s.title or "New chat")
+        body = f"""
+<h1>{title}</h1>
+<p class="dim"><a href="{url_for('free_text_chat_page')}">← All chats</a></p>
+
+<div id="chat-log" style="margin-top:14px">
+  {msgs_html or '<p class="muted">Start by telling the assistant what you want to post. It will ask questions, research the web, and propose a brief.</p>'}
+</div>
+
+{brief_html}
+{accepted_html}
+
+<form id="chat-form" method="post" action="{send_url}" style="margin-top:14px">
+  <textarea name="message" placeholder="Tell the assistant what you want to post about…"
+            style="width:100%;min-height:90px;padding:10px;font-size:13px" required></textarea>
+  <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
+    <button type="submit" class="btn">Send</button>
+    <span class="muted" style="font-size:11px">The assistant uses Claude with web research tools.</span>
+  </div>
+</form>
+"""
+        return _layout(s.title or "Chat", body, active="add_input")
+
+    @app.route("/free-text/chat/<chat_id>/send", methods=["POST"])
+    def free_text_chat_send(chat_id):
+        from mediahub.free_text_chat.session import load_session, save_session
+        from mediahub.free_text_chat.agent import next_assistant_turn
+        s = load_session(chat_id)
+        if not s:
+            return _layout("Chat not found",
+                           '<div class="empty">Chat not found.</div>',
+                           active="add_input"), 404
+        msg = (request.form.get("message") or "").strip()
+        if msg:
+            s.add_user_message(msg)
+            save_session(s)
+            try:
+                next_assistant_turn(s)
+            except Exception as e:
+                s.add_assistant_message(f"Error: {e}", meta={"error": True})
+                save_session(s)
+        return redirect(url_for("free_text_chat_view", chat_id=chat_id))
+
+    @app.route("/free-text/chat/<chat_id>/accept", methods=["POST"])
+    def free_text_chat_accept(chat_id):
+        from mediahub.free_text_chat.session import load_session, save_session
+        s = load_session(chat_id)
+        if not s:
+            return redirect(url_for("free_text_chat_page"))
+        if s.pending_brief:
+            s.accepted_brief = s.pending_brief
+            s.pending_brief = None
+            s.messages.append({"role": "system_note",
+                               "content": "[user accepted the brief]",
+                               "ts": datetime.now(timezone.utc).isoformat()})
+            save_session(s)
+        return redirect(url_for("free_text_chat_view", chat_id=chat_id))
+
+    @app.route("/free-text/chat/<chat_id>/decline", methods=["POST"])
+    def free_text_chat_decline(chat_id):
+        from mediahub.free_text_chat.session import load_session, save_session
+        from mediahub.free_text_chat.agent import next_assistant_turn
+        s = load_session(chat_id)
+        if not s:
+            return redirect(url_for("free_text_chat_page"))
+        if s.pending_brief:
+            s.pending_brief = None
+            s.add_user_message(
+                "I'm not happy with that brief yet. Ask me what's missing or "
+                "propose a revised version."
+            )
+            save_session(s)
+            try:
+                next_assistant_turn(s)
+            except Exception as e:
+                s.add_assistant_message(f"Error: {e}", meta={"error": True})
+                save_session(s)
+        return redirect(url_for("free_text_chat_view", chat_id=chat_id))
+
+    @app.route("/free-text/chat/<chat_id>/generate", methods=["POST"])
+    def free_text_chat_generate(chat_id):
+        """Turn an accepted brief into a saved stub-pack so the existing
+        approval pills + export flow apply."""
+        from mediahub.free_text_chat.session import load_session
+        from mediahub.club_platform.stub_pack_store import save_pack
+        s = load_session(chat_id)
+        if not s or not s.accepted_brief:
+            return redirect(url_for("free_text_chat_view", chat_id=chat_id))
+        brief = s.accepted_brief
+        card = {
+            "platform":   brief.get("platform") or "Instagram",
+            "caption":    "\n\n".join([
+                p for p in [brief.get("headline", ""), brief.get("body", "")]
+                if p
+            ]).strip(),
+            "hashtags":   brief.get("hashtags") or [],
+            "confidence": 0.85,
+            "notes":      brief.get("visual_concept", "") or "",
+            "status":     "queue",
+        }
+        saved = save_pack(
+            "free_text",
+            {"free_text": s.title or "Chat brief",
+             "source": "chat", "chat_id": chat_id},
+            [card],
+        )
+        return redirect(url_for("stub_pack_view", pack_id=saved["pack_id"]))
 
     # ---- Saved stub packs &mdash; list + view + export -----------------------
     _STUB_TYPE_LABEL = {
