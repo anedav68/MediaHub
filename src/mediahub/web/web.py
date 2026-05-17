@@ -441,13 +441,27 @@ def _build_card_explanation(ra: dict, meet_context: Optional[dict] = None) -> di
     return exp
 
 
-def _render_why_this_card(ra: dict, *, card_uuid: str) -> str:
-    """Render the collapsible "Why this card?" disclosure HTML.
+def _render_why_this_card(
+    ra: dict,
+    *,
+    card_uuid: str,
+    run_id: str = "",
+) -> str:
+    """Render the "Why this card?" disclosure HTML.
 
-    The block is grounded: the headline / bullets come from the ranker's
-    factors and the source_lines are quoted verbatim from the achievement's
-    evidence entries. A "Copy reasoning" button copies the full text so it
-    can be pasted into a sponsor report.
+    Phase 1.4 changes the visibility default: the disclosure now opens
+    by default (``<details open>`` below) because the editorial
+    reasoning is the most marketable surface the product has — no
+    horizontal player can match per-card data-grounded "why".
+
+    The block is grounded: the headline / bullets come from the
+    ranker's factors and the source_lines are quoted verbatim from
+    the achievement's evidence entries. Two buttons:
+
+      • Copy reasoning — clipboard the plain-text reasoning.
+      • Use in next caption — when ``run_id`` is supplied, re-prompt
+        the caption LLM with the explanation as required content so
+        the visible intelligence flows back into the generated copy.
     """
     exp = _build_card_explanation(ra)
     headline = _h(exp.get("headline", ""))
@@ -536,8 +550,31 @@ def _render_why_this_card(ra: dict, *, card_uuid: str) -> str:
             '</div></div>'
         )
 
+    # Phase 1.4 — "Use in next caption" button. Only rendered when
+    # the caller passed run_id (so legacy callers without a run
+    # context don't break). The button piggybacks on the existing
+    # /api/runs/<run>/swim/<swim>/caption?include_why=1 channel.
+    _swim_id_for_btn = ""
+    try:
+        ach_for_btn = ra.get("achievement") if isinstance(ra, dict) else None
+        if isinstance(ach_for_btn, dict):
+            _swim_id_for_btn = str(ach_for_btn.get("swim_id") or ra.get("id") or "")
+        elif isinstance(ra, dict):
+            _swim_id_for_btn = str(ra.get("id") or ra.get("swim_id") or "")
+    except Exception:
+        _swim_id_for_btn = ""
+    use_in_caption_btn, use_in_caption_panel = _use_in_caption_html(
+        run_id, _swim_id_for_btn, card_uuid,
+    )
+
+    # Phase 1.4: explainer is now DEFAULT-VISIBLE everywhere. The
+    # editorial reasoning is the single most marketable surface MediaHub
+    # has — no horizontal player can match data-grounded "why" per
+    # card — so it shouldn't sit behind a click. The user can still
+    # collapse it via the disclosure triangle if they need pure
+    # caption-density.
     return f"""
-<details class="why-card" style="margin-top:10px;padding:10px 12px;background:rgba(139,92,246,0.06);
+<details open class="why-card" style="margin-top:10px;padding:10px 12px;background:rgba(139,92,246,0.06);
   border:1px solid rgba(139,92,246,0.25);border-radius:8px">
   <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#A78BFA;user-select:none;
     list-style:none;display:flex;align-items:center;gap:6px">
@@ -555,9 +592,42 @@ def _render_why_this_card(ra: dict, *, card_uuid: str) -> str:
       <button class="btn secondary" type="button" style="font-size:11px;padding:4px 10px"
         onclick="copyWhyCard(this, 'why-text-{card_uuid}')">Copy reasoning</button>
       <textarea id="why-text-{card_uuid}" style="display:none">{plain_text}</textarea>
+      {use_in_caption_btn}
     </div>
+    {use_in_caption_panel}
   </div>
 </details>"""
+
+
+def _use_in_caption_html(run_id: str, swim_id: str, card_uuid: str) -> tuple[str, str]:
+    """Return (button_html, panel_html) for the "Use in next caption"
+    affordance. Empty strings when ``run_id`` / ``swim_id`` are missing.
+
+    The button POSTs to /api/runs/<run>/swim/<swim>/caption with
+    ?include_why=1 — the endpoint then builds the same explanation,
+    injects it as `_extra_instructions`, and returns the regenerated
+    caption. The result lands in a small panel below the explainer.
+    """
+    if not run_id or not swim_id:
+        return "", ""
+    panel_id = f"why-cap-{card_uuid}"
+    # JSON-encode the URLs so Jinja-style interpolation can't be
+    # tricked by a card_id containing quotes — defence-in-depth.
+    cap_url = url_for("api_live_caption", run_id=run_id, swim_id=swim_id)
+    btn = (
+        f'<button class="btn secondary" type="button" '
+        f'style="font-size:11px;padding:4px 10px;'
+        f'background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.4);color:#A78BFA" '
+        f'onclick="mhUseWhyInCaption(this, {json.dumps(cap_url)}, {json.dumps(panel_id)})">'
+        f'Use in next caption</button>'
+    )
+    panel = (
+        f'<div id="{panel_id}" data-mh-why-caption '
+        f'style="display:none;margin-top:8px;padding:8px 10px;'
+        f'background:rgba(139,92,246,0.04);border:1px dashed rgba(139,92,246,0.3);'
+        f'border-radius:6px;font-size:12px;color:var(--ink);line-height:1.45"></div>'
+    )
+    return btn, panel
 
 # V8: media generation engine
 try:
@@ -2123,6 +2193,51 @@ def _layout(title: str, body: str, active: str = "home") -> str:
     });
   };
 
+  // Phase 1.4 — "Use in next caption". Re-runs the caption LLM with
+  // the visible explainer text injected as a required content
+  // instruction. The result lands in a small panel below the
+  // explainer (panel_id), preserving the user's reading flow rather
+  // than dumping into a modal.
+  window.mhUseWhyInCaption = function(btn, captionUrl, panelId) {
+    var panel = document.getElementById(panelId);
+    var origLabel = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Generating…';
+    if (panel) {
+      panel.style.display = 'block';
+      panel.textContent = 'Asking the AI to weave the reasoning into a fresh caption…';
+    }
+    var url = captionUrl + (captionUrl.indexOf('?') === -1 ? '?' : '&') + 'include_why=1&tone=ai&n_variants=1';
+    fetch(url, {method: 'POST', cache: 'no-store'}).then(function(r){
+      return r.json().then(function(j){ return {status: r.status, body: j}; });
+    }).then(function(o){
+      btn.disabled = false; btn.textContent = origLabel;
+      if (!panel) return;
+      var caption = (o.body && o.body.caption) || '';
+      if (o.body && o.body.error === 'no_key') {
+        panel.innerHTML = '<strong style="color:#f59e0b">AI is in heuristic mode.</strong> '
+          + '<a href="' + ((o.body && o.body.settings_url) || '/settings') + '" style="color:#22D3EE">Add an API key</a>'
+          + ' to use this feature.';
+        return;
+      }
+      if (caption) {
+        panel.innerHTML = '<div style="font-weight:600;color:#A78BFA;font-size:11px;'
+          + 'text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">'
+          + 'Caption with reasoning woven in</div>'
+          + '<div style="margin-bottom:8px">' + caption.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'
+          + '<button class="btn secondary" type="button" style="font-size:11px;padding:4px 10px" '
+          + 'onclick="navigator.clipboard.writeText(this.parentElement.querySelector(\'div:nth-child(2)\').textContent);'
+          + 'this.textContent=\'Copied\\u2009\\u2713\'">Copy</button>';
+      } else {
+        panel.innerHTML = '<strong style="color:#ff8a99">Generation failed.</strong> '
+          + ((o.body && (o.body.message || o.body.error)) || ('HTTP ' + o.status));
+      }
+    }).catch(function(e){
+      btn.disabled = false; btn.textContent = origLabel;
+      if (panel) panel.innerHTML = '<strong style="color:#ff8a99">Network error.</strong> '
+        + (e && e.message || e);
+    });
+  };
+
   // Server-flashed messages: any element with data-mh-flash gets shown then removed.
   document.querySelectorAll('[data-mh-flash]').forEach(function(el){
     MH.toast(el.getAttribute('data-mh-message') || el.textContent || '',
@@ -2368,6 +2483,45 @@ def create_app() -> Flask:
         ).fetchall()
         conn.close()
 
+        # Phase 1.3 — Recent posting activity. Last 20 Buffer attempts for
+        # this organisation. Fail-soft: if the log module isn't available
+        # or the DB lookup errors, the rest of the page still renders.
+        try:
+            from mediahub.publishing import posting_log as _plog
+            recent_attempts = _plog.recent_attempts(prof.profile_id, limit=20)
+        except Exception:
+            recent_attempts = []
+
+        # Per-run schedule summary — pulled from the workflow store on
+        # demand. Bounded by len(rows) ≤ 100 so the cost is fine.
+        summaries: dict[str, dict] = {}
+        try:
+            ws = _get_wf_store()
+        except Exception:
+            ws = None
+        if ws is not None:
+            try:
+                from mediahub.workflow.status import ScheduleStatus
+            except Exception:
+                ScheduleStatus = None
+            for r in rows:
+                run_id = r["id"]
+                summary = {"scheduled": 0, "published": 0, "failed": 0}
+                try:
+                    states = ws.load(run_id) or {}
+                    for cs in states.values():
+                        s = getattr(cs, "schedule_status", None)
+                        val = s.value if hasattr(s, "value") else (s or "queued")
+                        if val == "scheduled":
+                            summary["scheduled"] += 1
+                        elif val == "published":
+                            summary["published"] += 1
+                        elif val == "failed":
+                            summary["failed"] += 1
+                except Exception:
+                    pass
+                summaries[run_id] = summary
+
         if not rows:
             empty_body = (
                 f'<h1 style="margin-bottom:6px">Activity</h1>'
@@ -2378,6 +2532,22 @@ def create_app() -> Flask:
                 '</div>'
             )
             return _layout("Activity", empty_body, active="activity")
+
+        def _schedule_summary_html(rid: str) -> str:
+            s = summaries.get(rid) or {}
+            if not (s.get("scheduled") or s.get("published") or s.get("failed")):
+                return '<span class="muted" style="font-size:11px">&mdash;</span>'
+            parts = []
+            if s.get("scheduled"):
+                parts.append(f'<span class="tag info" style="font-size:11px">'
+                             f'{s["scheduled"]} scheduled</span>')
+            if s.get("published"):
+                parts.append(f'<span class="tag good" style="font-size:11px">'
+                             f'{s["published"]} published</span>')
+            if s.get("failed"):
+                parts.append(f'<span class="tag bad" style="font-size:11px">'
+                             f'{s["failed"]} failed</span>')
+            return " ".join(parts)
 
         rows_html = ""
         for r in rows:
@@ -2390,6 +2560,7 @@ def create_app() -> Flask:
                 f'<td><span class="tag {badge}">{_h(r["status"])}</span></td>'
                 f'<td>{_h(r["our_swims"] or 0)}</td>'
                 f'<td>{_h(r["n_queue"] or 0)} / {_h(r["n_cards"] or 0)}</td>'
+                f'<td>{_schedule_summary_html(r["id"])}</td>'
                 f'<td class="muted">{_h((r["created_at"] or "")[:19])}</td>'
                 f'<td><form method="post" action="{delete_href}" '
                 f'style="display:inline" data-no-loader="1" onsubmit="return confirm(\'Delete this run? This cannot be undone.\')">'
@@ -2398,15 +2569,57 @@ def create_app() -> Flask:
                 f'</form></td></tr>'
             )
 
+        # Recent posting activity panel — bottom-of-page, collapsed by
+        # default when empty; expanded when there's something to see so
+        # failures aren't hidden behind a click.
+        posting_panel_html = ""
+        if recent_attempts:
+            attempts_rows = ""
+            for a in recent_attempts:
+                status = a.get("status") or ""
+                kind = a.get("error_kind") or ""
+                if status == "ok":
+                    badge_html = '<span class="tag good" style="font-size:11px">ok</span>'
+                else:
+                    label = kind or "failed"
+                    badge_html = f'<span class="tag bad" style="font-size:11px">{_h(label)}</span>'
+                excerpt = (a.get("caption_excerpt") or "")[:120]
+                when = (a.get("attempted_at") or "")[:19]
+                channel = a.get("channel_name") or a.get("channel_id") or "&mdash;"
+                err = a.get("error_message") or ""
+                attempts_rows += (
+                    f'<tr><td class="muted" style="font-size:12px">{_h(when)}</td>'
+                    f'<td style="font-size:12px">{_h(channel)}</td>'
+                    f'<td>{badge_html}</td>'
+                    f'<td style="font-size:12px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{_h(excerpt)}">{_h(excerpt)}</td>'
+                    f'<td style="font-size:12px;color:#ff8a99" title="{_h(err)}">{_h(err[:80])}</td>'
+                    f'</tr>'
+                )
+            posting_panel_html = (
+                '<h2 style="margin-top:30px;margin-bottom:6px;font-size:18px">'
+                'Recent posting activity</h2>'
+                '<p class="dim" style="margin-bottom:14px;font-size:13px">'
+                f'Last {len(recent_attempts)} Buffer attempts for this organisation. '
+                'Failures stay listed here so you can see what went wrong without '
+                'digging through individual runs.</p>'
+                '<div class="card"><table>'
+                '<thead><tr><th>When</th><th>Channel</th><th>Status</th>'
+                '<th>Caption excerpt</th><th>Error</th></tr></thead>'
+                f'<tbody>{attempts_rows}</tbody>'
+                '</table></div>'
+            )
+
         body = (
             f'<h1 style="margin-bottom:6px">Activity</h1>'
             f'<p class="dim" style="margin-bottom:24px">Recent runs for '
             f'<b>{_h(prof.display_name)}</b>.</p>'
             '<div class="card"><table>'
             '<thead><tr><th>Input</th><th>Status</th>'
-            '<th>Matched items</th><th>Queue / Total</th><th>Started</th><th></th></tr></thead>'
+            '<th>Matched</th><th>Queue / Total</th><th>Schedule</th>'
+            '<th>Started</th><th></th></tr></thead>'
             f'<tbody>{rows_html}</tbody>'
             '</table></div>'
+            f'{posting_panel_html}'
         )
         return _layout("Activity", body, active="activity")
 
@@ -2974,7 +3187,7 @@ def create_app() -> Flask:
                 factors_html += f'<tr><td style="font-size:12px">{fname}</td><td style="font-size:12px">{fval:.3f}</td><td style="font-size:12px;color:var(--ink-muted)">{freason}</td></tr>'
 
             _why_uuid = str(a.get('swim_id', f'top-{rank}')).replace(':', '_').replace(',', '_').replace('/', '_')
-            why_html = _render_why_this_card(ra, card_uuid=f"top-{_why_uuid}")
+            why_html = _render_why_this_card(ra, card_uuid=f"top-{_why_uuid}", run_id=run_id)
             ach_rows_html += f"""
 <div class="ach-row" data-type="{a.get('type','')}" data-conf="{conf_label}" data-swimmer="{a.get('swimmer_name','')}" data-event="{a.get('event','')}" data-band="{band}" data-post="{ra.get('suggested_post_type','')}">
   <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">
@@ -3473,7 +3686,7 @@ function turnMeetIntoPack() {{
             _wf_api_url = url_for("api_workflow_set", run_id=run_id, card_id=card_id_raw)
 
             # V9: "Why this card?" &mdash; plain-English, source-grounded reasoning.
-            why_html = _render_why_this_card(ra, card_uuid=f"wf-{card_uuid}")
+            why_html = _render_why_this_card(ra, card_uuid=f"wf-{card_uuid}", run_id=run_id)
 
             ach_rows_html_wf += f"""
 <div class="ach-row" data-type="{a.get("type","")}" data-conf="{conf_label}" data-swimmer="{a.get("swimmer_name","")}" data-event="{a.get("event","")}" data-band="{band}" data-post="{ra.get("suggested_post_type","")}" data-status="{wf_status}">
@@ -4360,6 +4573,53 @@ function addGraphicToPack(btn, visualId) {{
             "type": achievement.get("type", ""),
             "headline": achievement.get("headline", ""),
         }
+
+        # Phase 1.4 — "use why-this-card in the caption". When the user
+        # clicks the button on the explainer panel, we re-prompt the
+        # caption LLM with the explanation's headline + bullets as
+        # required content. This lets the visible-intelligence layer
+        # flow back into the generated caption with one click — the
+        # AI-grounded reasoning literally informs the wording.
+        #
+        # Important: we only inject when the explainer returned a real
+        # grounded headline. The explainer has two known fallback
+        # shapes ("AI explanation unavailable..." when the perf-context
+        # LLM is down, and "Generated for: ranked top-N..." when no
+        # significant factors exist) — passing those through as
+        # requirements would tell the caption LLM to include literal
+        # error text in the post, which is worse than skipping the
+        # feature.
+        if request.args.get("include_why") == "1":
+            try:
+                _why = _build_card_explanation(matched_ra or {"achievement": achievement})
+                _why_headline = (_why.get("headline") or "").strip()
+                _why_bullets = _why.get("bullets") or []
+                _why_bullets_text = (
+                    "; ".join(b for b in _why_bullets if b)
+                    if isinstance(_why_bullets, list) else ""
+                )
+                _is_fallback_headline = (
+                    "unavailable" in _why_headline.lower()
+                    or _why_headline.startswith("Generated for:")
+                )
+                if _is_fallback_headline and not _why_bullets_text:
+                    # Nothing usable to inject — skip silently rather
+                    # than pollute the prompt.
+                    pass
+                elif _why_headline or _why_bullets_text:
+                    requirement_parts = []
+                    if _why_headline and not _is_fallback_headline:
+                        requirement_parts.append(_why_headline)
+                    if _why_bullets_text:
+                        requirement_parts.append(
+                            "Weave in at least one of these grounded "
+                            "reasons: " + _why_bullets_text + "."
+                        )
+                    if requirement_parts:
+                        ach_dict["_extra_instructions"] = " ".join(requirement_parts)
+            except Exception:
+                # Never block caption generation on a why-build hiccup.
+                pass
 
         # Club brand hints
         club_brand = {
@@ -5843,8 +6103,9 @@ Relay team broke club record"></textarea>
         from mediahub.web.secrets_store import get_buffer_access_token
         from mediahub.publishing.buffer import (
             schedule_post as _buf_schedule,
-            BufferAuthError, BufferAPIError,
+            BufferAuthError, BufferAPIError, BufferRateLimitError,
         )
+        from mediahub.publishing import posting_log as _plog
 
         payload = request.get_json(silent=True) or {}
         channel_ids = payload.get("channel_ids") or []
@@ -5866,6 +6127,26 @@ Relay team broke club record"></textarea>
             }), 400
 
         media_url = (payload.get("media_url") or "").strip()
+        if media_url:
+            # Defence-in-depth: only allow http/https URLs to be passed
+            # through to Buffer. Anything else (file://, javascript:,
+            # data:, internal ips by raw IP) is rejected up front so a
+            # malicious or accidental relative-href can't reach the
+            # upstream API.
+            from urllib.parse import urlparse as _urlparse
+            try:
+                parsed = _urlparse(media_url)
+            except Exception:
+                parsed = None
+            scheme_ok = bool(parsed) and parsed.scheme.lower() in ("http", "https")
+            netloc_ok = bool(parsed) and bool((parsed.netloc or "").strip())
+            if not (scheme_ok and netloc_ok):
+                return jsonify({
+                    "ok": False,
+                    "error": "bad_media_url",
+                    "message": "Media URL must be a full http/https URL.",
+                    "caption": caption,
+                }), 400
         media_urls = [media_url] if media_url else None
 
         scheduled_at_iso = (payload.get("scheduled_at") or "").strip()
@@ -5899,6 +6180,22 @@ Relay team broke club record"></textarea>
         update_ids: list[str] = []
         failure: Optional[str] = None
 
+        # Resolve profile_id so every posting-log row is scoped to the
+        # right org. Prefer the run's stored profile_id; fall back to
+        # the session-pinned active profile so logs aren't anonymous
+        # when a run pre-dates the profile system.
+        try:
+            run_data = _load_run(run_id) or {}
+        except Exception:
+            run_data = {}
+        profile_id_for_log = (
+            run_data.get("profile_id")
+            or (_active_profile_id() or "")
+        )
+        scheduled_at_iso_for_log = (
+            scheduled_at_dt.isoformat() if scheduled_at_dt else None
+        )
+
         for cid in channel_ids:
             try:
                 res = _buf_schedule(
@@ -5915,6 +6212,16 @@ Relay team broke club record"></textarea>
                 })
                 if res.get("update_id"):
                     update_ids.append(res["update_id"])
+                _plog.record_attempt(
+                    profile_id=profile_id_for_log,
+                    run_id=run_id, card_id=card_id,
+                    channel_id=str(cid),
+                    status="ok",
+                    update_id=res.get("update_id", ""),
+                    caption=caption,
+                    media_url=media_url or None,
+                    scheduled_at=scheduled_at_iso_for_log,
+                )
             except BufferAuthError as exc:
                 failure = str(exc)
                 results.append({
@@ -5923,7 +6230,41 @@ Relay team broke club record"></textarea>
                     "error": "auth",
                     "message": str(exc),
                 })
+                _plog.record_attempt(
+                    profile_id=profile_id_for_log,
+                    run_id=run_id, card_id=card_id,
+                    channel_id=str(cid),
+                    status="failed", error_kind="auth",
+                    error_message=str(exc),
+                    caption=caption,
+                    media_url=media_url or None,
+                    scheduled_at=scheduled_at_iso_for_log,
+                )
                 break  # Stop early &mdash; token is the same for every channel.
+            except BufferRateLimitError as exc:
+                # Rate-limit is per-account, not per-channel — once we
+                # hit it for one channel we will hit it for every
+                # subsequent one in the loop. Surface the retry hint
+                # to the user and stop early.
+                failure = str(exc)
+                results.append({
+                    "channel_id": str(cid),
+                    "ok": False,
+                    "error": "rate_limited",
+                    "message": str(exc),
+                    "retry_after": exc.retry_after,
+                })
+                _plog.record_attempt(
+                    profile_id=profile_id_for_log,
+                    run_id=run_id, card_id=card_id,
+                    channel_id=str(cid),
+                    status="failed", error_kind="rate_limited",
+                    error_message=str(exc),
+                    caption=caption,
+                    media_url=media_url or None,
+                    scheduled_at=scheduled_at_iso_for_log,
+                )
+                break
             except BufferAPIError as exc:
                 failure = str(exc)
                 results.append({
@@ -5932,6 +6273,16 @@ Relay team broke club record"></textarea>
                     "error": "api",
                     "message": str(exc),
                 })
+                _plog.record_attempt(
+                    profile_id=profile_id_for_log,
+                    run_id=run_id, card_id=card_id,
+                    channel_id=str(cid),
+                    status="failed", error_kind="api",
+                    error_message=str(exc),
+                    caption=caption,
+                    media_url=media_url or None,
+                    scheduled_at=scheduled_at_iso_for_log,
+                )
 
         any_ok = any(r.get("ok") for r in results)
         try:
@@ -5985,6 +6336,50 @@ Relay team broke club record"></textarea>
             "results": results,
             "caption": caption,
             "warning": failure,  # non-empty if a partial failure occurred
+        })
+
+    # ------------------------------------------------------------------
+    # Posting log — Phase 1.3 observability
+    # ------------------------------------------------------------------
+    #
+    # JSON access to the same log surfaced on /activity. Useful for
+    # tests and for any SPA-style UI that wants to poll for fresh
+    # attempts without re-rendering the whole page. Scoped to the
+    # active organisation, never returns a globally-mixed view.
+    @app.route("/api/posting/log", methods=["GET"])
+    def api_posting_log():
+        from mediahub.publishing import posting_log as _plog
+        prof = _active_profile()
+        if prof is None:
+            return jsonify({
+                "ok": False,
+                "error": "no_active_profile",
+                "attempts": [],
+            }), 409
+        try:
+            limit_raw = (request.args.get("limit") or "20").strip()
+            limit = max(1, min(200, int(limit_raw)))
+        except (TypeError, ValueError):
+            limit = 20
+        run_id = (request.args.get("run_id") or "").strip() or None
+        card_id = (request.args.get("card_id") or "").strip() or None
+        try:
+            attempts = _plog.recent_attempts(
+                prof.profile_id, limit=limit,
+                run_id=run_id, card_id=card_id,
+            )
+        except Exception as exc:
+            return jsonify({
+                "ok": False,
+                "error": "log_unavailable",
+                "message": str(exc),
+                "attempts": [],
+            }), 500
+        return jsonify({
+            "ok": True,
+            "profile_id": prof.profile_id,
+            "count": len(attempts),
+            "attempts": attempts,
         })
 
     # ====================================================================
@@ -8351,7 +8746,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 f'style="font-size:11px;{"display:none" if sched_state == "queued" else ""}">{_h(sched_state)}</span>'
             )
             # V9: "Why this card?" &mdash; explanation for the approved card.
-            why_html_pack = _render_why_this_card(card, card_uuid=f"pc-{card_uuid}")
+            why_html_pack = _render_why_this_card(card, card_uuid=f"pc-{card_uuid}", run_id=run_id)
 
             cards_html += f"""
 <div class="card" id="pc-{card_id}" style="page-break-inside:avoid">
@@ -9080,9 +9475,23 @@ function tiRegenerate() {{
                     "rank": item.get("rank"),
                 }
                 _why_uuid = (str(card_id) or section_id).replace(":", "_").replace(",", "_").replace("/", "_") or f"gp-{section_id}"
-                why_html = _render_why_this_card(_ra_for_why, card_uuid=f"gp-{_why_uuid}")
+                why_html = _render_why_this_card(_ra_for_why, card_uuid=f"gp-{_why_uuid}", run_id=run_id)
+                # Phase 1.4 — sortable confidence/priority. Stamp the band
+                # + priority on the card div so a JS sort handler in the
+                # section header can reorder without re-rendering.
+                _band_rank = {"elite": 4, "great": 3, "good": 2, "standard": 1}.get(
+                    (item.get("quality_band") or "").lower(), 0,
+                )
+                try:
+                    _prio_num = float(item.get("priority", 0) or 0)
+                except (TypeError, ValueError):
+                    _prio_num = 0.0
                 rows += f"""
-<div class="card" id="g-{card_uuid}" style="margin-bottom:12px">
+<div class="card mh-pack-card" id="g-{card_uuid}"
+     data-quality-band="{_h(item.get('quality_band') or '')}"
+     data-band-rank="{_band_rank}"
+     data-priority="{_prio_num:.4f}"
+     style="margin-bottom:12px">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
     <div style="flex:1">
       <div style="font-size:13px;font-weight:700">{swimmer}{(" &middot; " + evt) if evt else ""}</div>
@@ -9110,13 +9519,29 @@ function tiRegenerate() {{
 </div>"""
             if not rows:
                 rows = f'<p class="muted">{_h(empty_msg)}</p>'
+            # Phase 1.4 — sort controls. Only render when there's
+            # more than one card to sort.
+            sort_controls = ""
+            if isinstance(items_list, list) and len([x for x in items_list if x]) > 1:
+                sort_controls = (
+                    f'<span style="font-size:11px;display:flex;gap:4px;align-items:center;'
+                    f'margin-right:8px">'
+                    f'<span class="muted">Sort:</span>'
+                    f'<button class="btn secondary" style="font-size:11px;padding:3px 8px" '
+                    f'onclick="event.preventDefault();event.stopPropagation();'
+                    f'mhSortPackSection(this, \'band-rank\', \'desc\')">Confidence</button>'
+                    f'<button class="btn secondary" style="font-size:11px;padding:3px 8px" '
+                    f'onclick="event.preventDefault();event.stopPropagation();'
+                    f'mhSortPackSection(this, \'priority\', \'desc\')">Priority</button>'
+                    f'</span>'
+                )
             return f"""
-<details open>
+<details open data-mh-pack-section="{section_id}">
   <summary style="cursor:pointer;font-size:16px;font-weight:700;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:12px;list-style:none;display:flex;justify-content:space-between;align-items:center">
     <span>{icon} {_h(title)}</span>
-    <span class="tag" style="font-size:12px">{n}</span>
+    <span style="display:flex;align-items:center">{sort_controls}<span class="tag" style="font-size:12px">{n}</span></span>
   </summary>
-  {rows}
+  <div class="mh-pack-rows">{rows}</div>
 </details>"""
 
         win = grouped.get("weekend_in_numbers")
@@ -9280,6 +9705,37 @@ function generateReelGrouped(btn, reelUrl) {{
       panel.innerHTML = '<div style="padding:14px;color:#F87171;font-size:13px">Network error: ' + err + '</div>';
     }});
 }}
+
+// Phase 1.4 — sort the cards within one pack section by a data
+// attribute on each .mh-pack-card. Toggles between desc / asc on
+// repeat clicks of the same key. The DOM is reordered in place,
+// avoiding any server round-trip.
+window.mhSortPackSection = function(btn, key, defaultDir) {{
+  var section = btn.closest('[data-mh-pack-section]');
+  if (!section) return;
+  var container = section.querySelector('.mh-pack-rows');
+  if (!container) return;
+  var cards = Array.prototype.slice.call(container.querySelectorAll('.mh-pack-card'));
+  if (cards.length < 2) return;
+  var prevKey = section.dataset.mhSortKey || '';
+  var prevDir = section.dataset.mhSortDir || '';
+  var dir = (prevKey === key && prevDir === defaultDir) ? (defaultDir === 'desc' ? 'asc' : 'desc') : defaultDir;
+  var attr = 'data-' + key;
+  cards.sort(function(a, b) {{
+    var av = parseFloat(a.getAttribute(attr)) || 0;
+    var bv = parseFloat(b.getAttribute(attr)) || 0;
+    return dir === 'desc' ? (bv - av) : (av - bv);
+  }});
+  cards.forEach(function(c) {{ container.appendChild(c); }});
+  section.dataset.mhSortKey = key;
+  section.dataset.mhSortDir = dir;
+  // Visual marker on the active sort button.
+  var allBtns = section.querySelectorAll('button[onclick*="mhSortPackSection"]');
+  Array.prototype.forEach.call(allBtns, function(b) {{
+    b.style.background = (b === btn) ? 'rgba(34,211,238,0.18)' : '';
+    b.style.color = (b === btn) ? 'var(--accent)' : '';
+  }});
+}};
 </script>
 {_schedule_modal_js()}
 """

@@ -74,33 +74,32 @@ implemented and tested (472 tests passing).
 | Sponsor-templated content variants | ✅ `brand/sponsor.py::generate_sponsor_caption` + `/runs/<id>/card/<cid>/sponsor-variant` page; visual via existing `sponsor_branded` layout family, caption through the regular pipeline with sponsor requirement layered as an extra instruction; per-card "Sponsor variant" button in grouped pack |
 | Per-platform output adaptation (IG / X / LinkedIn / TikTok / Facebook / email) | ✅ `brand/derived.PLATFORM_FORMATS` + `platform_format_for(artefact_key)`; format constraints are mechanical/code-controlled (separated from AI-derived voice) and threaded into every caption that carries an `_artefact_key` |
 
-### 1.3 Publishing layer · ❌ **NOT STARTED** (scaffolding only)
+### 1.3 Publishing layer · ✅ **SHIPPED** (via Buffer)
 
-| Sub-item | Status | Next step |
-|---|---|---|
-| Buffer channel listing | ⚠️ `/api/buffer/channels` exists | — |
-| Per-card scheduling | ⚠️ `/api/runs/<id>/card/<id>/schedule` exists | Wire to a real Buffer schedule call with success/failure return |
-| Buffer OAuth + access-token storage | ❌ | **Settings page panel** for Buffer connect; store token via existing `secrets_store` |
-| Scheduled-post status surface in `/activity` | ❌ | Show "scheduled · sent · failed" per card |
-| Native publish (Instagram Graph, Facebook Pages, X v2, TikTok Business, LinkedIn Marketing) | ❌ | **Phase 2** — start with IG Graph (highest demand) once Buffer path is mature |
-| Failure observability (which post failed why) | ❌ | Single `posting_attempts` table + simple "what failed in the last 24h" admin view |
+| Sub-item | Status |
+|---|---|
+| Buffer channel listing | ✅ `/api/buffer/channels` + live channel-count probe on `/settings` |
+| Per-card scheduling | ✅ `/api/runs/<id>/card/<id>/schedule` calls real Buffer, persists per-channel results, marks workflow store as SCHEDULED/FAILED |
+| Access-token storage | ✅ Personal access token via `/settings` Buffer panel + `secrets_store.set_buffer_access_token`. OAuth flow deferred to Phase 3 — personal tokens are sufficient for the single-org self-hosted model |
+| Scheduled-post status surface in `/activity` | ✅ Per-run schedule summary column ("3 scheduled · 1 failed") pulled from workflow store; "Recent posting activity" panel listing the last 20 attempts with status badges + error messages |
+| Failure observability | ✅ `publishing/posting_log.py` SQLite log of every attempt (success + failure) with profile/run/card/channel/status/error_kind/error_message/update_id/caption_excerpt fields; bounded retention (5000-row sweep to 4500); `/api/posting/log` endpoint for SPA/JS consumers, gated by active org |
+| Rate-limit handling | ✅ `BufferRateLimitError` on 429 with `Retry-After` parsing; loop short-circuits early since rate-limit is per-account |
+| Media URL hardening | ✅ Defence-in-depth scheme + netloc validation rejects `file://` / `javascript:` / `data:` / bare paths before they reach Buffer |
+| Native publish (IG Graph, FB Pages, X v2, TikTok Business, LinkedIn Marketing) | ❌ **Phase 3** — Buffer integration is the right Phase 1 trade-off per dissertation §6.1.3 |
+| Buffer OAuth flow | ❌ **Phase 3** — defer until/unless personal-token UX is insufficient |
 
-Dissertation §6.1.3 recommends Buffer integration first (faster moat,
-weaker but adequate); native publish in Phase 2. Following that.
+### 1.4 Visible intelligence · ✅ **SHIPPED**
 
-### 1.4 Visible intelligence · ⚠️ **PARTIAL**
-
-| Sub-item | Status | Next step |
-|---|---|---|
-| `explain_achievement()` produces `{headline, bullets, source_lines}` | ✅ `recognition/explainer.py` (now profile-aware via derived type phrases) | — |
-| "Why this card?" UI present on cards | ⚠️ `_render_why_this_card` exists, surfaced inconsistently | **Make it default-visible on every card across review, pack, content-pack-grouped** |
-| One-click insert "why this matters" into the caption | ❌ | Add a "use this in caption" button in the explainer UI that re-prompts the LLM with the explanation as required content |
-| Confidence-band visualisation in pack list | ⚠️ tag exists | Promote into a sortable, filterable column |
+| Sub-item | Status |
+|---|---|
+| `explain_achievement()` produces `{headline, bullets, source_lines}` | ✅ `recognition/explainer.py` (profile-aware via derived type phrases) |
+| "Why this card?" UI default-visible on every card | ✅ `<details open>` in `_render_why_this_card`; reasoning is the first thing the user sees on every card across review / workflow / content-pack / grouped-pack |
+| One-click insert "why this matters" into the caption | ✅ "Use in next caption" button inside the explainer block POSTs to `/api/runs/<id>/swim/<id>/caption?include_why=1` which injects the explainer headline + bullets as `_extra_instructions` on top of the existing brand-context system prompt. Result lands in an inline panel below the explainer with a copy button. Fallback explainer text ("AI unavailable" / "Generated for: ranked top-N") is filtered out so the LLM never gets told to "include error text" |
+| Confidence-band visualisation in pack list | ✅ Promoted to a sortable column on the grouped pack: per-card `data-band-rank` + `data-priority` attributes + per-section "Sort: Confidence / Priority" buttons that reorder in place via `mhSortPackSection` JS, toggling desc→asc on repeat clicks |
 
 Promoted from Phase 2 to Phase 1 — surfacing the intelligence layer
 is the single biggest *marketing* lever the product has and no
-horizontal player can copy it. It's a higher-priority Parity item
-than commercial bringup, which moves to Phase 2 (see 2.1).
+horizontal player can copy it.
 
 ### 1.5 Reliability + observability · ⚠️ **PARTIAL**
 
@@ -246,26 +245,21 @@ work-stream.
 
 ## Immediate next moves
 
-Out of the remaining phase-1 gaps, these have the highest leverage
-and fewest dependencies.
+With 1.2, 1.3 and 1.4 all SHIPPED, only 1.5 remains in Phase 1.
 
-1. **Publishing layer end-to-end via Buffer (1.3).** Settings panel
-   to connect a Buffer account → store token → list channels →
-   schedule a card → track success/failure. Closes the single most
-   visible functional gap with horizontal players.
-2. **Visible intelligence — "Why this card?" default-visible (1.4).**
-   The explainer is already in code; this is a UI consistency
-   pass — replace conditional rendering with always-show across
-   review, pack, pack-grouped. Biggest *marketing* win because no
-   horizontal player can match it.
-3. **Reliability / public status page (1.5).** The dissertation
-   makes a marketable case for explicit uptime numbers; an SQLite-
-   backed `/status` is bounded work.
-
-After those, the priority is **sport expansion (2.2 athletics)**
-because it unlocks the next tranche of buyers, and
-**athlete-facing surfaces (2.5)** because it's a long-tail
-distribution moat.
+1. **Reliability / public status page (1.5).** Public `/status`
+   page with uptime numbers + a small admin dashboard for the LLM
+   provider history (already on `/settings`) and the posting-log
+   failure summary (already powering the `/activity` panel —
+   should be promoted into an at-a-glance admin view).
+2. **Sport expansion (2.2 athletics).** Unlocks the next tranche
+   of buyers (track-and-field clubs). One quarter of work:
+   canonical event taxonomy + result-file parser + PB/record/
+   qualifier logic + copy templates.
+3. **Athlete-facing surfaces (2.5).** Per-athlete personal share
+   link (`/athlete/<slug>`) showing their season's cards +
+   story-ready downloads. Greenfly pattern adapted for small-club
+   scale; long-tail distribution moat.
 
 Commercial layer (now 2.1) is deliberately scheduled last — only
 when the app is ready to go live to customers, not before.
@@ -299,6 +293,16 @@ contracts shipped between V8 and the current state.
 - ✅ AI-derived operating profile replacing hardcoded judgment in
   tone descriptors, ranking weights, type phrases, and artefact
   intents (PR #55)
+- ✅ Phase 1.2 output surface: newsletter export, motion-as-export,
+  sponsor variants, per-platform format awareness, latent
+  `_artefact_intent` plumbing fix
+- ✅ Phase 1.3 publishing via Buffer: end-to-end schedule loop,
+  rate-limit + media-URL hardening, SQLite posting log,
+  per-run schedule summary + posting-activity panel on /activity
+- ✅ Phase 1.4 visible intelligence: explainer default-visible
+  across every card surface; "Use in next caption" button that
+  reinjects reasoning into the LLM; sortable confidence/priority
+  columns on the grouped pack
 
 ### Future (V10+ vision, retained from previous roadmap)
 
