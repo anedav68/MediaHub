@@ -62,17 +62,17 @@ AI-derived from *their specific* brand context and persist
 deterministically. The dissertation's §6 was conceptual; this is
 implemented and tested (472 tests passing).
 
-### 1.2 Output surface expansion · ⚠️ **PARTIAL**
+### 1.2 Output surface expansion · ✅ **SHIPPED**
 
-| Sub-item | Status | Next step |
-|---|---|---|
-| Static result-card graphics (Playwright + branded layouts) | ✅ `graphic_renderer/` | — |
-| Animated reel / story-format graphics (Remotion) | ✅ `remotion/`, `/api/runs/<id>/card/<id>/motion`, `/api/runs/<id>/reel` | Surface in pack UI as a first-class export (not just an API) |
-| Captions across 4 tones (warm-club / hype / data-led / AI) | ✅ now AI-derived per org | — |
-| Turn-Into (9 derivative artefact types from one meet) | ✅ `turn_into/` | Profile-aware via derived intents (shipped); now needs UI to **select which artefacts to generate** rather than always producing all of them |
-| Newsletter format (HTML/Markdown email digest) | ⚠️ exists inside Turn-Into `parent_newsletter` builder but not exported as a downloadable .html / sent-as-email | **Add `/api/runs/<id>/newsletter` endpoint** that emits a standalone HTML email and a copy-paste plaintext version |
-| Sponsor-templated content variants | ❌ | **New artefact:** sponsor-tile graphic + sponsor-thanks caption variant per top-ranked card, branded with the sponsor lockup pulled from `ClubProfile.sponsor_name` |
-| Per-platform output adaptation (IG carousel-aware, TikTok-script-aware, X-thread-aware) | ⚠️ partial via Turn-Into | One pass to lock format constraints per platform in `brand/derived.py` `artefact_voice` |
+| Sub-item | Status |
+|---|---|
+| Static result-card graphics (Playwright + branded layouts) | ✅ `graphic_renderer/` |
+| Animated reel / story-format graphics (Remotion) | ✅ `remotion/`, `/api/runs/<id>/card/<id>/motion`, `/api/runs/<id>/reel`; surfaced in pack UI as per-card "Motion video" button + meet-level "Generate reel" |
+| Captions across 4 tones (warm-club / hype / data-led / AI) | ✅ now AI-derived per org |
+| Turn-Into (9 derivative artefact types from one meet) | ✅ `turn_into/` — profile-aware via derived intents; `_artefact_intent` + `_artefact_key` now actually reach the LLM (previously a latent no-op) |
+| Newsletter format (HTML/Markdown email digest) | ✅ `brand/newsletter_renderer.py` + `GET /api/runs/<id>/newsletter?format=html|text|zip`; sender-safe HTML email with inline styles + table scaffold; ZIP packages both formats + README; surfaced in pack UI as 4 download buttons |
+| Sponsor-templated content variants | ✅ `brand/sponsor.py::generate_sponsor_caption` + `/runs/<id>/card/<cid>/sponsor-variant` page; visual via existing `sponsor_branded` layout family, caption through the regular pipeline with sponsor requirement layered as an extra instruction; per-card "Sponsor variant" button in grouped pack |
+| Per-platform output adaptation (IG / X / LinkedIn / TikTok / Facebook / email) | ✅ `brand/derived.PLATFORM_FORMATS` + `platform_format_for(artefact_key)`; format constraints are mechanical/code-controlled (separated from AI-derived voice) and threaded into every caption that carries an `_artefact_key` |
 
 ### 1.3 Publishing layer · ❌ **NOT STARTED** (scaffolding only)
 
@@ -244,35 +244,28 @@ work-stream.
 
 ---
 
-## Immediate next moves (the next 4 weeks)
+## Immediate next moves
 
-Out of the phase-1 gaps above, these have the highest leverage and
-fewest dependencies. They should be the next 4 PRs.
+Out of the remaining phase-1 gaps, these have the highest leverage
+and fewest dependencies.
 
-1. **Output surface — newsletter export + motion-as-export (1.2).**
-   Wrap the existing Turn-Into `parent_newsletter` builder with a
-   first-class `/api/runs/<id>/newsletter` endpoint (HTML email +
-   plaintext). Surface the existing motion / reel endpoints as
-   pack-page download buttons rather than API-only.
-2. **Publishing layer end-to-end via Buffer (1.3).** Settings panel
+1. **Publishing layer end-to-end via Buffer (1.3).** Settings panel
    to connect a Buffer account → store token → list channels →
    schedule a card → track success/failure. Closes the single most
    visible functional gap with horizontal players.
-3. **Visible intelligence — "Why this card?" default-visible (1.4).**
+2. **Visible intelligence — "Why this card?" default-visible (1.4).**
    The explainer is already in code; this is a UI consistency
    pass — replace conditional rendering with always-show across
    review, pack, pack-grouped. Biggest *marketing* win because no
    horizontal player can match it.
-4. **Sponsor-templated content variants (1.2 continued).** New
-   artefact type: sponsor-branded result card + sponsor-thanks
-   caption variant for each top-ranked card, using `sponsor_name`
-   and the captured palette.
+3. **Reliability / public status page (1.5).** The dissertation
+   makes a marketable case for explicit uptime numbers; an SQLite-
+   backed `/status` is bounded work.
 
-After those four, the priority is **sport expansion (2.2 athletics)**
-because it unlocks the next tranche of buyers, **athlete-facing
-surfaces (2.5)** because it's a long-tail distribution moat, and
-**reliability / status page (1.5)** because the dissertation makes
-a marketable case for explicit uptime numbers.
+After those, the priority is **sport expansion (2.2 athletics)**
+because it unlocks the next tranche of buyers, and
+**athlete-facing surfaces (2.5)** because it's a long-tail
+distribution moat.
 
 Commercial layer (now 2.1) is deliberately scheduled last — only
 when the app is ready to go live to customers, not before.
