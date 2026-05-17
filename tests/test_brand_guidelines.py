@@ -1,0 +1,269 @@
+"""tests/test_brand_guidelines.py — AI brand-guidelines ingestion.
+
+Three concerns:
+  1. Text extraction works fail-soft per format. TXT/MD/HTML/DOCX/ZIP
+     all return readable text in-memory; unknown binaries are flagged
+     as unsupported without raising.
+  2. The LLM is what interprets the extracted text — there is no
+     regex pattern matching for "do's" vs "don'ts". When the LLM is
+     mocked, its structured output flows through to the saved profile.
+  3. When no LLM is available, the heuristic fallback preserves the
+     raw excerpt so the user's upload is never silently dropped.
+"""
+from __future__ import annotations
+
+import io
+import sys
+import zipfile
+from pathlib import Path
+from unittest import mock
+
+import pytest
+
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT))
+
+from mediahub.brand import guidelines  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# 1. Text extraction — per-format
+# ---------------------------------------------------------------------------
+
+class TestTextExtraction:
+    def test_txt(self):
+        out = guidelines.extract_text("guide.txt", b"Always be warm. Never be cynical.")
+        assert out["status"] == "ok"
+        assert "warm" in out["text"]
+        assert out["extractor"] == "plaintext"
+
+    def test_markdown(self):
+        out = guidelines.extract_text("guide.md", b"# Brand\n\nWe are warm.\n")
+        assert out["status"] == "ok"
+        assert "warm" in out["text"]
+
+    def test_html(self):
+        html = b"<html><head><title>X</title></head><body><p>Be <b>warm</b>.</p></body></html>"
+        out = guidelines.extract_text("guide.html", html)
+        assert out["status"] == "ok"
+        assert "warm" in out["text"]
+        # Tags must be stripped
+        assert "<b>" not in out["text"]
+
+    def test_rtf(self):
+        rtf = b"{\\rtf1\\ansi Always be \\b warm\\b0 .}"
+        out = guidelines.extract_text("guide.rtf", rtf)
+        assert out["status"] == "ok"
+        assert "warm" in out["text"]
+
+    def test_docx_synthetic(self):
+        """Build a minimal valid .docx in-memory and confirm extraction."""
+        buf = io.BytesIO()
+        document_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            '<w:body>'
+            '<w:p><w:r><w:t>Brand voice: warm and inclusive.</w:t></w:r></w:p>'
+            '<w:p><w:r><w:t>Never use jargon.</w:t></w:r></w:p>'
+            '</w:body></w:document>'
+        )
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("word/document.xml", document_xml)
+            zf.writestr("[Content_Types].xml", "<Types/>")  # minimal stub
+        out = guidelines.extract_text("guide.docx", buf.getvalue())
+        assert out["status"] == "ok"
+        assert "warm and inclusive" in out["text"]
+        assert "Never use jargon" in out["text"]
+        assert out["extractor"] == "docx-xml"
+
+    def test_zip_walks_contents(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("rules.txt", "Be warm. Be specific.")
+            zf.writestr("audience.md", "# Audience\n\nClub families.\n")
+        out = guidelines.extract_text("guide.zip", buf.getvalue())
+        assert out["status"] == "ok"
+        assert "warm" in out["text"]
+        assert "Club families" in out["text"]
+        assert out["extractor"] == "zip-walk"
+
+    def test_empty_bytes(self):
+        out = guidelines.extract_text("empty.txt", b"")
+        assert out["status"] == "empty"
+        assert out["text"] == ""
+
+    def test_oversize_rejected(self):
+        big = b"x" * (26 * 1024 * 1024)  # 26 MB > 25 MB cap
+        out = guidelines.extract_text("big.txt", big)
+        assert out["status"] == "too_large"
+        assert out["text"] == ""
+
+    def test_unsupported_binary(self):
+        # A real PNG header → looks binary, won't decode to clean text.
+        out = guidelines.extract_text(
+            "logo.png",
+            b"\x89PNG\r\n\x1a\n" + b"\x00" * 200,
+        )
+        # Either "unsupported" (most realistic) or "ok" if the decoded
+        # blob happens to look clean. Both are acceptable; the key is
+        # no crash.
+        assert out["status"] in ("unsupported", "ok", "empty")
+
+    def test_zip_bomb_bounded(self):
+        """Many small files in a zip should be capped, not unbounded."""
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for i in range(200):  # 200 entries, cap is 50
+                zf.writestr(f"f{i}.txt", "rule " * 100)
+        out = guidelines.extract_text("bomb.zip", buf.getvalue())
+        # Must not raise; must return SOMETHING but bounded.
+        assert out["status"] == "ok"
+
+
+# ---------------------------------------------------------------------------
+# 2. LLM-driven interpretation
+# ---------------------------------------------------------------------------
+
+class TestLlmInterpretation:
+    def test_llm_output_normalised(self, monkeypatch):
+        mock_out = {
+            "summary": "Warm, inclusive swimming club. Voice is community-led.",
+            "voice_attributes": ["warm", "inclusive", "specific", "warm"],  # dup
+            "tone_dos": ["Use first names", "Celebrate effort"],
+            "tone_donts": ["Never compare swimmers"],
+            "prohibited_words": ["loser", "fail"],
+            "preferred_terminology": {"members": "swimmers"},
+            "hashtag_rules": "Use up to 3 hashtags, always include #ClubLife",
+            "sponsor_mention_rules": "Tag @sponsor in every meet recap",
+            "audience": "Club families and supporters",
+            "key_messages": ["Inclusivity", "Hard work pays off"],
+            "palette_mentions": ["#0066cc", "#ff8800"],
+        }
+        from mediahub.brand import guidelines as g
+        monkeypatch.setattr(
+            "mediahub.media_ai.llm.generate_json",
+            lambda *a, **kw: mock_out,
+        )
+        monkeypatch.setattr(
+            "mediahub.media_ai.llm.is_available",
+            lambda: True,
+        )
+
+        out = g.interpret_guidelines("Whatever — the LLM is mocked.")
+        assert out["status"] == "ok"
+        assert "Warm" in out["summary"]
+        # De-duped voice attributes
+        assert out["voice_attributes"].count("warm") == 1
+        assert "inclusive" in out["voice_attributes"]
+        assert out["tone_dos"] == ["Use first names", "Celebrate effort"]
+        assert out["tone_donts"] == ["Never compare swimmers"]
+        assert "loser" in out["prohibited_words"]
+        assert out["preferred_terminology"] == {"members": "swimmers"}
+        assert "#ClubLife" in out["hashtag_rules"]
+        assert "@sponsor" in out["sponsor_mention_rules"]
+        assert out["audience"].startswith("Club families")
+        assert "Inclusivity" in out["key_messages"]
+        assert "#0066cc" in out["palette_mentions"]
+        assert "#ff8800" in out["palette_mentions"]
+
+    def test_llm_invalid_palette_rejected(self, monkeypatch):
+        monkeypatch.setattr(
+            "mediahub.media_ai.llm.generate_json",
+            lambda *a, **kw: {
+                "summary": "x",
+                "voice_attributes": ["warm"],
+                "palette_mentions": ["red", "#GGGGGG", "0066cc", "#abc"],  # bad mixed
+            },
+        )
+        monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: True)
+        out = guidelines.interpret_guidelines("text")
+        # Only valid hex survives. "#abc" normalises to "#aabbcc".
+        # Bare "0066cc" gets prefixed and accepted.
+        assert "#aabbcc" in out["palette_mentions"]
+        assert "#0066cc" in out["palette_mentions"]
+        assert "red" not in out["palette_mentions"]
+        assert "#gggggg" not in out["palette_mentions"]
+
+    def test_no_llm_heuristic_keeps_raw_text(self, monkeypatch):
+        """When no LLM is available the upload must NOT be silently
+        dropped — the raw text excerpt is preserved on the profile."""
+        monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: False)
+        out = guidelines.interpret_guidelines(
+            "Brand guidelines: be warm. Be inclusive. Never be cynical."
+        )
+        assert out["status"] == "ok_heuristic"
+        assert "be warm" in out["summary"].lower()
+        # Structured fields are empty (we declined to invent without an LLM)
+        assert out["tone_dos"] == []
+        assert out["voice_attributes"] == []
+
+    def test_empty_text_short_circuit(self):
+        out = guidelines.interpret_guidelines("")
+        assert out["status"] == "empty"
+
+    def test_llm_failure_falls_back(self, monkeypatch):
+        def boom(*a, **kw):
+            raise RuntimeError("LLM down")
+        monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: True)
+        monkeypatch.setattr("mediahub.media_ai.llm.generate_json", boom)
+        out = guidelines.interpret_guidelines("Be warm. Be inclusive.")
+        assert out["status"] == "ok_heuristic"
+        assert "be warm" in out["summary"].lower()
+
+
+# ---------------------------------------------------------------------------
+# 3. End-to-end ingestion
+# ---------------------------------------------------------------------------
+
+class TestIngestEndToEnd:
+    def test_ingest_txt_with_mocked_llm(self, monkeypatch):
+        monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: True)
+        monkeypatch.setattr(
+            "mediahub.media_ai.llm.generate_json",
+            lambda *a, **kw: {
+                "summary": "A warm community club.",
+                "voice_attributes": ["warm"],
+                "tone_dos": ["Use first names"],
+                "tone_donts": ["Never be cynical"],
+                "prohibited_words": [],
+                "preferred_terminology": {},
+                "hashtag_rules": "",
+                "sponsor_mention_rules": "",
+                "audience": "",
+                "key_messages": [],
+                "palette_mentions": [],
+            },
+        )
+        payload = guidelines.ingest_guidelines_file(
+            "rules.txt", b"Be warm. Use first names. Never be cynical."
+        )
+        assert payload["brand_guidelines_status"] == "ok"
+        assert payload["brand_guidelines_filename"] == "rules.txt"
+        assert payload["brand_guidelines_byte_size"] > 0
+        assert payload["brand_guidelines_uploaded_at"]  # ISO ts populated
+        assert "warm" in payload["brand_guidelines"]["voice_attributes"]
+        assert payload["brand_guidelines_raw_excerpt"].startswith("Be warm")
+
+    def test_ingest_empty_file_clean_status(self):
+        payload = guidelines.ingest_guidelines_file("empty.txt", b"")
+        assert payload["brand_guidelines_status"] == "empty"
+        assert payload["brand_guidelines"] == {}
+        # Even an empty upload is recorded with filename + timestamp so
+        # we can show the user what they tried to upload.
+        assert payload["brand_guidelines_filename"] == "empty.txt"
+
+    def test_ingest_oversize_returns_too_large(self):
+        big = b"x" * (26 * 1024 * 1024)
+        payload = guidelines.ingest_guidelines_file("big.txt", big)
+        assert payload["brand_guidelines_status"] == "too_large"
+        assert payload["brand_guidelines"] == {}
+
+    def test_ingest_never_raises(self, monkeypatch):
+        """A truly garbage input still returns a clean payload."""
+        payload = guidelines.ingest_guidelines_file(
+            "weird.xyz",
+            b"\x00\x01\x02\x03" * 50,
+        )
+        # Status will be unsupported/empty/ok — but the call MUST NOT
+        # raise. That's the invariant.
+        assert "brand_guidelines_status" in payload

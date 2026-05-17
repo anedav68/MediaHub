@@ -187,6 +187,140 @@ class TestGateLiftsAfterSetup:
             f"{after.headers.get('Location','')}"
         )
 
+    def test_setup_accepts_optional_brand_guidelines_file(
+        self, gated_client, monkeypatch,
+    ):
+        """The setup form has an optional file upload. When a file IS
+        provided, the AI ingestion fields land on the saved profile;
+        when it's NOT, the rest of the form still works."""
+        from mediahub.brand import social_dna, guidelines
+
+        monkeypatch.setattr(
+            social_dna,
+            "capture_from_socials",
+            lambda **kw: {
+                "brand_voice_summary": "Captured.",
+                "brand_keywords": ["x"],
+                "brand_palette_extracted": {},
+                "brand_logo_url": "",
+                "brand_typography_hint": "",
+                "brand_phrases_to_avoid": [],
+                "brand_phrases_to_use": [],
+                "brand_source_url": kw.get("website_url", ""),
+                "brand_captured_at": "2026-05-17T12:00:00+00:00",
+                "brand_capture_status": "ok",
+                "voice_profile": {},
+                "social_links_status": {"website": "ok"},
+                "captions_captured": 0,
+            },
+        )
+        # Mock the LLM so the guidelines interpretation is deterministic.
+        monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: True)
+        monkeypatch.setattr(
+            "mediahub.media_ai.llm.generate_json",
+            lambda *a, **kw: {
+                "summary": "Warm and inclusive.",
+                "voice_attributes": ["warm", "inclusive"],
+                "tone_dos": ["Use first names"],
+                "tone_donts": ["Never compare swimmers"],
+                "prohibited_words": ["loser"],
+                "preferred_terminology": {},
+                "hashtag_rules": "",
+                "sponsor_mention_rules": "",
+                "audience": "",
+                "key_messages": [],
+                "palette_mentions": [],
+            },
+        )
+
+        c, _ = gated_client
+        import io
+        file_bytes = b"Brand voice: warm, inclusive. Never compare swimmers."
+        resp = c.post(
+            "/organisation/setup/capture",
+            data={
+                "display_name": "Upload Club",
+                "website_url": "https://upload-club.example",
+                "brand_guidelines_file": (io.BytesIO(file_bytes), "guide.txt"),
+            },
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code in (301, 302, 303, 307, 308)
+
+        # The profile must now carry the AI-interpreted guidelines.
+        from mediahub.web.club_profile import list_profiles
+        profs = [p for p in list_profiles() if p.display_name == "Upload Club"]
+        assert len(profs) == 1, "profile not saved"
+        p = profs[0]
+        assert p.brand_guidelines_filename == "guide.txt"
+        assert p.brand_guidelines_status == "ok"
+        assert "warm" in p.brand_guidelines["voice_attributes"]
+        assert "Use first names" in p.brand_guidelines["tone_dos"]
+        assert "loser" in p.brand_guidelines["prohibited_words"]
+        # Raw excerpt preserved
+        assert "warm" in p.brand_guidelines_raw_excerpt.lower()
+
+    def test_setup_without_file_still_works(self, gated_client, monkeypatch):
+        """The file upload is genuinely optional — the form must
+        succeed without it, leaving brand_guidelines fields empty."""
+        from mediahub.brand import social_dna
+        monkeypatch.setattr(
+            social_dna,
+            "capture_from_socials",
+            lambda **kw: {
+                "brand_voice_summary": "x",
+                "brand_keywords": ["x"],
+                "brand_palette_extracted": {},
+                "brand_logo_url": "",
+                "brand_typography_hint": "",
+                "brand_phrases_to_avoid": [],
+                "brand_phrases_to_use": [],
+                "brand_source_url": kw.get("website_url", ""),
+                "brand_captured_at": "2026-05-17T12:00:00+00:00",
+                "brand_capture_status": "ok",
+                "voice_profile": {},
+                "social_links_status": {"website": "ok"},
+                "captions_captured": 0,
+            },
+        )
+        c, _ = gated_client
+        resp = c.post(
+            "/organisation/setup/capture",
+            data={
+                "display_name": "No-File Club",
+                "website_url": "https://no-file-club.example",
+            },
+        )
+        assert resp.status_code in (301, 302, 303, 307, 308)
+        from mediahub.web.club_profile import list_profiles
+        profs = [p for p in list_profiles() if p.display_name == "No-File Club"]
+        assert len(profs) == 1
+        assert profs[0].brand_guidelines == {}
+        assert profs[0].brand_guidelines_filename == ""
+
+    def test_setup_page_has_optional_upload_field(self, gated_client):
+        """The setup page must render the upload card with no `required`
+        attribute on the file input — the upload is additive, not a
+        replacement for the existing identity/website/social inputs."""
+        c, _ = gated_client
+        resp = c.get("/organisation/setup")
+        assert resp.status_code == 200
+        body = resp.get_data(as_text=True)
+        assert 'name="brand_guidelines_file"' in body
+        assert 'enctype="multipart/form-data"' in body
+        # Card label must say it's optional
+        assert "Upload a document with your brand guidelines" in body
+        assert "optional" in body.lower()
+        # The file input itself must NOT be required
+        upload_idx = body.find('name="brand_guidelines_file"')
+        # Look at the entire <input ...> tag for that field
+        tag_start = body.rfind("<input", 0, upload_idx)
+        tag_end = body.find(">", upload_idx) + 1
+        upload_tag = body[tag_start:tag_end]
+        assert " required" not in upload_tag, (
+            "brand_guidelines_file must be optional, not required"
+        )
+
     def test_active_org_api_reports_pinned_profile(
         self, gated_client, monkeypatch,
     ):

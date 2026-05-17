@@ -111,6 +111,19 @@ class ClubProfile:
     # Values are full URLs. Empty/missing keys are simply not used.
     social_links: dict = field(default_factory=dict)
 
+    # ---- AI-interpreted brand guidelines document (optional upload) ----
+    # Populated by brand.guidelines.ingest_guidelines_file when the user
+    # uploads a style-guide PDF/DOCX/ZIP/etc. on /organisation/setup or
+    # /organisation. The structured dict is consumed by every content
+    # tool via brand.context.brand_context_for_llm(profile).
+    brand_guidelines: dict = field(default_factory=dict)
+    brand_guidelines_raw_excerpt: str = ""
+    brand_guidelines_filename: str = ""
+    brand_guidelines_uploaded_at: str = ""
+    brand_guidelines_status: str = ""
+    brand_guidelines_extractor: str = ""
+    brand_guidelines_byte_size: int = 0
+
     # ---- Step 2: Voice Imitation (all optional, backward-compatible) ----
     # Raw example captions pasted by the user (5-20 past social posts).
     voice_examples: list[str] = field(default_factory=list)
@@ -205,7 +218,8 @@ class ClubProfile:
         )
         voice_ok = bool(self.voice_profile) or len(self.voice_examples or []) >= 3
         notes_ok = len((self.tone_notes or "").strip()) >= 30
-        return brand_ok or voice_ok or notes_ok
+        guidelines_ok = bool(self.brand_guidelines)
+        return brand_ok or voice_ok or notes_ok or guidelines_ok
 
 
 # ---------------------------------------------------------------------
