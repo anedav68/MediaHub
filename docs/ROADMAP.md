@@ -99,19 +99,26 @@ implemented and tested (472 tests passing).
 | Sponsor-templated content variants | ✅ `brand/sponsor.py::generate_sponsor_caption` + `/runs/<id>/card/<cid>/sponsor-variant` page; visual via existing `sponsor_branded` layout family, caption through the regular pipeline with sponsor requirement layered as an extra instruction; per-card "Sponsor variant" button in grouped pack |
 | Per-platform output adaptation (IG / X / LinkedIn / TikTok / Facebook / email) | ✅ `brand/derived.PLATFORM_FORMATS` + `platform_format_for(artefact_key)`; format constraints are mechanical/code-controlled (separated from AI-derived voice) and threaded into every caption that carries an `_artefact_key` |
 
-### 1.3 Publishing layer · ✅ **SHIPPED** (via Buffer)
+### 1.3 Publishing layer · ✅ **SHIPPED** (multi-tenant-safe Buffer + Buffer-free download path)
 
 | Sub-item | Status |
 |---|---|
-| Buffer channel listing | ✅ `/api/buffer/channels` + live channel-count probe on `/settings` |
+| Buffer channel listing | ✅ `/api/buffer/channels` — resolves token per-profile first |
 | Per-card scheduling | ✅ `/api/runs/<id>/card/<id>/schedule` calls real Buffer, persists per-channel results, marks workflow store as SCHEDULED/FAILED |
-| Access-token storage | ✅ Personal access token via `/settings` Buffer panel + `secrets_store.set_buffer_access_token`. OAuth flow deferred to Phase 3 — personal tokens are sufficient for the single-org self-hosted model |
+| **Per-profile access-token storage** (multi-tenant safe) | ✅ Each `ClubProfile` carries its own `buffer_access_token`. Connection is inline inside the schedule modal via `/api/organisation/connect-buffer` — never via a settings page. Validates against Buffer before persisting. Single-tenant self-hosted deployments may set `BUFFER_ACCESS_TOKEN` env var as a fallback (operator IS the user in that model). |
+| **Buffer-free download path** | ✅ `/api/runs/<run>/card/<card>/download` ships a ZIP with the caption text + visual PNG for clubs that don't use Buffer at all. The "Copy + Download" affordance is always available inside the schedule modal, even for clubs that haven't connected Buffer. Zero TOS surface for non-Buffer users. |
 | Scheduled-post status surface in `/activity` | ✅ Per-run schedule summary column ("3 scheduled · 1 failed") pulled from workflow store; "Recent posting activity" panel listing the last 20 attempts with status badges + error messages |
 | Failure observability | ✅ `publishing/posting_log.py` SQLite log of every attempt (success + failure) with profile/run/card/channel/status/error_kind/error_message/update_id/caption_excerpt fields; bounded retention (5000-row sweep to 4500); `/api/posting/log` endpoint for SPA/JS consumers, gated by active org |
 | Rate-limit handling | ✅ `BufferRateLimitError` on 429 with `Retry-After` parsing; loop short-circuits early since rate-limit is per-account |
 | Media URL hardening | ✅ Defence-in-depth scheme + netloc validation rejects `file://` / `javascript:` / `data:` / bare paths before they reach Buffer |
-| Native publish (IG Graph, FB Pages, X v2, TikTok Business, LinkedIn Marketing) | ❌ **Phase 3** — Buffer integration is the right Phase 1 trade-off per dissertation §6.1.3 |
-| Buffer OAuth flow | ❌ **Phase 3** — defer until/unless personal-token UX is insufficient |
+| Native publish (IG Graph, FB Pages, X v2, TikTok Business, LinkedIn Marketing) | ❌ **Phase 3 stretch** — only needed if Buffer's developer terms ever close or rate-limits bite. The per-profile model means we're a legitimate Buffer API consumer, not a re-distributor. |
+| Buffer OAuth flow (one-click vs paste-token) | ❌ **Phase 3 nice-to-have** — token paste is friction but happens once per club, inline in the publishing flow, never gates first-run. |
+
+**The multi-tenant-safety invariant.** Each club connects their OWN
+Buffer account; content from Club A NEVER flows through Club B's
+Buffer (pinned by `tests/test_buffer_per_profile.py`). Clubs that
+have no Buffer at all use the download path. This is the TOS-safe
+launch-ready model.
 
 ### 1.4 Visible intelligence · ✅ **SHIPPED**
 
