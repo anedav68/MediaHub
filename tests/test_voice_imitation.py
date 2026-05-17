@@ -582,7 +582,10 @@ class TestVoiceProfileSystemPromptInjection:
             "hashtag_count_avg": 3,
             "preferred_swimmer_address": "first_name",
         })
-        assert "Club voice profile" in cap["system"]
+        # The brand-context helper produces a "Voice profile" block. The
+        # exact label was generalised when the helper was unified — what
+        # matters is that the structured guidance reaches the LLM.
+        assert "voice profile" in cap["system"].lower()
         assert "3 hashtag" in cap["system"]
 
     def test_zero_hashtags_means_no_hashtags(self):
@@ -595,7 +598,11 @@ class TestVoiceProfileSystemPromptInjection:
         cap = self._capture_system({
             "emoji_rate_per_caption": 0.0,
         })
-        assert "Avoid emoji" in cap["system"]
+        # The unified brand-context block phrases this as "does NOT use
+        # emoji". What we're guarding here is that the LLM is told to
+        # avoid emoji at all — not the exact phrase.
+        sys_lower = cap["system"].lower()
+        assert "not use emoji" in sys_lower or "avoid emoji" in sys_lower
 
     def test_address_style_surname(self):
         cap = self._capture_system({

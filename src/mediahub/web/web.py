@@ -7912,6 +7912,29 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             ("tiktok",    "TikTok",     "https://tiktok.com/@your-club"),
             ("linkedin",  "LinkedIn",   "https://linkedin.com/company/your-club"),
         ]
+        # Existing guidelines status (when the user has already uploaded once)
+        _gl_status_html = ""
+        if prof and prof.brand_guidelines_filename:
+            g = prof.brand_guidelines or {}
+            summary = (g.get("summary") or "")[:280]
+            attrs = ", ".join((g.get("voice_attributes") or [])[:6]) or "—"
+            n_dos = len(g.get("tone_dos") or [])
+            n_donts = len(g.get("tone_donts") or [])
+            n_prohib = len(g.get("prohibited_words") or [])
+            _gl_status_html = (
+                '<div style="margin-top:12px;padding:10px 12px;border:1px solid var(--border);'
+                'border-radius:8px;background:rgba(44,201,127,0.05);font-size:12px;line-height:1.5">'
+                f'<div style="font-weight:600;color:var(--ink)">Loaded: {_h(prof.brand_guidelines_filename)}</div>'
+                f'<div class="muted" style="margin-top:2px">{_h(prof.brand_guidelines_uploaded_at[:19] if prof.brand_guidelines_uploaded_at else "")}'
+                f' &middot; {_h(prof.brand_guidelines_status or "")} via {_h(prof.brand_guidelines_extractor or "")}</div>'
+                + (f'<div style="margin-top:6px;color:var(--ink-dim)">{_h(summary)}</div>' if summary else "")
+                + f'<div style="margin-top:6px;color:var(--ink-dim)">Voice attributes: {_h(attrs)} &middot; '
+                f'{n_dos} do{"s" if n_dos != 1 else ""}, {n_donts} don\'t{"s" if n_donts != 1 else ""}, '
+                f'{n_prohib} prohibited word{"s" if n_prohib != 1 else ""}.</div>'
+                '<div class="muted" style="font-size:11px;margin-top:6px">Upload a new file to replace, or leave blank to keep this one.</div>'
+                '</div>'
+            )
+
         social_inputs = ""
         for key, label, placeholder in _PLATFORMS:
             val = social.get(key, "") or ""
@@ -7953,7 +7976,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 
 {preview_html}
 
-<form method="POST" action="{capture_url}">
+<form method="POST" action="{capture_url}" enctype="multipart/form-data">
 <div class="card" style="margin-bottom:20px">
   <h2 style="margin-top:0;font-size:18px">Identity</h2>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px">
@@ -8009,6 +8032,24 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px">
     {social_inputs}
   </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h2 style="margin-top:0;font-size:18px">
+    Upload a document with your brand guidelines
+    <span class="muted" style="font-size:12px;font-weight:400;margin-left:8px">(optional)</span>
+  </h2>
+  <p class="dim" style="font-size:13px;line-height:1.5;margin:0 0 14px 0">
+    If your team already has a brand or style guide, drop it here. The
+    AI reads PDF, Word (.docx), plain text, Markdown, HTML, RTF, or a
+    ZIP of any of those, then extracts the voice rules, prohibited
+    words, sponsor mention rules, and key messages so every piece of
+    content the engine writes respects them. Up to 25 MB.
+  </p>
+  <input type="file" name="brand_guidelines_file"
+         accept=".pdf,.docx,.txt,.md,.markdown,.rtf,.html,.htm,.zip,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/zip"
+         style="font-size:13px"/>
+  {_gl_status_html}
 </div>
 
 <div style="display:flex;align-items:center;gap:14px;margin-bottom:30px">
@@ -8102,6 +8143,31 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             # Any other status: still save what we have so we don't lose
             # the identity fields the user just typed.
             prof.brand_capture_status = status
+
+        # ---- Optional brand-guidelines document upload ----
+        # Additive: the AI consumes whatever file the user provided AND
+        # the website/socials separately. If no file is attached, this
+        # block is a no-op and any previously-uploaded guidelines stay
+        # intact on the profile.
+        upload = request.files.get("brand_guidelines_file")
+        if upload and upload.filename:
+            file_bytes = upload.read() or b""
+            if file_bytes:
+                try:
+                    from mediahub.brand.guidelines import ingest_guidelines_file
+                    g_payload = ingest_guidelines_file(upload.filename, file_bytes)
+                except Exception as e:
+                    g_payload = {
+                        "brand_guidelines": {},
+                        "brand_guidelines_raw_excerpt": "",
+                        "brand_guidelines_filename": upload.filename,
+                        "brand_guidelines_uploaded_at": "",
+                        "brand_guidelines_status": f"error: {e}",
+                        "brand_guidelines_extractor": "",
+                        "brand_guidelines_byte_size": len(file_bytes),
+                    }
+                for k, v in g_payload.items():
+                    setattr(prof, k, v)
 
         save_profile(prof)
         session["active_profile_id"] = prof.profile_id
