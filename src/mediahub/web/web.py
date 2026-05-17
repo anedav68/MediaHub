@@ -8643,6 +8643,96 @@ function copyWhyCard(btn, taId) {{
         save_pack(pack, run_id, base_dir=base)
         return jsonify({"ok": True})
 
+    # ------------------------------------------------------------------
+    # Newsletter export — Phase 1.2 (output surface)
+    # ------------------------------------------------------------------
+    #
+    # The Turn-Into pipeline already produces a `parent_newsletter`
+    # artefact, but it lives inside a generated pack and isn't usable
+    # as an actual email body. This endpoint wraps the same builder
+    # standalone, renders it through brand.newsletter_renderer, and
+    # streams it in the requested format so the user can:
+    #   - preview the email in a browser              (GET ?format=html)
+    #   - copy the plaintext into Mailchimp / etc.    (GET ?format=text)
+    #   - download a ZIP with both files              (GET ?format=zip)
+    #
+    # All formats use the org's brand colours + logo + display name
+    # pulled from the active profile, so the rendered email is
+    # on-brand without requiring an extra config step.
+    @app.route("/api/runs/<run_id>/newsletter", methods=["GET"])
+    def api_run_newsletter(run_id: str):
+        fmt = (request.args.get("format") or "html").strip().lower()
+        if fmt not in ("html", "text", "zip"):
+            return jsonify({"error": "format must be html|text|zip"}), 400
+        download = request.args.get("download") == "1"
+
+        run_data = _load_run(run_id)
+        if run_data is None:
+            return jsonify({"error": "run_not_found"}), 404
+
+        profile_id = run_data.get("profile_id") or ""
+        profile = load_profile(profile_id) if profile_id else None
+        # Fall back to the session-pinned active profile so a run with
+        # no stored profile_id still renders with the user's branding.
+        if profile is None:
+            profile = _active_profile()
+
+        # Build the newsletter artefact directly — avoids the cost of
+        # generating the full Turn-Into pack just for this one output.
+        try:
+            from mediahub.turn_into import templates as _ti
+            from mediahub.turn_into.pipeline import _meet_summary, _resolve_voice_profile
+            meet_summary = _meet_summary(run_data)
+            rr = run_data.get("recognition_report") or {}
+            ranked = rr.get("ranked_achievements") or []
+            voice_profile = _resolve_voice_profile(profile_id) if profile_id else None
+            brand_kit = None
+            try:
+                if profile is not None:
+                    brand_kit = profile.get_brand_kit()
+            except Exception:
+                brand_kit = None
+            artefact = _ti.build_parent_newsletter(
+                meet_summary, ranked,
+                profile=profile, voice_profile=voice_profile,
+                brand_kit=brand_kit, deterministic=False,
+            )
+        except Exception as e:
+            return jsonify({"error": f"newsletter_build_failed: {e}"}), 500
+
+        from mediahub.brand.newsletter_renderer import (
+            render_email_html, render_plaintext, render_zip,
+            safe_filename_for,
+        )
+        slug = safe_filename_for(
+            (run_data.get("meet") or {}).get("name") or run_id
+        )
+
+        if fmt == "text":
+            body = render_plaintext(artefact)
+            resp = Response(body, mimetype="text/plain; charset=utf-8")
+            if download:
+                resp.headers["Content-Disposition"] = (
+                    f'attachment; filename="{slug}-newsletter.txt"'
+                )
+            return resp
+        if fmt == "zip":
+            body = render_zip(artefact, profile=profile, meet_summary=meet_summary,
+                              base_name=f"{slug}-newsletter")
+            resp = Response(body, mimetype="application/zip")
+            resp.headers["Content-Disposition"] = (
+                f'attachment; filename="{slug}-newsletter.zip"'
+            )
+            return resp
+        # html (default)
+        body = render_email_html(artefact, profile=profile, meet_summary=meet_summary)
+        resp = Response(body, mimetype="text/html; charset=utf-8")
+        if download:
+            resp.headers["Content-Disposition"] = (
+                f'attachment; filename="{slug}-newsletter.html"'
+            )
+        return resp
+
     @app.route("/runs/<run_id>/pack/<pack_id>")
     def turn_into_pack_view(run_id, pack_id):
         """Render a saved Turn-Into pack with the 7 artefacts."""
@@ -8892,6 +8982,9 @@ function tiRegenerate() {{
         _review_url = url_for("review", run_id=run_id)
         _pack_url = url_for("content_pack", run_id=run_id)
         _reel_url = url_for("api_run_reel", run_id=run_id)
+        _newsletter_html_url = url_for("api_run_newsletter", run_id=run_id)
+        _newsletter_text_url = _newsletter_html_url + "?format=text"
+        _newsletter_zip_url = _newsletter_html_url + "?format=zip"
 
         if not _v73_ok or _build_grouped_pack is None:
             return redirect(_pack_url)
@@ -8950,6 +9043,21 @@ function tiRegenerate() {{
                     f'onclick="mhScheduleOpen({json.dumps(run_id)}, {json.dumps(str(card_id_raw))}, \'g-{card_uuid}\')">'
                     f'Schedule&hellip;</button>'
                 ) if card_id_raw else ""
+                # Per-card motion download — the endpoint renders (or
+                # serves cached) MP4. New tab so the user lands on the
+                # video preview rather than blocking the pack page.
+                motion_btn = ""
+                if card_id_raw:
+                    _motion_url = url_for(
+                        "api_card_motion", run_id=run_id, card_id=str(card_id_raw),
+                    )
+                    motion_btn = (
+                        f'<a class="btn secondary" style="font-size:12px;padding:4px 10px" '
+                        f'href="{_h(_motion_url)}" target="_blank" rel="noopener" '
+                        f'title="Render a 6-second branded story-format MP4 for this card. '
+                        f'First time can take 30-90s while Remotion runs.">'
+                        f'&#x25B6; Motion video</a>'
+                    )
                 _ra_for_why = {
                     "achievement": ach if isinstance(ach, dict) else (item.get("achievement") or {}),
                     "factors": item.get("factors") or (ach.get("factors") if isinstance(ach, dict) else None) or [],
@@ -8979,6 +9087,7 @@ function tiRegenerate() {{
     <textarea id="cap-{card_id}-2" style="display:none">{cap_hash}</textarea>
     <button class="btn secondary" style="font-size:12px;padding:4px 10px" onclick="copyText(this,'cap-{card_id}-3')">Copy full brief</button>
     <textarea id="cap-{card_id}-3" style="display:none">{cap_full}</textarea>
+    {motion_btn}
     {schedule_btn}
   </div>
 </div>"""
@@ -9070,6 +9179,19 @@ function tiRegenerate() {{
           onclick="generateReelGrouped(this, {repr(_reel_url)})">&#x25B6; Generate reel from this meet</button>
 </div>
 <div id="reel-panel-grouped" style="display:none;margin-bottom:14px;padding:14px;background:rgba(249,115,22,0.04);border:1px solid var(--border);border-radius:8px"></div>
+
+<div class="card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+  <div>
+    <div style="font-size:13px;font-weight:700">Parent newsletter</div>
+    <div style="font-size:12px;color:var(--ink-dim);margin-top:2px">Branded HTML email + plaintext fallback, ready to paste into Mailchimp / ConvertKit / your email client.</div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <a class="btn secondary" style="font-size:12px;padding:6px 12px" href="{_h(_newsletter_html_url)}" target="_blank" rel="noopener">Preview HTML &rarr;</a>
+    <a class="btn secondary" style="font-size:12px;padding:6px 12px" href="{_h(_newsletter_html_url)}?download=1">Download .html</a>
+    <a class="btn secondary" style="font-size:12px;padding:6px 12px" href="{_h(_newsletter_text_url)}&download=1">Download .txt</a>
+    <a class="btn" style="font-size:12px;padding:6px 12px" href="{_h(_newsletter_zip_url)}">Download .zip</a>
+  </div>
+</div>
 
 {visuals_strip}
 
