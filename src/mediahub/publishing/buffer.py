@@ -57,6 +57,32 @@ class BufferAPIError(BufferError):
     """
 
 
+class BufferRateLimitError(BufferAPIError):
+    """Buffer returned HTTP 429 — rate limited.
+
+    Carries an optional ``retry_after`` seconds value parsed from the
+    Retry-After response header so callers can tell the user when to
+    try again instead of silently retrying.
+    """
+
+    def __init__(self, message: str, *, retry_after: Optional[int] = None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+def _parse_retry_after(resp: "requests.Response") -> Optional[int]:
+    """Parse the ``Retry-After`` header. Returns seconds or None."""
+    raw = (resp.headers or {}).get("Retry-After") if resp is not None else None
+    if not raw:
+        return None
+    try:
+        return max(1, int(float(raw)))
+    except (TypeError, ValueError):
+        # Buffer occasionally returns an HTTP-date; we don't bother
+        # parsing it — just signal "rate limited, no specific wait".
+        return None
+
+
 @dataclass
 class _PreparedToken:
     token: str
@@ -105,6 +131,13 @@ def list_channels(token: str) -> list[dict]:
     if resp.status_code in (401, 403):
         raise BufferAuthError(
             "Buffer rejected the access token. Re-paste it in Settings."
+        )
+    if resp.status_code == 429:
+        retry = _parse_retry_after(resp)
+        suffix = f" Retry in {retry}s." if retry else " Try again shortly."
+        raise BufferRateLimitError(
+            "Buffer rate-limit reached." + suffix,
+            retry_after=retry,
         )
     if not resp.ok:
         raise BufferAPIError(_summarise_error(resp))
@@ -209,6 +242,13 @@ def schedule_post(
         raise BufferAuthError(
             "Buffer rejected the access token. Re-paste it in Settings."
         )
+    if resp.status_code == 429:
+        retry = _parse_retry_after(resp)
+        suffix = f" Retry in {retry}s." if retry else " Try again shortly."
+        raise BufferRateLimitError(
+            "Buffer rate-limit reached." + suffix,
+            retry_after=retry,
+        )
     if not resp.ok:
         raise BufferAPIError(_summarise_error(resp))
 
@@ -271,6 +311,7 @@ __all__ = [
     "BufferError",
     "BufferAuthError",
     "BufferAPIError",
+    "BufferRateLimitError",
     "list_channels",
     "schedule_post",
 ]
