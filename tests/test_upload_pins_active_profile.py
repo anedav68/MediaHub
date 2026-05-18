@@ -1,6 +1,6 @@
 """tests/test_upload_pins_active_profile.py — Phase 1.5 org-scoping fix.
 
-When a user uploads a meet file through the org-gated /add-input flow,
+When a user uploads a meet file through the org-gated Create flow,
 the resulting run MUST be tagged with their active organisation's
 profile_id. Without this, the run finishes successfully but never
 appears on /activity (which is profile-scoped) — leading the user to

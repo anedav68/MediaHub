@@ -1,10 +1,11 @@
 """tests/test_org_setup_gate.py — first-run organisation gate.
 
 Asserts that:
-  1. Browser routes that produce content (add-input, upload, etc.) are
-     redirected to /organisation/setup until an organisation profile
+  1. Browser routes that produce content (the Create tab, upload, etc.)
+     are redirected to /organisation/setup until an organisation profile
      exists AND is "ready" (has a captured brand voice or pasted voice
-     examples).
+     examples). /add-input is exercised here because it's a redirect
+     alias to /make and the gate must fire before the alias resolves.
   2. JSON API routes return 409 with an explanatory body, not a redirect.
   3. /, /organisation*, /settings (consolidated Operations page),
      /healthz, /static remain reachable.
@@ -192,8 +193,12 @@ class TestGateLiftsAfterSetup:
         assert resp.status_code in (301, 302, 303, 307, 308)
         assert "/organisation/setup" in resp.headers.get("Location", "")
 
-        # After setup: same session can hit content-production routes
-        after = c.get("/add-input", follow_redirects=False)
+        # After setup: same session can hit content-production routes.
+        # /add-input is preserved as a redirect alias to /make (the
+        # "Add Input" tab was merged into "Create"), so we follow
+        # redirects to confirm the page lands on a real 200, not on
+        # the org-setup gate.
+        after = c.get("/add-input", follow_redirects=True)
         assert after.status_code == 200, (
             f"gate should have lifted after setup; got {after.status_code} "
             f"{after.headers.get('Location','')}"

@@ -1,7 +1,7 @@
 """tests/test_make_page_endpoints.py — Phase 1.5 stability regression
 + Round-3 redirect-and-degrade contract.
 
-The /add-input page (was /make pre-Round-3) reads ContentTypeMeta entries
+The /make page (the Create tab) reads ContentTypeMeta entries
 from ``mediahub.club_platform.content_types`` and calls ``url_for()`` on
 each `primary_route_endpoint`. A renamed-but-not-updated endpoint name
 used to crash the whole page with a 500 Werkzeug BuildError.
@@ -11,9 +11,10 @@ These tests pin three contracts:
   1. Every ``primary_route_endpoint`` in the REGISTRY resolves to a
      registered Flask route. (Catches future drift at suite time, not
      in production.)
-  2. /make permanently redirects to /add-input (Round-3 merged the two
-     duplicate chooser pages into a single canonical /add-input).
-  3. Even if a single entry's endpoint is missing, /add-input still
+  2. /add-input is preserved as a redirect alias to /make (the
+     "Add Input" tab was merged into "Create"; the old URL still
+     resolves so external bookmarks don't break).
+  3. Even if a single entry's endpoint is missing, /make still
      renders 200 — the offender degrades to a disabled tile.
 """
 from __future__ import annotations
@@ -79,11 +80,10 @@ class TestMakePageEndpoints:
                 f"REGISTRY entries reference unknown endpoints: {missing}"
             )
 
-    def test_make_and_add_input_both_render(self, gated_app):
-        """Both /make and /add-input render the chooser tiles. The two
-        live as distinct entry points: /add-input is the input-picker
-        mental model; /make includes the REGISTRY-based content-type
-        tiles AND the same input cards as the lower section."""
+    def test_make_renders_and_add_input_redirects(self, gated_app):
+        """/make renders the unified chooser sourced from the
+        ContentType REGISTRY. /add-input is a redirect alias to /make
+        so older bookmarks still resolve."""
         c, _ = gated_app
         resp = c.get("/make")
         assert resp.status_code == 200, (
@@ -92,18 +92,26 @@ class TestMakePageEndpoints:
         body = resp.get_data(as_text=True)
         assert "Something went wrong" not in body
         assert "create" in body.lower() or "make" in body.lower()
-        resp = c.get("/add-input")
+
+        resp = c.get("/add-input", follow_redirects=False)
+        assert resp.status_code in (301, 302, 303, 307, 308), (
+            f"/add-input should redirect to /make; got {resp.status_code}"
+        )
+        assert "/make" in resp.headers.get("Location", "")
+
+        # Following the redirect lands on the merged Create page.
+        resp = c.get("/add-input", follow_redirects=True)
         assert resp.status_code == 200
         body = resp.get_data(as_text=True)
         assert "Something went wrong" not in body
-        assert "Add input" in body or "add input" in body.lower()
+        assert "create" in body.lower() or "make" in body.lower()
 
-    def test_add_input_survives_a_broken_endpoint_via_guard(self, gated_app, monkeypatch):
+    def test_make_survives_a_broken_endpoint_via_guard(self, gated_app, monkeypatch):
         """Defensive: if a future commit reintroduces a stale endpoint
         name, the chooser must degrade to a disabled tile instead of 500ing.
 
         Monkeypatch one entry in REGISTRY to a known-bad endpoint and
-        confirm /add-input still returns 200.
+        confirm /make still returns 200.
         """
         c, app = gated_app
         from mediahub.club_platform import content_types as ct_mod
@@ -112,9 +120,9 @@ class TestMakePageEndpoints:
         original = ct_mod.REGISTRY[first_key].primary_route_endpoint
         try:
             ct_mod.REGISTRY[first_key].primary_route_endpoint = "_definitely_not_a_real_endpoint"
-            resp = c.get("/add-input")
+            resp = c.get("/make")
             assert resp.status_code == 200, (
-                f"/add-input crashed instead of degrading; body: "
+                f"/make crashed instead of degrading; body: "
                 f"{resp.get_data(as_text=True)[:300]}"
             )
         finally:
