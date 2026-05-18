@@ -42,7 +42,7 @@ from typing import Any, Dict, Optional
 
 from flask import (
     Flask, request, redirect, url_for, render_template_string,
-    jsonify, abort, send_file, Response, session, make_response,
+    jsonify, abort, send_file, send_from_directory, Response, session, make_response,
 )
 from markupsafe import escape as _h
 
@@ -10128,6 +10128,71 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             ("tiktok",    "TikTok",     "https://tiktok.com/@your-club"),
             ("linkedin",  "LinkedIn",   "https://linkedin.com/company/your-club"),
         ]
+        # ---- Logo thumbnail grid (D1) — render existing logos with rename/delete
+        from mediahub.brand.logos import MAX_LOGOS_PER_PROFILE as _LOGO_LIMIT
+        _logos_grid_html = ""
+        if brand_logos:
+            cards = []
+            for logo in brand_logos:
+                lid = _h(logo.get("logo_id", ""))
+                label = logo.get("label") or logo.get("original_filename") or "logo"
+                desc = (logo.get("ai_description") or "").strip()
+                mime = logo.get("mime") or ""
+                # Server route exposes the actual file
+                serve_url = url_for("organisation_setup_logo_serve",
+                                    logo_id=logo.get("logo_id", ""))
+                delete_url = url_for("organisation_setup_logo_delete",
+                                     logo_id=logo.get("logo_id", ""))
+                preview = ""
+                if mime.startswith("image/"):
+                    preview = (
+                        f'<img src="{_h(serve_url)}" alt="{_h(label)}" '
+                        'style="display:block;max-width:100%;max-height:96px;'
+                        'object-fit:contain;background:#ffffff;border-radius:4px"/>'
+                    )
+                else:
+                    preview = (
+                        '<div style="display:flex;align-items:center;justify-content:center;'
+                        'height:96px;background:rgba(245,242,232,0.04);border-radius:4px;'
+                        'font-family:var(--font-mono,monospace);font-size:11px;'
+                        f'color:var(--ink-muted,#7A7869)">{_h(mime.split("/")[-1] or "FILE")}</div>'
+                    )
+                colours = logo.get("ai_dominant_colours") or []
+                colour_swatches = "".join(
+                    f'<span title="{_h(c)}" style="display:inline-block;'
+                    f'width:14px;height:14px;border-radius:2px;'
+                    f'background:{_h(c)};border:1px solid rgba(255,255,255,0.15);'
+                    f'vertical-align:middle;margin-right:3px"></span>'
+                    for c in colours[:4]
+                )
+                cards.append(
+                    '<div class="mh-logo-card" style="background:var(--surface,var(--panel));'
+                    'border:1px solid var(--chrome,var(--border));border-radius:6px;'
+                    f'padding:10px;display:flex;flex-direction:column;gap:8px">'
+                    f'{preview}'
+                    f'<div style="font-size:12px;font-weight:600;color:var(--ink);'
+                    f'overflow:hidden;text-overflow:ellipsis;white-space:nowrap" '
+                    f'title="{_h(logo.get("original_filename", ""))}">{_h(label)}</div>'
+                    + (f'<div class="muted" style="font-size:11px;line-height:1.3" '
+                       f'title="{_h(desc)}">{_h(desc[:120])}</div>' if desc else "")
+                    + (f'<div>{colour_swatches}</div>' if colour_swatches else "")
+                    + '<form method="POST" action="' + _h(delete_url) + '" data-no-loader="1" '
+                      'onsubmit="return confirm(\'Delete this logo?\')">'
+                      '<button type="submit" style="font-size:11px;padding:5px 9px;'
+                      'background:transparent;border:1px solid rgba(255,107,107,0.3);'
+                      'color:#FF6B6B;border-radius:4px;cursor:pointer;'
+                      'font-family:var(--font-mono,monospace);text-transform:uppercase;'
+                      'letter-spacing:0.10em">Delete</button>'
+                      '</form>'
+                    '</div>'
+                )
+            _logos_grid_html = (
+                '<div style="margin-top:14px;display:grid;'
+                'grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">'
+                + "".join(cards) +
+                '</div>'
+            )
+
         # Existing guidelines status (when the user has already uploaded once)
         _gl_status_html = ""
         if prof and prof.brand_guidelines_filename:
@@ -10305,6 +10370,33 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   {_gl_status_html}
 </div>
 
+<div class="card" style="margin-bottom:20px">
+  <h2 style="margin-top:0;font-size:18px">
+    Logos
+    <span class="muted" style="font-size:12px;font-weight:400;margin-left:8px">(optional, multiple)</span>
+  </h2>
+  <p class="dim" style="font-size:13px;line-height:1.5;margin:0 0 14px 0">
+    Drop in every logo variant your club has &mdash; full-colour, mono,
+    wordmark, icon. PNG, JPG, SVG, WEBP, PDF, EPS, AI all accepted.
+    The AI describes each one so motion graphics, story cards, and
+    sponsor posts pick the right variant automatically (e.g. white
+    mono on dark backgrounds, the icon when the layout is square).
+  </p>
+  <label for="logos-input" id="logos-drop-zone" class="mh-drop-zone">
+    <div class="mh-drop-zone-inner">
+      <strong>Click to choose</strong> or drag files here
+      <div class="muted" style="font-size:11px;margin-top:4px">
+        Up to {_LOGO_LIMIT} files &middot; 20 MB each
+      </div>
+    </div>
+  </label>
+  <input id="logos-input" type="file" name="brand_logos" multiple
+         accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif,image/tiff,application/pdf,application/postscript,.png,.jpg,.jpeg,.webp,.svg,.gif,.tiff,.tif,.pdf,.eps,.ai"
+         style="display:none"/>
+  <div id="logos-pending" class="muted" style="font-size:11px;margin-top:8px"></div>
+  {_logos_grid_html}
+</div>
+
 <div style="display:flex;align-items:center;gap:14px;margin-bottom:30px">
   <button type="submit" class="btn">Build my brand &rarr;</button>
   <span class="muted" style="font-size:12px">
@@ -10351,6 +10443,39 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 .mh-combobox-options li.mh-combobox-empty:hover {{
   background: transparent;
   color: var(--ink-muted, var(--ink-dim, #7A7869));
+}}
+
+.mh-drop-zone {{
+  display: block;
+  border: 1px dashed var(--chrome, var(--border, rgba(245,242,232,0.30)));
+  border-radius: 8px;
+  padding: 22px;
+  text-align: center;
+  cursor: pointer;
+  background:
+    repeating-linear-gradient(45deg, rgba(212,255,58,0.02) 0 10px,
+                              transparent 10px 20px),
+    var(--surface, var(--panel, #14171F));
+  color: var(--ink-dim, var(--ink-muted, #B6B2A6));
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}}
+.mh-drop-zone:hover {{
+  border-color: var(--lane, var(--accent, #D4FF3A));
+  color: var(--ink, #F5F2E8);
+}}
+.mh-drop-zone.is-dragover {{
+  border-color: var(--lane, var(--accent, #D4FF3A));
+  background: rgba(212,255,58,0.06);
+  color: var(--ink, #F5F2E8);
+}}
+.mh-drop-zone-inner strong {{ color: var(--ink, #F5F2E8); font-weight: 600; }}
+
+.mh-logo-card {{
+  transition: transform 150ms ease, border-color 150ms ease;
+}}
+.mh-logo-card:hover {{
+  transform: translateY(-1px);
+  border-color: var(--lane, var(--accent, #D4FF3A));
 }}
 </style>
 <script>
@@ -10465,6 +10590,56 @@ function copySpotlightCaption(btn, cardIdSafe) {{
       e.preventDefault(); // keep focus on the input
       pick(li.getAttribute('data-value'));
     }});
+  }});
+}})();
+
+(function () {{
+  // ---- Multi-logo drag-and-drop (D1) ----
+  var dropZone = document.getElementById('logos-drop-zone');
+  var fileInput = document.getElementById('logos-input');
+  var pending = document.getElementById('logos-pending');
+  if (!dropZone || !fileInput || !pending) return;
+
+  function showPending() {{
+    if (!fileInput.files || !fileInput.files.length) {{
+      pending.textContent = '';
+      return;
+    }}
+    var names = [];
+    for (var i = 0; i < fileInput.files.length; i++) {{
+      names.push(fileInput.files[i].name);
+    }}
+    pending.textContent = names.length + ' file' + (names.length === 1 ? '' : 's')
+                          + ' ready to upload: ' + names.join(', ');
+  }}
+
+  fileInput.addEventListener('change', showPending);
+
+  ['dragenter', 'dragover'].forEach(function (ev) {{
+    dropZone.addEventListener(ev, function (e) {{
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add('is-dragover');
+    }});
+  }});
+
+  ['dragleave', 'drop'].forEach(function (ev) {{
+    dropZone.addEventListener(ev, function (e) {{
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('is-dragover');
+    }});
+  }});
+
+  dropZone.addEventListener('drop', function (e) {{
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    // Replace the input's file list with the dropped files.
+    var dt = new DataTransfer();
+    for (var i = 0; i < e.dataTransfer.files.length; i++) {{
+      dt.items.add(e.dataTransfer.files[i]);
+    }}
+    fileInput.files = dt.files;
+    showPending();
   }});
 }})();
 </script>
@@ -10628,6 +10803,43 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 for k, v in g_payload.items():
                     setattr(prof, k, v)
 
+        # ---- Multi-logo upload (D1) -----------------------------------
+        # Accept any number of files under name="brand_logos". Each is
+        # persisted under data/club_logos/<profile_id>/ and a metadata
+        # dict appended to prof.brand_logos. AI vision (if available)
+        # produces a short description + dominant-colour swatches so
+        # downstream image/motion generators can pick the right variant.
+        logo_uploads = request.files.getlist("brand_logos")
+        if logo_uploads:
+            from mediahub.brand import logos as _logos_mod
+            current_logos = list(prof.brand_logos or [])
+            for upload in logo_uploads:
+                if not upload or not upload.filename:
+                    continue
+                try:
+                    raw = upload.read() or b""
+                except Exception:
+                    continue
+                if not raw:
+                    continue
+                try:
+                    meta = _logos_mod.store_logo(
+                        profile_id=prof.profile_id,
+                        filename=upload.filename,
+                        file_bytes=raw,
+                        existing_logos=current_logos,
+                    )
+                except ValueError as e:
+                    # Surface the problem on the next render without
+                    # blocking the rest of the save.
+                    log.info("logo rejected: %s", e)
+                    continue
+                except Exception as e:
+                    log.warning("logo store failed: %s", e)
+                    continue
+                current_logos.append(meta)
+            prof.brand_logos = current_logos
+
         # ---- AI-derive operating profile from the assembled context ----
         # One LLM call here means zero LLM calls per page render. The
         # derived dict carries the org-specific tone prose, ranking
@@ -10647,6 +10859,42 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 
         save_profile(prof)
         session["active_profile_id"] = prof.profile_id
+        return redirect(url_for("organisation_setup"))
+
+    @app.route("/organisation/setup/logo/<logo_id>", methods=["GET"])
+    def organisation_setup_logo_serve(logo_id):
+        """Serve a logo file. Logos are namespaced per profile to
+        prevent IDOR — a request only returns the file if it belongs
+        to the active session's profile.
+        """
+        prof = _active_profile()
+        if not prof:
+            return ("", 404)
+        from mediahub.brand.logos import resolve_logo_path
+        path = resolve_logo_path(prof.profile_id, logo_id)
+        if not path:
+            return ("", 404)
+        # send_from_directory is the safe primitive — it refuses path
+        # traversal automatically.
+        return send_from_directory(path.parent, path.name)
+
+    @app.route("/organisation/setup/logo/<logo_id>/delete", methods=["POST"])
+    def organisation_setup_logo_delete(logo_id):
+        """Remove a logo from the active profile's brand_logos list AND
+        delete the on-disk file. Same IDOR guard as the serve route."""
+        prof = _active_profile()
+        if not prof:
+            return redirect(url_for("organisation_setup"))
+        from mediahub.brand.logos import delete_logo as _del
+        # Defensively match the entry by id before unlinking.
+        remaining = [
+            entry for entry in (prof.brand_logos or [])
+            if isinstance(entry, dict) and entry.get("logo_id") != logo_id
+        ]
+        if len(remaining) != len(prof.brand_logos or []):
+            _del(prof.profile_id, logo_id)
+            prof.brand_logos = remaining
+            save_profile(prof)
         return redirect(url_for("organisation_setup"))
 
     @app.route("/api/organisation/active", methods=["GET", "POST"])
