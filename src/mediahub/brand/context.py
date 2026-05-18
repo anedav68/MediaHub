@@ -37,17 +37,31 @@ def _get(profile, name: str, default: Any = None) -> Any:
     return getattr(profile, name, default)
 
 
+_ORG_TYPE_PROSE = {
+    "swimming_club":      "a swimming club",
+    "athletics":          "an athletics club",
+    "football":           "a football / rugby / team-sport organisation",
+    "university_society": "a university society or student sports club",
+    "corporate_team":     "a corporate team",
+    "other":              "",  # leave silent for the generic bucket
+}
+
+
 def _identity_prose(profile) -> str:
     name = (_get(profile, "display_name") or "").strip()
     if not name:
         return ""
     short = (_get(profile, "short_name") or "").strip()
+    org_type = (_get(profile, "org_type") or "").strip()
     governing = (_get(profile, "governing_body") or "").strip()
     country = (_get(profile, "country") or "").strip()
     sponsor = (_get(profile, "sponsor_name") or "").strip()
     bits = [f"You are writing for **{name}**"]
     if short and short.lower() != name.lower():
         bits[-1] += f" (also known as {short})"
+    org_phrase = _ORG_TYPE_PROSE.get(org_type, "")
+    if org_phrase:
+        bits[-1] += f", {org_phrase}"
     if governing or country:
         loc = ", ".join(p for p in (governing, country) if p)
         bits[-1] += f" — affiliated with {loc}"

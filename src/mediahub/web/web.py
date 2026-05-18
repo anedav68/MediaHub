@@ -10290,7 +10290,9 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 
 {preview_html}
 
-<form method="POST" action="{capture_url}" enctype="multipart/form-data">
+<form method="POST" action="{capture_url}" enctype="multipart/form-data"
+      data-loader-text="Teaching the AI about your organisation"
+      data-loader-sub="Reading links, learning scraping strategies, interpreting guidelines, describing logos. This takes 10&ndash;30 seconds.">
 <div class="card" style="margin-bottom:20px">
   <h2 style="margin-top:0;font-size:18px">Identity</h2>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px">
