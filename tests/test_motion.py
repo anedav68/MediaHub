@@ -128,6 +128,41 @@ def test_card_to_props_prefers_text_layers_when_present():
     assert props["achievementLabel"] == "LIKELY PB"
 
 
+def test_card_to_props_forwards_brief_variation_axes():
+    """When a CreativeBrief dict is passed, the AI-directed variation
+    axes (background_style, typography_pair, composition, accent_style,
+    mood, photo_treatment) must flow through to the Remotion props so
+    the TSX composition can vary fonts, layout, animation spring, and
+    background pattern per card."""
+    card = {"achievement": {"swimmer_name": "Sample Person", "event_name": "200m IM"}}
+    brief = {
+        "background_style": "dots",
+        "typography_pair": "anton-inter",
+        "composition": "right",
+        "accent_style": "brackets",
+        "mood": "electric, precise",
+        "photo_treatment": "cutout",
+    }
+    props = motion._card_to_props(card, variation_seed=2, brief=brief)
+    assert props["backgroundStyle"] == "dots"
+    assert props["typographyPair"] == "anton-inter"
+    assert props["composition"] == "right"
+    assert props["accentStyle"] == "brackets"
+    assert props["mood"] == "electric, precise"
+    assert props["photoTreatment"] == "cutout"
+    assert props["variationSeed"] == 2
+
+
+def test_card_to_props_without_brief_keeps_axes_empty():
+    """Legacy callers that don't supply a brief get empty axis strings
+    so the TSX composition falls back to its variationSeed-only path."""
+    card = {"achievement": {"swimmer_name": "Sample Person"}}
+    props = motion._card_to_props(card, variation_seed=1)
+    for k in ("backgroundStyle", "typographyPair", "composition",
+              "accentStyle", "mood", "photoTreatment"):
+        assert props[k] == ""
+
+
 def test_content_hash_is_stable_and_kind_sensitive():
     payload = {"a": 1, "b": [1, 2, 3], "c": {"x": "y"}}
     h1 = motion._content_hash(payload, kind="story")
@@ -228,3 +263,169 @@ def test_render_story_card_produces_valid_mp4(tmp_path, monkeypatch):
     # Smoke check on container: MP4 files start with an ``ftyp`` box.
     head = Path(result).read_bytes()[:12]
     assert b"ftyp" in head, "Output does not look like an MP4"
+
+
+# ---------------------------------------------------------------------------
+# Render-diff regression — guards against silent flattening of the variation
+# vocabulary. If a future TSX refactor stops consuming an axis (e.g. someone
+# removes the typographyPair branch in fontStackFor), the static graphic
+# would still vary but motion would silently revert to "everything looks
+# the same again". These tests catch that by:
+#
+#   1. _BRIEF_VARIANTS gives N briefs that differ on every axis the
+#      composition consumes (background_style, typography_pair, composition,
+#      accent_style, mood, photo_treatment).
+#   2. The fast layer asserts that each variant produces a unique cache key
+#      — proves Python props differ. Runs in CI without Node.
+#   3. The slow layer renders one MP4 per variant and asserts every output
+#      file is byte-distinct from the others — proves the TSX composition
+#      actually consumes the axes. Opt-in via MEDIAHUB_RUN_DIFF_REGRESSION=1
+#      since it adds ~30-60s per variant on first run.
+# ---------------------------------------------------------------------------
+
+_BRIEF_VARIANTS: list[dict] = [
+    {
+        "background_style": "dots",
+        "typography_pair": "anton-inter",
+        "composition": "left",
+        "accent_style": "brackets",
+        "mood": "electric, precise",
+        "photo_treatment": "cutout",
+    },
+    {
+        "background_style": "diagonal",
+        "typography_pair": "bowlby-inter",
+        "composition": "right",
+        "accent_style": "stripe",
+        "mood": "calm, weighty",
+        "photo_treatment": "duotone",
+    },
+    {
+        "background_style": "halftone",
+        "typography_pair": "archivo-inter",
+        "composition": "center",
+        "accent_style": "ribbon",
+        "mood": "celebratory, bold",
+        "photo_treatment": "frame",
+    },
+    {
+        "background_style": "geometric",
+        "typography_pair": "bebas-grotesk",
+        "composition": "off-center",
+        "accent_style": "badge",
+        "mood": "kinetic",
+        "photo_treatment": "vignette",
+    },
+    {
+        "background_style": "stripes",
+        "typography_pair": "druk-inter",
+        "composition": "left",
+        "accent_style": "underline",
+        "mood": "composed",
+        "photo_treatment": "no-photo",
+    },
+]
+
+
+def _shared_test_card() -> dict:
+    """Same achievement across variants — only the brief axes change so
+    the only legitimate cause of cache-key divergence is the axis
+    plumbing actually working."""
+    return {
+        "id": "diff_regression",
+        "achievement": {
+            "swimmer_name": "Diff Regression",
+            "event_name": "100m Freestyle LC",
+            "result_time": "00:54.32",
+            "type": "NEW PB",
+        },
+    }
+
+
+def _shared_brand() -> BrandKit:
+    return BrandKit(
+        profile_id="diff-club", display_name="Diff Test Club",
+        primary_colour="#0A2540", secondary_colour="#FF6F61",
+        accent_colour="#FFFFFF", short_name="DTC",
+    )
+
+
+def test_render_diff_brief_variants_produce_unique_cache_keys():
+    """Fast layer of the render-diff regression.
+
+    Each brief variant must produce a distinct content hash so the cache
+    layer renders (and stores) a separate MP4 per variant. If two
+    variants collide here, the props shaping is dropping an axis on the
+    floor — TSX never even gets to consume it.
+    """
+    card = _shared_test_card()
+    brand_dict = motion._brand_to_dict(_shared_brand())
+    keys: list[str] = []
+    for brief in _BRIEF_VARIANTS:
+        card_dict = motion._card_to_props(
+            card, variation_seed=2, brief=brief,
+        )
+        key = motion._content_hash(
+            {"card": card_dict, "brand": brand_dict, "duration": 1.0},
+            kind="story",
+        )
+        keys.append(key)
+    assert len(set(keys)) == len(keys), (
+        f"Cache keys collided across variants — at least one variation "
+        f"axis is not flowing into the Remotion props. keys={keys}"
+    )
+
+
+_SKIP_DIFF_REGRESSION = (
+    os.environ.get("MEDIAHUB_RUN_DIFF_REGRESSION", "").lower()
+    not in ("1", "true", "yes")
+)
+
+
+@pytest.mark.skipif(
+    _SKIP_DIFF_REGRESSION,
+    reason="set MEDIAHUB_RUN_DIFF_REGRESSION=1 to run the slow render-diff",
+)
+@pytest.mark.skipif(not _node_present(), reason="node not installed")
+@pytest.mark.skipif(
+    not _remotion_installed(),
+    reason="Remotion deps not installed (run `npm install` in src/mediahub/remotion)",
+)
+def test_render_diff_brief_variants_produce_distinct_mp4s(tmp_path, monkeypatch):
+    """Slow layer of the render-diff regression.
+
+    Renders one MP4 per brief variant and asserts every pair is
+    byte-distinct. Identical bytes would mean the TSX composition isn't
+    actually consuming the axis (e.g. backgroundStyle accepted by the
+    schema but never read). Each render is held to 1.0s of video so the
+    full sweep takes ~30-60s on a Standard Render box.
+    """
+    import hashlib
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    card = _shared_test_card()
+    brand = _shared_brand()
+    digests: list[tuple[int, str]] = []
+    for idx, brief in enumerate(_BRIEF_VARIANTS):
+        out = tmp_path / f"variant_{idx}.mp4"
+        result = motion.render_story_card(
+            card, brand, out,
+            variation_seed=2,
+            duration_sec=1.0,
+            brief=brief,
+        )
+        data = Path(result).read_bytes()
+        assert b"ftyp" in data[:32], f"variant {idx} not a valid MP4"
+        digests.append((idx, hashlib.sha256(data).hexdigest()))
+    seen: dict[str, int] = {}
+    for idx, digest in digests:
+        if digest in seen:
+            prior = seen[digest]
+            raise AssertionError(
+                f"variant {idx} produced the same bytes as variant "
+                f"{prior} — the TSX composition is ignoring at least "
+                f"one of: {sorted(set(_BRIEF_VARIANTS[idx]) - set())}. "
+                f"Check StoryCard.tsx helpers (bgPatternFor / "
+                f"fontStackFor / springConfigFor / "
+                f"compositionLayoutFor / accentDecoration)."
+            )
+        seen[digest] = idx
