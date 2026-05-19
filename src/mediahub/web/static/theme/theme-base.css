@@ -1,0 +1,307 @@
+/* =====================================================================
+   THEME BASE — Phase 1.6 Stage C (Adaptive Theming Engine)
+   ---------------------------------------------------------------------
+   The framework. Three pieces:
+     1. The seven seed variables — the ONLY hand-coded brand inputs.
+        Python ships these; the browser derives everything else.
+     2. Tier-2 semantic role tokens (~25 Material-3-style roles), light-
+        dark()-wrapped so the same seed yields light AND dark variants.
+     3. @property registrations so every tier-2 colour interpolates
+        during Stage E's cascade animation.
+
+   The actual tier-1 primitive values (--mh-prim-*-{0..1000}) live in
+   theme-derive.css (modern browsers, oklch(from …) derivations) and
+   theme-fallback.css (Safari ≤ 16.3, hand-coded values byte-identical
+   to Stage A). This file imports both via the cascade.
+
+   Cascade order (assembled by src/mediahub/web/theme_tokens.py):
+     theme-base.css  →  theme-fallback.css  →  theme-derive.css
+
+   References:
+     - CSS Color Module Level 4 — relative colour syntax & @property
+     - W3C Design Tokens Format Module
+     - docs/stage_c_css_architecture_plan.md
+   ===================================================================== */
+
+:root {
+  /* color-scheme tells the UA chrome (scrollbars, form controls,
+     text selection) to follow the user's preferred mode. Stage C
+     ships dark-mode as the visual default; Stage D may flip to
+     `light dark` once a real light-mode palette is signed off. */
+  color-scheme: dark;
+
+  /* ------------------------------------------------------------------
+     SEED VARIABLES — the only hand-coded brand inputs
+     ------------------------------------------------------------------
+     Stage D will replace these declarations with values fed from
+     BrandKit.derived_palette at runtime. For now they default to the
+     existing Podium After Dark palette. */
+  --mh-brand-seed:    #D4FF3A;   /* lane-marker yellow — the brand */
+  --mh-tertiary-seed: #F4D58D;   /* medal gold — second brand colour */
+  --mh-neutral-seed:  #F5F2E8;   /* paper-cream — warm-neutral anchor */
+  --mh-error-seed:    #FF6B6B;   /* locked status anchor (red family) */
+  --mh-success-seed:  #5EE39A;   /* locked status anchor (green family) */
+  --mh-warning-seed:  #FFB454;   /* locked status anchor (amber family) */
+  --mh-info-seed:     #4DA3FF;   /* locked status anchor (blue family) */
+}
+
+/* =====================================================================
+   TIER 2 — SEMANTIC ROLE TOKENS (Material 3 vocabulary)
+   ---------------------------------------------------------------------
+   Each role wraps its value in light-dark(<light>, <dark>) so the same
+   declaration adapts to the user's prefers-color-scheme. For Stage C
+   both branches ship identical pixels (dark mode is the only visual
+   design today); Stage D introduces real light-mode values once the
+   designer signs off.
+   ===================================================================== */
+
+:root {
+  /* Surfaces — the page, cards, raised elements */
+  --mh-surface:                light-dark(var(--mh-prim-neutral-950), var(--mh-prim-neutral-950));
+  --mh-surface-deep:           light-dark(var(--mh-prim-neutral-1000), var(--mh-prim-neutral-1000));
+  --mh-surface-variant:        light-dark(var(--mh-prim-neutral-900), var(--mh-prim-neutral-900));
+  --mh-surface-container:      light-dark(var(--mh-prim-neutral-850), var(--mh-prim-neutral-850));
+  --mh-surface-container-high: light-dark(var(--mh-prim-neutral-800), var(--mh-prim-neutral-800));
+
+  /* On-surface (text + icons on neutral surfaces) */
+  --mh-on-surface:         light-dark(var(--mh-prim-neutral-50), var(--mh-prim-neutral-50));
+  --mh-on-surface-variant: light-dark(var(--mh-prim-neutral-300), var(--mh-prim-neutral-300));
+  --mh-on-surface-muted:   light-dark(var(--mh-prim-neutral-400), var(--mh-prim-neutral-400));
+  --mh-on-surface-faint:   light-dark(var(--mh-prim-neutral-600), var(--mh-prim-neutral-600));
+
+  /* Primary (brand) — CTAs, links, focus, live state */
+  --mh-primary:               light-dark(var(--mh-prim-brand-400), var(--mh-prim-brand-400));
+  --mh-primary-hover:         light-dark(var(--mh-prim-brand-300), var(--mh-prim-brand-300));
+  --mh-primary-pressed:       light-dark(var(--mh-prim-brand-600), var(--mh-prim-brand-600));
+  --mh-on-primary:            light-dark(var(--mh-prim-neutral-950), var(--mh-prim-neutral-950));
+  --mh-primary-container:     light-dark(var(--mh-prim-brand-100), var(--mh-prim-brand-100));
+  --mh-on-primary-container:  light-dark(var(--mh-prim-brand-900), var(--mh-prim-brand-900));
+
+  /* Secondary — Stage A aliases to primary; Stage B's HCT-derived
+     secondary palette is wired in by Stage D. */
+  --mh-secondary:    var(--mh-primary);
+  --mh-on-secondary: var(--mh-on-primary);
+
+  /* Tertiary (medal) — RESERVED EXCLUSIVELY for athlete achievements
+     per the existing "Podium After Dark" convention */
+  --mh-tertiary:               light-dark(var(--mh-prim-tertiary-400), var(--mh-prim-tertiary-400));
+  --mh-on-tertiary:            light-dark(var(--mh-prim-tertiary-950), var(--mh-prim-tertiary-950));
+  --mh-tertiary-container:     light-dark(var(--mh-prim-tertiary-100), var(--mh-prim-tertiary-100));
+  --mh-on-tertiary-container:  light-dark(var(--mh-prim-tertiary-900), var(--mh-prim-tertiary-900));
+
+  /* Outline (borders, dividers, form chrome).
+     Today's values are rgba(245,242,232,N) ink blends. Modern browsers
+     in the @supports block (theme-derive.css) get color-mix() versions
+     that pick up theme changes; this base file keeps the fallback. */
+  --mh-outline:         rgba(245, 242, 232, 0.14);
+  --mh-outline-variant: rgba(245, 242, 232, 0.06);
+  --mh-outline-rule:    rgba(245, 242, 232, 0.10);
+
+  /* Status roles — locked by hue family per cross-cultural-semantics
+     research (Aslam 2006, WCAG 1.4.1). */
+  --mh-error:    light-dark(var(--mh-prim-error-400), var(--mh-prim-error-400));
+  --mh-on-error: light-dark(var(--mh-prim-neutral-950), var(--mh-prim-neutral-950));
+
+  --mh-success: light-dark(var(--mh-prim-success-400), var(--mh-prim-success-400));
+  --mh-warning: light-dark(var(--mh-prim-warning-400), var(--mh-prim-warning-400));
+  --mh-info:    light-dark(var(--mh-prim-info-400), var(--mh-prim-info-400));
+
+  /* Focus */
+  --mh-focus: var(--mh-primary);
+
+  /* Elevation (shadows) — three depths */
+  --mh-elevation-1: 0 1px 0 rgba(245, 242, 232, 0.04);
+  --mh-elevation-2:
+    0 1px 0 rgba(245, 242, 232, 0.04),
+    0 14px 32px rgba(0, 0, 0, 0.45);
+  --mh-elevation-3:
+    0 1px 0 rgba(245, 242, 232, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* =====================================================================
+   @PROPERTY REGISTRATIONS
+   ---------------------------------------------------------------------
+   Every animatable colour token is registered so Stage E's cascade
+   animation interpolates the value instead of snapping. Without
+   @property, CSS custom properties are untyped strings and
+   `transition: --foo 600ms` is a silent no-op.
+
+   The spec forbids var() inside initial-value, so each value here is
+   the raw primitive the token currently aliases to — pixel-identical
+   to today's cascade.
+   ===================================================================== */
+
+/* The seven seed values — animatable themselves so Stage E can
+   crossfade between brands. */
+@property --mh-brand-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #D4FF3A;
+}
+@property --mh-tertiary-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F4D58D;
+}
+@property --mh-neutral-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F5F2E8;
+}
+@property --mh-error-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #FF6B6B;
+}
+@property --mh-success-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5EE39A;
+}
+@property --mh-warning-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #FFB454;
+}
+@property --mh-info-seed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #4DA3FF;
+}
+
+@property --mh-surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0A0B11;
+}
+@property --mh-surface-deep {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #06070C;
+}
+@property --mh-surface-variant {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #14171F;
+}
+@property --mh-surface-container {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1A1E28;
+}
+@property --mh-surface-container-high {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #232838;
+}
+@property --mh-on-surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F5F2E8;
+}
+@property --mh-on-surface-variant {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #B6B2A6;
+}
+@property --mh-on-surface-muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9A988A;
+}
+@property --mh-on-surface-faint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #62604F;
+}
+@property --mh-primary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #D4FF3A;
+}
+@property --mh-primary-hover {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #E6FF6B;
+}
+@property --mh-primary-pressed {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #A8CC2E;
+}
+@property --mh-on-primary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0A0B11;
+}
+@property --mh-primary-container {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F1FFB8;
+}
+@property --mh-on-primary-container {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #4A5E12;
+}
+@property --mh-secondary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #D4FF3A;
+}
+@property --mh-on-secondary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0A0B11;
+}
+@property --mh-tertiary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F4D58D;
+}
+@property --mh-on-tertiary {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2B1F00;
+}
+@property --mh-tertiary-container {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #FFEEC4;
+}
+@property --mh-on-tertiary-container {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #3F2F12;
+}
+@property --mh-error {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #FF6B6B;
+}
+@property --mh-on-error {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0A0B11;
+}
+@property --mh-success {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5EE39A;
+}
+@property --mh-warning {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #FFB454;
+}
+@property --mh-info {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #4DA3FF;
+}
+@property --mh-focus {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #D4FF3A;
+}

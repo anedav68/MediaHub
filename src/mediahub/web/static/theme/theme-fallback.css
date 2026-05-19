@@ -1,0 +1,86 @@
+/* =====================================================================
+   THEME FALLBACK — Phase 1.6 Stage C
+   ---------------------------------------------------------------------
+   Pure-CSS fallback for engines without relative-colour syntax support.
+   Targets: Safari ≤ 16.3 (relative-colour syntax landed in 16.4),
+   plus any niche/embedded browser missing the parser.
+
+   The @supports not (...) gate makes these values apply ONLY to engines
+   that cannot evaluate oklch(from <var> l c h …). Modern browsers parse
+   the gate, find it false, skip the entire block, and instead pick up
+   the @supports (color: oklch(from red l c h)) block in
+   theme-derive.css. Either branch declares every variable so the
+   cascade is fully specified for every engine.
+
+   Values here are BYTE-IDENTICAL to Stage A's hand-coded primitive
+   palette — zero pixel drift for fallback users.
+   ===================================================================== */
+
+@supports not (color: oklch(from red l c h)) {
+  :root {
+    /* Brand — lane-marker yellow tonal ramp */
+    --mh-prim-brand-0:    #FFFFFF;
+    --mh-prim-brand-50:   #FAFFE6;
+    --mh-prim-brand-100:  #F1FFB8;
+    --mh-prim-brand-200:  #E6FF8A;
+    --mh-prim-brand-300:  #E6FF6B;
+    --mh-prim-brand-400:  #D4FF3A;
+    --mh-prim-brand-500:  #C2E832;
+    --mh-prim-brand-600:  #A8CC2E;
+    --mh-prim-brand-700:  #8AA823;
+    --mh-prim-brand-800:  #6B821C;
+    --mh-prim-brand-900:  #4A5E12;
+    --mh-prim-brand-950:  #2A360A;
+    --mh-prim-brand-1000: #000000;
+
+    /* Tertiary — medal-gold tonal ramp */
+    --mh-prim-tertiary-0:    #FFFFFF;
+    --mh-prim-tertiary-50:   #FFF9EC;
+    --mh-prim-tertiary-100:  #FFEEC4;
+    --mh-prim-tertiary-200:  #FFE5A1;
+    --mh-prim-tertiary-300:  #F8DC97;
+    --mh-prim-tertiary-400:  #F4D58D;
+    --mh-prim-tertiary-500:  #DEBD75;
+    --mh-prim-tertiary-600:  #C9A04B;
+    --mh-prim-tertiary-700:  #9F7E36;
+    --mh-prim-tertiary-800:  #6E5524;
+    --mh-prim-tertiary-900:  #3F2F12;
+    --mh-prim-tertiary-950:  #2B1F00;
+    --mh-prim-tertiary-1000: #000000;
+
+    /* Neutral — paper-cream → pit-wall black, denser on the dark side.
+       Hue shifts mid-ramp (warm cream above, cool blue-dark below);
+       this isn't a clean tonal palette, so it stays hand-coded for
+       both fallback and modern browsers — see theme-derive.css. */
+    --mh-prim-neutral-0:    #FFFFFF;
+    --mh-prim-neutral-50:   #F5F2E8;
+    --mh-prim-neutral-100:  #E3DFD3;
+    --mh-prim-neutral-200:  #C9C5B6;
+    --mh-prim-neutral-300:  #B6B2A6;
+    --mh-prim-neutral-400:  #9A988A;
+    --mh-prim-neutral-500:  #7A786C;
+    --mh-prim-neutral-600:  #62604F;
+    --mh-prim-neutral-700:  #3D3D33;
+    --mh-prim-neutral-750:  #2E2E26;
+    --mh-prim-neutral-800:  #232838;
+    --mh-prim-neutral-850:  #1A1E28;
+    --mh-prim-neutral-900:  #14171F;
+    --mh-prim-neutral-950:  #0A0B11;
+    --mh-prim-neutral-1000: #06070C;
+
+    /* Status anchors — single tones (full ramps live in Stage B's
+       runtime-derived DerivedPalette). */
+    --mh-prim-error-300:   #FFBCC3;
+    --mh-prim-error-400:   #FF6B6B;
+    --mh-prim-error-500:   #FF5D6C;
+    --mh-prim-error-600:   #FF8A99;
+
+    --mh-prim-success-400: #5EE39A;
+
+    --mh-prim-warning-400: #FFB454;
+    --mh-prim-warning-500: #FFAA3A;
+    --mh-prim-warning-600: #FFAE3B;
+
+    --mh-prim-info-400:    #4DA3FF;
+  }
+}

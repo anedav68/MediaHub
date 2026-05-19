@@ -1,0 +1,148 @@
+/* =====================================================================
+   THEME DERIVE — Phase 1.6 Stage C (runtime derivation)
+   ---------------------------------------------------------------------
+   Modern-browser branch: every tier-1 primitive computed at runtime
+   from one of the seven seed variables declared in theme-base.css.
+
+   Gate: @supports (color: oklch(from red l c h)) — Chrome 119+,
+   Firefox 128+, Safari 16.4+. ~94% of users in May 2026 (caniuse).
+
+   The formulas walk an OKLCH lightness target with a per-tone chroma
+   scale relative to the seed's natural chroma. Calibrated against
+   Stage A's hand-coded "Podium After Dark" palette so ΔE2000 ≤ 5
+   for every tone when the seeds are at their default values.
+
+   Per-tone target lightness and chroma scale:
+                Brand           Tertiary        Neutral
+      tone   L     C_factor   L     C_factor   L     C_factor
+        50  0.991  0.12       0.982  0.26      0.957  0.20
+       100  0.973  0.45       0.953  0.81      0.890  0.20
+       200  0.954  0.76       0.928  1.14      0.799  0.30
+       300  0.948  0.91       0.894  1.13      0.727  0.25
+       400  (seed)            (seed)            0.633  0.30
+       500  0.866  0.96       0.792  0.94      0.515  0.30
+       600  0.772  0.84       0.708  1.21      0.421  0.50
+       700  0.660  0.71       0.584  1.07      0.286  0.40
+       800  0.535  0.58       0.434  0.85      0.193  0.80
+       900  0.405  0.42       0.286  0.55      0.130  0.60
+       950  0.272  0.30       0.213  0.47      0.082  0.50
+
+   Note: the neutral ramp is not a clean OKLCH-tonal palette in Stage A
+   (its hue rotates from warm cream above tone 750 to cool blue below).
+   To preserve that identity, the neutral declarations here are kept
+   as static hex values — same as theme-fallback.css. Brand and
+   tertiary are the genuinely-derived ramps; neutrals will be
+   revisited in Stage D/J once a designer signs off on the hue family.
+
+   References:
+     - W3C CSS Color Module Level 5 — Relative colour syntax
+     - Björn Ottosson (2020), "A perceptual color space for image processing"
+     - docs/stage_c_css_architecture_plan.md
+   ===================================================================== */
+
+@supports (color: oklch(from red l c h)) {
+  :root {
+    /* ----------------------------------------------------------------
+       Brand ramp — derived from --mh-brand-seed
+       ---------------------------------------------------------------- */
+    --mh-prim-brand-0:    #FFFFFF;
+    --mh-prim-brand-50:   oklch(from var(--mh-brand-seed) 0.991 calc(c * 0.12) h);
+    --mh-prim-brand-100:  oklch(from var(--mh-brand-seed) 0.973 calc(c * 0.45) h);
+    --mh-prim-brand-200:  oklch(from var(--mh-brand-seed) 0.954 calc(c * 0.76) h);
+    --mh-prim-brand-300:  oklch(from var(--mh-brand-seed) 0.948 calc(c * 0.91) h);
+    --mh-prim-brand-400:  var(--mh-brand-seed);
+    --mh-prim-brand-500:  oklch(from var(--mh-brand-seed) 0.866 calc(c * 0.96) h);
+    --mh-prim-brand-600:  oklch(from var(--mh-brand-seed) 0.772 calc(c * 0.84) h);
+    --mh-prim-brand-700:  oklch(from var(--mh-brand-seed) 0.660 calc(c * 0.71) h);
+    --mh-prim-brand-800:  oklch(from var(--mh-brand-seed) 0.535 calc(c * 0.58) h);
+    --mh-prim-brand-900:  oklch(from var(--mh-brand-seed) 0.405 calc(c * 0.42) h);
+    --mh-prim-brand-950:  oklch(from var(--mh-brand-seed) 0.272 calc(c * 0.30) h);
+    --mh-prim-brand-1000: #000000;
+
+    /* ----------------------------------------------------------------
+       Tertiary ramp — derived from --mh-tertiary-seed
+       Chroma factors > 1.0 for some tones because the existing
+       "medal gold" palette is hand-tuned to deeper saturation than the
+       seed's natural chroma at those tones.
+       ---------------------------------------------------------------- */
+    --mh-prim-tertiary-0:    #FFFFFF;
+    --mh-prim-tertiary-50:   oklch(from var(--mh-tertiary-seed) 0.982 calc(c * 0.26) h);
+    --mh-prim-tertiary-100:  oklch(from var(--mh-tertiary-seed) 0.953 calc(c * 0.81) h);
+    --mh-prim-tertiary-200:  oklch(from var(--mh-tertiary-seed) 0.928 calc(c * 1.14) h);
+    --mh-prim-tertiary-300:  oklch(from var(--mh-tertiary-seed) 0.894 calc(c * 1.13) h);
+    --mh-prim-tertiary-400:  var(--mh-tertiary-seed);
+    --mh-prim-tertiary-500:  oklch(from var(--mh-tertiary-seed) 0.792 calc(c * 0.94) h);
+    --mh-prim-tertiary-600:  oklch(from var(--mh-tertiary-seed) 0.708 calc(c * 1.21) h);
+    --mh-prim-tertiary-700:  oklch(from var(--mh-tertiary-seed) 0.584 calc(c * 1.07) h);
+    --mh-prim-tertiary-800:  oklch(from var(--mh-tertiary-seed) 0.434 calc(c * 0.85) h);
+    --mh-prim-tertiary-900:  oklch(from var(--mh-tertiary-seed) 0.286 calc(c * 0.55) h);
+    --mh-prim-tertiary-950:  oklch(from var(--mh-tertiary-seed) 0.213 calc(c * 0.47) h);
+    --mh-prim-tertiary-1000: #000000;
+
+    /* ----------------------------------------------------------------
+       Neutral ramp — KEPT HAND-CODED.
+       The "Podium After Dark" neutrals have a deliberate hue shift
+       (warm cream above tone 750, cool blue below) that isn't a clean
+       single-hue OKLCH tonal palette. Preserving it exactly preserves
+       the brand identity. Stage D may revisit once a designer
+       commits to deriving the warm/cool split from a single hue.
+       ---------------------------------------------------------------- */
+    --mh-prim-neutral-0:    #FFFFFF;
+    --mh-prim-neutral-50:   #F5F2E8;
+    --mh-prim-neutral-100:  #E3DFD3;
+    --mh-prim-neutral-200:  #C9C5B6;
+    --mh-prim-neutral-300:  #B6B2A6;
+    --mh-prim-neutral-400:  #9A988A;
+    --mh-prim-neutral-500:  #7A786C;
+    --mh-prim-neutral-600:  #62604F;
+    --mh-prim-neutral-700:  #3D3D33;
+    --mh-prim-neutral-750:  #2E2E26;
+    --mh-prim-neutral-800:  #232838;
+    --mh-prim-neutral-850:  #1A1E28;
+    --mh-prim-neutral-900:  #14171F;
+    --mh-prim-neutral-950:  #0A0B11;
+    --mh-prim-neutral-1000: #06070C;
+
+    /* ----------------------------------------------------------------
+       Status anchors — derived from their respective seeds, but the
+       single-tone case (just the 400 point) is just the seed itself
+       since Stage A only defines one tone per status family. The
+       supporting error tones (300/500/600) used in inline f-strings
+       are derived via the OKLCH ramp.
+       ---------------------------------------------------------------- */
+    --mh-prim-error-300: oklch(from var(--mh-error-seed) 0.860 calc(c * 0.45) h);
+    --mh-prim-error-400: var(--mh-error-seed);
+    --mh-prim-error-500: oklch(from var(--mh-error-seed) 0.640 calc(c * 1.05) h);
+    --mh-prim-error-600: oklch(from var(--mh-error-seed) 0.730 calc(c * 0.85) h);
+
+    --mh-prim-success-400: var(--mh-success-seed);
+
+    --mh-prim-warning-400: var(--mh-warning-seed);
+    --mh-prim-warning-500: oklch(from var(--mh-warning-seed) 0.745 calc(c * 1.08) h);
+    --mh-prim-warning-600: oklch(from var(--mh-warning-seed) 0.755 calc(c * 1.05) h);
+
+    --mh-prim-info-400: var(--mh-info-seed);
+
+    /* ----------------------------------------------------------------
+       Tier-2 outline tokens — color-mix based, picks up theme changes.
+       Equivalent to today's rgba(245,242,232,N) but driven by the
+       neutral seed so a theme change ripples through.
+       ---------------------------------------------------------------- */
+    --mh-outline:         color-mix(in oklch, var(--mh-prim-neutral-50) 14%, transparent);
+    --mh-outline-variant: color-mix(in oklch, var(--mh-prim-neutral-50)  6%, transparent);
+    --mh-outline-rule:    color-mix(in oklch, var(--mh-prim-neutral-50) 10%, transparent);
+
+    /* ----------------------------------------------------------------
+       Elevation shadows — color-mix versions so the shadow tint
+       follows the neutral seed too. Pixel-equivalent to Stage A.
+       ---------------------------------------------------------------- */
+    --mh-elevation-1:
+      0 1px 0 color-mix(in oklch, var(--mh-prim-neutral-50) 4%, transparent);
+    --mh-elevation-2:
+      0 1px 0 color-mix(in oklch, var(--mh-prim-neutral-50) 4%, transparent),
+      0 14px 32px color-mix(in oklch, black 45%, transparent);
+    --mh-elevation-3:
+      0 1px 0 color-mix(in oklch, var(--mh-prim-neutral-50) 6%, transparent),
+      0 24px 60px color-mix(in oklch, black 55%, transparent);
+  }
+}

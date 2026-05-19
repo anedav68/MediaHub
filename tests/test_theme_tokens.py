@@ -54,8 +54,11 @@ class TestModuleExposure:
 
     def test_module_has_descriptive_marker(self, theme_tokens_css):
         # Make it cheap to grep for "what is this CSS" in browser devtools.
-        assert "THEME TOKENS" in theme_tokens_css
-        assert "Stage A" in theme_tokens_css
+        # Stage C split the source into three files; each carries its own
+        # banner.
+        assert "THEME BASE" in theme_tokens_css
+        assert "THEME FALLBACK" in theme_tokens_css
+        assert "THEME DERIVE" in theme_tokens_css
 
 
 # ---------------------------------------------------------------------------
@@ -91,14 +94,23 @@ class TestTier1Primitives:
         ):
             assert f"{tok}:" in theme_tokens_css
 
-    def test_primitives_are_hex_or_var(self, theme_tokens_css):
-        # All --mh-prim-* values should be raw hex (the only place raw hex is
-        # legitimate in the new vocabulary).
+    def test_primitives_are_hex_or_derived(self, theme_tokens_css):
+        # Stage C: --mh-prim-* values may be raw hex (fallback path) OR
+        # an oklch(from var(--mh-…-seed) …) expression OR
+        # var(--mh-…-seed) (the seed itself when tone == 400).
+        # The neutral ramp stays raw hex even in the modern branch
+        # because its hue shifts mid-ramp.
         for m in re.finditer(r"--mh-prim-[a-z0-9-]+:\s*([^;]+);", theme_tokens_css):
             value = m.group(1).strip()
-            assert re.fullmatch(r"#[0-9A-Fa-f]{6}", value) or \
-                   re.fullmatch(r"#[0-9A-Fa-f]{3}", value), \
-                   f"Primitive {m.group(0)!r} should be a hex literal, got {value!r}"
+            ok = (
+                re.fullmatch(r"#[0-9A-Fa-f]{3,8}", value)
+                or value.startswith("oklch(from var(--mh-")
+                or value.startswith("var(--mh-")
+            )
+            assert ok, (
+                f"Primitive {m.group(0)!r} must be hex / oklch(from var(--mh-…)) / "
+                f"var(--mh-…-seed), got {value!r}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -161,12 +173,13 @@ class TestTier2RoleTokens:
         assert f"{token}:" in theme_tokens_css
 
     def test_no_role_token_references_raw_hex(self, theme_tokens_css):
-        """Tier-2 tokens must reference primitives, not raw hex.
+        """Tier-2 tokens reference primitives via var() or light-dark().
 
-        Exception: the outline + elevation tokens encode alpha-blended
-        rgba values that are not yet expressible as a primitive
-        reference (Stage C will introduce color-mix-based derivation).
-        Those rgba values are allowed.
+        Stage C wrapped tier-2 tokens in light-dark(<light>, <dark>) so
+        the same role adapts to prefers-color-scheme. The rgba outline
+        / elevation tokens remain alpha-blended (Stage C's modern
+        branch derives them via color-mix in theme-derive.css; the
+        base file keeps the rgba fallback).
         """
         allowed_rgba_only = {
             "--mh-outline",
@@ -184,9 +197,14 @@ class TestTier2RoleTokens:
             )
             assert m, f"Could not find declaration for {token}"
             value = m.group(1).strip()
-            # Must be a var(...) reference — no hex.
-            assert value.startswith("var("), (
-                f"{token} must reference a primitive via var(), got {value!r}"
+            # Must be a var() reference OR light-dark(var(), var()).
+            ok_prefix = (
+                value.startswith("var(")
+                or value.startswith("light-dark(var(")
+            )
+            assert ok_prefix, (
+                f"{token} must reference a primitive via var() or "
+                f"light-dark(var(), var()), got {value!r}"
             )
             assert not re.search(r"#[0-9A-Fa-f]{3,8}", value), (
                 f"{token} must not contain raw hex, got {value!r}"
@@ -233,15 +251,22 @@ class TestPropertyRegistrations:
 
     def test_initial_value_count_matches_registered_set(self, theme_tokens_css):
         # Belt-and-braces: number of @property declarations equals the set
-        # we expect to register.
+        # we expect to register. Stage C added the seven seed variables
+        # (--mh-…-seed) — they need @property registration too so Stage E
+        # can animate the seed crossfade.
         declared = re.findall(
             r"@property\s+(--mh-[\w-]+)\s*\{", theme_tokens_css
         )
-        # Allow ordering to vary; assert set equality.
-        assert set(declared) == set(_REGISTERED_TOKENS), (
+        stage_c_seeds = {
+            "--mh-brand-seed", "--mh-tertiary-seed", "--mh-neutral-seed",
+            "--mh-error-seed", "--mh-success-seed", "--mh-warning-seed",
+            "--mh-info-seed",
+        }
+        expected = set(_REGISTERED_TOKENS) | stage_c_seeds
+        assert set(declared) == expected, (
             f"@property declarations differ from expected set.\n"
-            f"  Missing:    {set(_REGISTERED_TOKENS) - set(declared)}\n"
-            f"  Unexpected: {set(declared) - set(_REGISTERED_TOKENS)}"
+            f"  Missing:    {expected - set(declared)}\n"
+            f"  Unexpected: {set(declared) - expected}"
         )
 
 
