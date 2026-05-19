@@ -100,4 +100,14 @@ class BrandKit:
         )
         theme = derive_theme(seed_source)
         self.derived_palette = theme.to_json()
+        # Phase 1.6 Stage G — mirror the palette to the on-disk theme
+        # store at DATA_DIR/themes/<profile_id>.json so the motion,
+        # email, and static-graphic renderers can read from the same
+        # source of truth as the web cascade. Best-effort: a failed
+        # disk write keeps the in-memory palette authoritative.
+        try:
+            from mediahub.theming.theme_store import write_theme
+            write_theme(self.profile_id, self.derived_palette)
+        except Exception:
+            pass
         return self.derived_palette

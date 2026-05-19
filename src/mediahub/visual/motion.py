@@ -83,7 +83,16 @@ def _logo_to_data_uri(logo_svg: Optional[str]) -> str:
 
 def _brand_to_dict(brand_kit: Any) -> dict[str, str]:
     """Normalise a BrandKit dataclass / dict / object into the shape the
-    Remotion compositions expect."""
+    Remotion compositions expect.
+
+    Phase 1.6 Stage G: when ``brand_kit.profile_id`` resolves to a
+    theme in the on-disk store, prefer the theme-store palette over
+    the BrandKit's flat ``primary_colour``/``secondary_colour``/
+    ``accent_colour`` fields. Motion videos consume the DARK scheme's
+    roles (video-grade saturation; see palette_for_motion docstring).
+    Falls back to the legacy path when no theme is on disk — every
+    existing render keeps working.
+    """
     if brand_kit is None:
         src: dict[str, Any] = {}
     elif isinstance(brand_kit, dict):
@@ -92,6 +101,7 @@ def _brand_to_dict(brand_kit: Any) -> dict[str, str]:
         src = asdict(brand_kit)
     else:
         src = {
+            "profile_id": getattr(brand_kit, "profile_id", ""),
             "display_name": getattr(brand_kit, "display_name", ""),
             "short_name": getattr(brand_kit, "short_name", ""),
             "primary_colour": getattr(brand_kit, "primary_colour", ""),
@@ -99,15 +109,42 @@ def _brand_to_dict(brand_kit: Any) -> dict[str, str]:
             "accent_colour": getattr(brand_kit, "accent_colour", ""),
             "logo_svg": getattr(brand_kit, "logo_svg", ""),
         }
+
+    # Stage G: try the theme store first.
+    theme_palette: Optional[dict[str, str]] = None
+    pid = src.get("profile_id") or src.get("profileId")
+    if pid:
+        try:
+            from mediahub.theming.theme_store import read_theme, palette_for_motion
+            theme_json = read_theme(pid)
+            if theme_json:
+                theme_palette = palette_for_motion(theme_json)
+        except Exception:
+            theme_palette = None
+
+    primary = (
+        (theme_palette or {}).get("primary")
+        or src.get("primary_colour") or src.get("primary") or "#0A2540"
+    )
+    secondary = (
+        (theme_palette or {}).get("secondary")
+        or src.get("secondary_colour") or src.get("secondary") or "#000000"
+    )
+    accent = (
+        (theme_palette or {}).get("accent")
+        or src.get("accent_colour") or src.get("accent") or "#FFFFFF"
+    )
+
     return {
-        "primary": src.get("primary_colour") or src.get("primary") or "#0A2540",
-        "secondary": src.get("secondary_colour") or src.get("secondary") or "#000000",
-        "accent": src.get("accent_colour") or src.get("accent") or "#FFFFFF",
+        "primary": primary,
+        "secondary": secondary,
+        "accent": accent,
         "displayName": src.get("display_name") or src.get("displayName") or "",
         "shortName": src.get("short_name") or src.get("shortName") or "",
         "logoDataUri": _logo_to_data_uri(
             src.get("logo_svg") or src.get("logoSvg") or src.get("logoDataUri")
         ),
+        "themeSource": "theme-store" if theme_palette else "brand-kit",
     }
 
 
