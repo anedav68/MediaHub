@@ -1,1 +1,1 @@
-web: gunicorn mediahub.web:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --graceful-timeout 60 --max-requests 800 --max-requests-jitter 200
+web: gunicorn mediahub.web:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --graceful-timeout 30 --max-requests 200 --max-requests-jitter 50 --worker-tmp-dir /dev/shm --access-logfile - --access-logformat '%(h)s "%(r)s" %(s)s %(b)s %(M)sms "%(f)s"'
