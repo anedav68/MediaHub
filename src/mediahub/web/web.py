@@ -3384,7 +3384,6 @@ def _layout(title: str, body: str, active: str = "home") -> str:
   </a>
   <nav>
     <a href="{{ url_for('home') }}" class="{{ 'active' if active=='home' else '' }}">Home</a>
-    <a href="{{ url_for('add_input_page') }}" class="{{ 'active' if active=='add_input' else '' }}">Add Input</a>
     <a href="{{ url_for('make_page') }}" class="{{ 'active' if active=='create' else '' }}">Create</a>
     <a href="{{ url_for('organisation_page') }}" class="{{ 'active' if active=='organisation' else '' }}">Organisation</a>
     <a href="{{ url_for('media_library_page') }}" class="{{ 'active' if active=='media' else '' }}">Media library</a>
@@ -3905,7 +3904,7 @@ def create_app() -> Flask:
         Two-button hero — "Create organisation" + "Sign in to existing" —
         plus the established four-step explainer. When an org is already
         pinned, the hero swaps in a "Continue as <name>" CTA pointing at
-        Add Input, with the sign-in / create paths still accessible below
+        Create, with the sign-in / create paths still accessible below
         so the user can switch tenants without rummaging through nav.
         """
         prof = _active_profile()
@@ -3938,7 +3937,7 @@ def create_app() -> Flask:
                 'leaves this deployment without your approval.'
             )
             hero_actions = (
-                f'<a class="mh-cta-primary" href="{url_for("add_input_page")}">'
+                f'<a class="mh-cta-primary" href="{url_for("make_page")}">'
                 'Create new content &rarr;</a>'
                 f'<a class="mh-cta-secondary" href="{url_for("sign_in_page")}">'
                 'Switch organisation</a>'
@@ -4096,7 +4095,7 @@ def create_app() -> Flask:
                 'one-click link back into the review.'
                 '</p>'
                 '<div class="mh-hero-actions">'
-                f'<a class="mh-cta-primary" href="{url_for("add_input_page")}">Create your first piece &rarr;</a>'
+                f'<a class="mh-cta-primary" href="{url_for("make_page")}">Create your first piece &rarr;</a>'
                 '</div>'
                 '</section>'
             )
@@ -4246,10 +4245,10 @@ def create_app() -> Flask:
         if request.method == "POST":
             f = request.files.get("file")
             if not f or not f.filename:
-                return _layout("Upload", '<div class="card"><p class="tag bad">No file selected.</p></div>', active="add_input")
+                return _layout("Upload", '<div class="card"><p class="tag bad">No file selected.</p></div>', active="create")
             data = f.read()
             if not data:
-                return _layout("Upload", '<div class="card"><p class="tag bad">Uploaded file was empty.</p></div>', active="add_input")
+                return _layout("Upload", '<div class="card"><p class="tag bad">Uploaded file was empty.</p></div>', active="create")
 
             temp_run_id = uuid.uuid4().hex[:12]
             tmp_dir = RUNS_DIR / temp_run_id
@@ -4303,7 +4302,7 @@ def create_app() -> Flask:
   </form>
 </div>
 """
-        return _layout("Upload", body, active="add_input")
+        return _layout("Upload", body, active="create")
 
     # ---- UPLOAD CONFIGURE (V8.1 issue 6: two-step; V8.2 issue 6: photos) ---
     def _render_configure(run_id: str, meta: dict, *, error: str = "",
@@ -4365,11 +4364,11 @@ def create_app() -> Flask:
   <p class="dim" style="font-size:13px;margin-top:14px">Supported formats: Hytek Meet Manager <code>.hy3</code>, a <code>.zip</code> containing one, or a Sportsystems PDF results file.</p>
   <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn" href="{upload_url}">\u2190 Try another file</a>
-    <a class="btn secondary" href="{url_for('add_input_page')}">Pick a different input type</a>
+    <a class="btn secondary" href="{url_for("make_page")}">Pick a different input type</a>
   </div>
 </div>
 """
-            return _layout("Couldn't read file", body, active="add_input")
+            return _layout("Couldn't read file", body, active="create")
 
         # V8.2 issue 4: ONLY clubs from this file are listed.
         opts = "".join(
@@ -4452,7 +4451,7 @@ def create_app() -> Flask:
   </form>
 </div>
 """
-        return _layout("Configure run", body, active="add_input")
+        return _layout("Configure run", body, active="create")
 
     @app.route("/upload/configure", methods=["GET", "POST"])
     def upload_configure():
@@ -4463,7 +4462,7 @@ def create_app() -> Flask:
                 "The configure step is the second half of the upload flow — you reach it by uploading a file first. Open the upload page and pick a meet results file to start.",
                 eyebrow="Upload",
                 primary_cta=("Start an upload", url_for("upload")),
-                secondary_cta=("All input types", url_for("add_input_page")),
+                secondary_cta=("All input types", url_for("make_page")),
             )
         tmp_dir = RUNS_DIR / run_id
         meta_path = tmp_dir / "upload_meta.json"
@@ -4484,7 +4483,7 @@ def create_app() -> Flask:
         if request.method == "POST":
             club_filter = (request.form.get("club_filter") or "").strip() or None
             if not club_filter:
-                return _layout("Configure", '<div class="card"><p class="tag bad">Pick a club to feature.</p></div>', active="add_input")
+                return _layout("Configure", '<div class="card"><p class="tag bad">Pick a club to feature.</p></div>', active="create")
 
             # Phase 1.5 logo consolidation: logos now live on the active
             # organisation profile, not on individual runs. The configure
@@ -4509,7 +4508,7 @@ def create_app() -> Flask:
             # Pin the run to the active organisation so it appears on
             # /activity for the right tenant. Falls back to the upload
             # meta only if it carries a profile_id (older flows); modern
-            # flows always come through the org-gated /add-input page,
+            # flows always come through the org-gated Create tab,
             # so the session pin is the authoritative source.
             profile_id = (
                 meta.get("profile_id")
@@ -4687,7 +4686,7 @@ def create_app() -> Flask:
                     f'<pre style="font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;margin:0;color:var(--ink)">{_h(_err_msg)}</pre>'
                     '</div>'
                 )
-                return _layout("Run failed", _err_body, active="add_input")
+                return _layout("Run failed", _err_body, active="create")
             # Round-6 fix: when neither the in-memory cache nor the DB has
             # the run id, we used to fall through to the "Processing run"
             # hero with an indefinite poller — users bookmarking a stale
@@ -4779,7 +4778,7 @@ def create_app() -> Flask:
 }})();
 </script>
 """
-        return _layout("Run progress", body, active="add_input")
+        return _layout("Run progress", body, active="create")
 
     @app.route("/api/runs/<run_id>/status")
     def api_status(run_id):
@@ -7885,7 +7884,7 @@ Relay team broke club record"></textarea>
                 f'{section_header}'
                 f'{section_intro}'
                 '<div class="card empty">No runs yet for this organisation. '
-                f'<a href="{url_for("add_input_page")}">Create your first piece of content &rarr;</a>'
+                f'<a href="{url_for("make_page")}">Create your first piece of content &rarr;</a>'
                 '</div>'
             )
 
@@ -8869,25 +8868,17 @@ Relay team broke club record"></textarea>
     # V7 NEW ROUTES
     # ====================================================================
 
-    # ---- /make &mdash; legacy alias, redirects to /add-input ------------------
+    # ---- /make &mdash; the Create tab (single entry point) -------------------
     @app.route("/make")
     def make_page():
-        # The Create page consolidates two card groups:
-        #   1. Content-type tiles (from REGISTRY) — packaged content
-        #      formats like meet recap, athlete spotlight pack, etc.
-        #   2. Input-type cards (shared with /add-input) — the starting
-        #      points: meet results upload, athlete spotlight, event
-        #      preview, sponsor post, session update, free text.
-        # Both surfaces lead to producing a content pack; grouping
-        # them here means "Create" is the single entry to actually
-        # start work, while "Add Input" stays focused on the input
-        # picker for users who prefer that mental model.
+        # The Create tab is the single chooser for starting work. Tiles
+        # come from the ContentType REGISTRY — the canonical catalogue
+        # of every content type the platform produces. /add-input is
+        # preserved as a redirect alias so external links still resolve.
         try:
-            from mediahub.club_platform.content_types import REGISTRY, ContentType
-            registry_available = True
+            from mediahub.club_platform.content_types import REGISTRY
         except ImportError:
             REGISTRY = {}
-            registry_available = False
 
         tiles_html = ""
         for ct, meta in REGISTRY.items():
@@ -8920,33 +8911,27 @@ Relay team broke club record"></textarea>
                 f'{badge}'
                 '</div>'
                 f'<p>{_h(meta.description)}</p>'
-                '<span class="mh-template-cta">Open</span>'
+                '<span class="mh-template-cta">Start</span>'
                 '</a>'
             )
 
-        if registry_available and tiles_html:
-            content_types_section = (
-                '<div class="mh-section-eyebrow" style="margin-top:0">Content types</div>'
-                '<h2 class="mh-section-title" style="text-align:left">Packaged <em class="editorial">deliverables</em></h2>'
-                '<p class="lede" style="margin-bottom:var(--sp-5)">Pick a deliverable and the engine routes you to the right input.</p>'
-                f'<div class="mh-template-grid">{tiles_html}</div>'
-                '<div style="height:var(--sp-7)"></div>'
-            )
+        if tiles_html:
+            tiles_section = f'<div class="mh-template-grid">{tiles_html}</div>'
         else:
-            content_types_section = ""
+            tiles_section = (
+                '<div class="card empty">'
+                '<p class="muted">No content types are registered on this deployment. '
+                'Check the deployment configuration.</p>'
+                '</div>'
+            )
 
-        input_cards_html = _render_input_type_cards()
         body = (
             '<section class="mh-hero" data-lane="03" style="padding-top:var(--sp-9);padding-bottom:var(--sp-7);margin-bottom:var(--sp-6)">'
             '<span class="mh-hero-eyebrow">Create</span>'
             '<h1>What do you want<br>to <em class="editorial">make</em>?</h1>'
-            '<p class="lede">Pick a deliverable, or pick an input. Both lead to the same content pack — the difference is whether you start from a format or from raw material.</p>'
+            '<p class="lede">Upload a file, paste a brief, or describe a moment in your own words. Pick a starting point and the engine takes it from there.</p>'
             '</section>'
-            f'{content_types_section}'
-            '<div class="mh-section-eyebrow" style="margin-top:0">Inputs</div>'
-            '<h2 class="mh-section-title" style="text-align:left">Start from <em class="editorial">raw material</em></h2>'
-            f'<p class="lede" style="margin-bottom:var(--sp-5)">The same inputs on <a href="{url_for("add_input_page")}">/add-input</a> — included here so Create stays the single jumping-off point.</p>'
-            f'<div class="mh-template-grid">{input_cards_html}</div>'
+            f'{tiles_section}'
         )
         return _layout("Create", body, active="create")
 
@@ -9139,7 +9124,7 @@ Relay team broke club record"></textarea>
                 '</p>'
                 '<div class="mh-hero-actions">'
                 f'<a class="mh-cta-primary" href="{url_for("upload")}">Upload a meet &rarr;</a>'
-                f'<a class="mh-cta-secondary" href="{url_for("add_input_page")}">All input types</a>'
+                f'<a class="mh-cta-secondary" href="{url_for("make_page")}">All input types</a>'
                 '</div>'
                 '</section>'
             )
@@ -9416,7 +9401,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         )
 
     def _render_stub(stub_cls_name: str, route_endpoint: str, title: str,
-                     active_tab: str = "add_input"):
+                     active_tab: str = "create"):
         """Shared handler for stub routes. GET renders form, POST renders cards."""
         try:
             from mediahub.club_platform import stubs as _stubs_mod
@@ -9424,7 +9409,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             return _recovery_page(
                 "Temporarily unavailable",
                 f"The content engine failed to load: {exc}. The stub content type can't render until the underlying module is back. Try refreshing in a moment.",
-                primary_cta=("Back to Add Input", url_for("add_input_page")),
+                primary_cta=("Back to Create", url_for("make_page")),
                 secondary_cta=("System status", url_for("status_page")),
                 code=503,
             )
@@ -9434,7 +9419,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             return _recovery_page(
                 "Content type unavailable",
                 f"The {title} stub class isn't registered on this deployment. The route still exists, but the generator wasn't loaded.",
-                primary_cta=("Back to Add Input", url_for("add_input_page")),
+                primary_cta=("Back to Create", url_for("make_page")),
             )
 
         stub = StubCls()
@@ -9474,7 +9459,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                     return _recovery_page(
                         "AI features unavailable",
                         f"{e}. Contact your deployment operator to enable Gemini or Anthropic on this instance.",
-                        primary_cta=("Back to Add Input", url_for("add_input_page")),
+                        primary_cta=("Back to Create", url_for("make_page")),
                         secondary_cta=("System status", url_for("status_page")),
                         code=503,
                     )
@@ -9483,7 +9468,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                         "AI provider error",
                         f"{e}. Rate limits usually clear within seconds — try the same form again, or fall back to a simpler input.",
                         primary_cta=("Try again", url_for(route_endpoint)),
-                        secondary_cta=("Back to Add Input", url_for("add_input_page")),
+                        secondary_cta=("Back to Create", url_for("make_page")),
                         code=502,
                     )
             # Persist this pack so it survives refresh + is exportable.
@@ -9529,11 +9514,11 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             body += (
                 f'<p style="margin-top:var(--sp-5);display:flex;gap:var(--sp-4);flex-wrap:wrap">'
                 f'<a href="{_packs_url}">View your saved drafts &rarr;</a>'
-                f'<a href="{url_for("add_input_page")}">&larr; All input types</a>'
+                f'<a href="{url_for("make_page")}">&larr; All input types</a>'
                 f'</p>'
             )
         except Exception:
-            body += f'<p style="margin-top:var(--sp-5)"><a href="{url_for("add_input_page")}">&larr; All input types</a></p>'
+            body += f'<p style="margin-top:var(--sp-5)"><a href="{url_for("make_page")}">&larr; All input types</a></p>'
         return _layout(title, body, active=active_tab)
 
     @app.route("/weekend-preview", methods=["GET", "POST"])
@@ -9601,7 +9586,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   Prefer the one-shot form? <a href="{url_for('stub_free_text_quick')}">Use the legacy quick generator →</a>
 </p>
 """
-        return _layout("Free text — chat", body, active="add_input")
+        return _layout("Free text — chat", body, active="create")
 
     @app.route("/free-text/chat/new", methods=["GET", "POST"])
     def free_text_chat_new():
@@ -9754,7 +9739,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   </div>
 </form>
 """
-        return _layout(s.title or "Chat", body, active="add_input")
+        return _layout(s.title or "Chat", body, active="create")
 
     @app.route("/free-text/chat/<chat_id>/send", methods=["POST"])
     def free_text_chat_send(chat_id):
@@ -9867,11 +9852,11 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 'come back, edit, and approve later.'
                 '</p>'
                 '<div class="mh-hero-actions">'
-                f'<a class="mh-cta-primary" href="{url_for("add_input_page")}">Add an input &rarr;</a>'
+                f'<a class="mh-cta-primary" href="{url_for("make_page")}">Start creating &rarr;</a>'
                 '</div>'
                 '</section>'
             )
-            return _layout("Saved drafts", body, active="add_input")
+            return _layout("Saved drafts", body, active="create")
 
         rows_html = ""
         for it in items:
@@ -9904,9 +9889,9 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     <tbody>{rows_html}</tbody>
   </table>
 </div>
-<p style="margin-top:var(--sp-4)"><a class="btn secondary" href="{url_for('add_input_page')}">+ New draft</a></p>
+<p style="margin-top:var(--sp-4)"><a class="btn secondary" href="{url_for("make_page")}">+ New draft</a></p>
 """
-        return _layout("Saved drafts", body, active="add_input")
+        return _layout("Saved drafts", body, active="create")
 
     @app.route("/drafts/<pack_id>")
     def stub_pack_view(pack_id):
@@ -9915,7 +9900,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         rec = load_pack(pack_id)
         if not rec:
             body = '<div class="empty">Draft not found.</div>'
-            return _layout("Draft not found", body, active="add_input"), 404
+            return _layout("Draft not found", body, active="create"), 404
 
         stub_type = rec.get("stub_type", "other")
         type_label = _STUB_TYPE_LABEL.get(stub_type, stub_type)
@@ -9963,7 +9948,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             1,
         )
         body = header + cards_html
-        return _layout(rec.get("title") or "Draft", body, active="add_input")
+        return _layout(rec.get("title") or "Draft", body, active="create")
 
     @app.route("/drafts/<pack_id>/export.txt")
     def stub_pack_export(pack_id):
@@ -10010,146 +9995,12 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             "status": card.get("status", status),
         })
 
-    # ---- /add-input &mdash; multi-input landing page --------------------------
-    # The catalogue of input-type cards rendered on both /add-input and
-    # /make. Kept as module-scoped data inside create_app() so add_input_page
-    # and make_page share the exact same list — adding a new input type
-    # surfaces it in both places, no duplication.
-    _INPUT_TYPE_CATALOGUE = [
-        {
-            "title": "Meet Results",
-            "description": "Upload results from any sport meet, gala, or competition. Ranked content cards with confidence scores.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>'
-                '<path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>'
-                '<path d="M4 22h16"/>'
-                '<path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>'
-                '<path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>'
-                '<path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "upload",
-        },
-        {
-            "title": "Athlete Spotlight",
-            "description": "Pick a member from a processed meet and get a single-person achievement pack.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<circle cx="12" cy="8" r="4"/>'
-                '<path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "spotlight_landing",
-        },
-        {
-            "title": "Event Preview",
-            "description": "Tease an upcoming event, fixture, or competition before it starts.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>'
-                '<line x1="16" y1="2" x2="16" y2="6"/>'
-                '<line x1="8" y1="2" x2="8" y2="6"/>'
-                '<line x1="3" y1="10" x2="21" y2="10"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "stub_weekend_preview",
-        },
-        {
-            "title": "Sponsor Post",
-            "description": "Create brand-safe sponsor activation content with your partners.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "stub_sponsor_post",
-        },
-        {
-            "title": "Session Update",
-            "description": "Share live updates from training or events as they happen.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
-                '<polyline points="14 2 14 8 20 8"/>'
-                '<line x1="16" y1="13" x2="8" y2="13"/>'
-                '<line x1="16" y1="17" x2="8" y2="17"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "stub_session_update",
-        },
-        {
-            "title": "Free Text",
-            "description": "Describe any moment in your own words and get content suggestions.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<path d="M12 20h9"/>'
-                '<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "free_text_chat_page",
-        },
-    ]
-
-    def _render_input_type_cards() -> str:
-        """Render the input-type cards grid used on /add-input and /make.
-
-        Round-7 bug fix: the previous version referenced `meta.primary_route_endpoint`
-        from a since-deleted REGISTRY-based render, leaving `href_attr` undefined on
-        the success path. Every tile was rendered with `href="#"` regardless of
-        whether the route existed. Now we read from card["endpoint"] directly and
-        set href_attr in both branches.
-        """
-        cards_html = ""
-        for card in _INPUT_TYPE_CATALOGUE:
-            is_live = card.get("status") == "live"
-            if is_live:
-                badge = '<span class="tag live">Live</span>'
-            else:
-                badge = '<span class="tag">Coming soon</span>'
-            try:
-                href_attr = f'href="{url_for(card["endpoint"])}"'
-                disabled_cls = ""
-            except Exception:
-                href_attr = 'href="#" onclick="return false"'
-                disabled_cls = " is-disabled"
-            cards_html += (
-                f'<a {href_attr} class="mh-template{disabled_cls}">'
-                f'<div class="mh-template-icon">{card["icon"]}</div>'
-                '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:var(--sp-1)">'
-                f'<h3 style="margin:0">{_h(card["title"])}</h3>'
-                f'{badge}'
-                '</div>'
-                f'<p>{_h(card["description"])}</p>'
-                '<span class="mh-template-cta">Start</span>'
-                '</a>'
-            )
-        return cards_html
-
     @app.route("/add-input")
     def add_input_page():
-        cards_html = _render_input_type_cards()
-        body = (
-            '<section class="mh-hero" data-lane="02" style="padding-top:var(--sp-9);padding-bottom:var(--sp-7);margin-bottom:var(--sp-6)">'
-            '<span class="mh-hero-eyebrow">Add input</span>'
-            '<h1>What are we <em class="editorial">making</em>?</h1>'
-            '<p class="lede">Each input type produces a different set of social-ready cards. Pick one to start.</p>'
-            '</section>'
-            f'<div class="mh-template-grid">{cards_html}</div>'
-        )
-        return _layout("Add Input", body, active="add_input")
+        # The "Add Input" tab was merged into "Create". The route stays
+        # as a redirect alias so old bookmarks and external links still
+        # resolve to the unified chooser on /make.
+        return redirect(url_for("make_page"), code=301)
 
     # ---- /organisation &mdash; organisation DNA / club identity ---------------
     @app.route("/organisation", methods=["GET", "POST"])
@@ -11165,7 +11016,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   <div style="margin-bottom:10px">{sw or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
   <p class="muted" style="font-size:12px;margin:8px 0 0 0">Source: {_h(prof.brand_source_url or '—')} &middot; captured {_h((prof.brand_captured_at or '')[:19])}</p>
   <div style="margin-top:14px">
-    <a class="btn" href="{url_for('add_input_page')}">Looks right &mdash; start creating &rarr;</a>
+    <a class="btn" href="{url_for("make_page")}">Looks right &mdash; start creating &rarr;</a>
     <span class="muted" style="margin-left:12px;font-size:12px">Or refine the inputs below and re-analyse.</span>
   </div>
 </div>
@@ -13409,19 +13260,19 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             _profs = list_profiles()
             if not _profs:
                 _org_url = url_for('organisation_page')
-                _add_input_url = url_for('add_input_page')
+                _create_url = url_for("make_page")
                 empty_body = (
                     '<section class="mh-hero" data-lane="" style="padding-top:var(--sp-9);padding-bottom:var(--sp-8)">'
                     '<span class="mh-hero-eyebrow">Media library</span>'
                     '<h1>No organisation,<br><em class="editorial">no library.</em></h1>'
                     '<p class="lede">'
                     'The media library is scoped per organisation. Set up your '
-                    'organisation first &mdash; or just add an input and one '
+                    'organisation first &mdash; or jump into Create and one '
                     'gets created automatically.'
                     '</p>'
                     '<div class="mh-hero-actions">'
                     f'<a class="mh-cta-primary" href="{_org_url}">Set up organisation &rarr;</a>'
-                    f'<a class="mh-cta-secondary" href="{_add_input_url}">Or add an input</a>'
+                    f'<a class="mh-cta-secondary" href="{_create_url}">Or start creating</a>'
                     '</div>'
                     '</section>'
                 )
