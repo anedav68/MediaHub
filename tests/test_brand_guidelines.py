@@ -184,16 +184,16 @@ class TestLlmInterpretation:
         assert "red" not in out["palette_mentions"]
         assert "#gggggg" not in out["palette_mentions"]
 
-    def test_no_llm_heuristic_keeps_raw_text(self, monkeypatch):
-        """When no LLM is available the upload must NOT be silently
-        dropped — the raw text excerpt is preserved on the profile."""
+    def test_no_llm_returns_no_provider_status(self, monkeypatch):
+        """When no cloud LLM provider is configured the function returns
+        the canonical empty shape with status ``no_provider`` — it does
+        NOT fabricate structured fields from regex-extracted text."""
         monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: False)
         out = guidelines.interpret_guidelines(
             "Brand guidelines: be warm. Be inclusive. Never be cynical."
         )
-        assert out["status"] == "ok_heuristic"
-        assert "be warm" in out["summary"].lower()
-        # Structured fields are empty (we declined to invent without an LLM)
+        assert out["status"] == "no_provider"
+        assert out["summary"] == ""
         assert out["tone_dos"] == []
         assert out["voice_attributes"] == []
 
@@ -201,14 +201,14 @@ class TestLlmInterpretation:
         out = guidelines.interpret_guidelines("")
         assert out["status"] == "empty"
 
-    def test_llm_failure_falls_back(self, monkeypatch):
+    def test_llm_failure_returns_provider_error(self, monkeypatch):
         def boom(*a, **kw):
             raise RuntimeError("LLM down")
         monkeypatch.setattr("mediahub.media_ai.llm.is_available", lambda: True)
         monkeypatch.setattr("mediahub.media_ai.llm.generate_json", boom)
         out = guidelines.interpret_guidelines("Be warm. Be inclusive.")
-        assert out["status"] == "ok_heuristic"
-        assert "be warm" in out["summary"].lower()
+        assert out["status"] == "provider_error"
+        assert out["summary"] == ""
 
 
 # ---------------------------------------------------------------------------
