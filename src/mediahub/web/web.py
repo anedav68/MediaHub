@@ -2532,6 +2532,10 @@ a.card:hover, .card[data-interactive]:hover {
   }
   /* Hide the backend pill on narrow widths — it's available on /status */
   #backend-pill { display: none; }
+  /* Active-org chip shrinks on narrow widths so the brand chip + nav
+     items both fit on one line under iPad / small-laptop viewports. */
+  #active-org-chip { font-size: 11px; padding: 4px 8px; }
+  #active-org-chip span:last-child { max-width: 92px; }
 }
 /* Wider 720px treatment: smaller spacing, table tweaks, stat squeeze */
 @media (max-width: 720px) {
@@ -10304,7 +10308,12 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 if isinstance(e, ProviderNotConfigured):
                     return _recovery_page(
                         "AI features unavailable",
-                        f"{e}. Contact your deployment operator to enable Gemini or Anthropic on this instance.",
+                        (
+                            "MediaHub needs a Gemini or Anthropic API key "
+                            "to generate captions. Ask your deployment "
+                            "operator to set GEMINI_API_KEY or "
+                            "ANTHROPIC_API_KEY, then try again."
+                        ),
                         primary_cta=("Back to Create", url_for("make_page")),
                         secondary_cta=("System status", url_for("status_page")),
                         code=503,
@@ -10312,7 +10321,11 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 if isinstance(e, ProviderError):
                     return _recovery_page(
                         "AI provider error",
-                        f"{e}. Rate limits usually clear within seconds — try the same form again, or fall back to a simpler input.",
+                        (
+                            f"The AI provider couldn't finish your draft: "
+                            f"{str(e).rstrip('.')}. Rate limits usually clear "
+                            "within seconds — try again, or simplify the input."
+                        ),
                         primary_cta=("Try again", url_for(route_endpoint)),
                         secondary_cta=("Back to Create", url_for("make_page")),
                         code=502,

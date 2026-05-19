@@ -87,6 +87,55 @@ _URL_RE = re.compile(r"https?://\S+")
 _MD_HEADING_RE = re.compile(r"^\s*#{1,6}\s+", re.MULTILINE)
 _WHITESPACE_RE = re.compile(r"\s+")
 _BLOB_RE = re.compile(r"blob:[a-z]+://\S+", re.IGNORECASE)
+_HEX_INLINE_RE = re.compile(r"#[0-9a-fA-F]{6}\b")
+
+
+def _scan_hex_candidates(raw_text: str, limit: int = 16) -> list[str]:
+    """Pull every distinct #rrggbb colour mentioned in the raw text.
+
+    Used as a heuristic seed for the palette resolver: even when the
+    extractor LLM isn't available (or gets cute and invents a colour),
+    every hex mentioned on the page is a real candidate. The unified
+    palette resolver in ``brand/palette.py`` is responsible for ranking
+    them; this just makes sure none are silently dropped before that
+    pass runs.
+
+    Drops pure white, pure black, and near-grey (saturation ≈ 0) since
+    those are almost never the brand primary on a sports site — they
+    flood the candidate list and squeeze the actual palette out of the
+    LLM's top picks.
+    """
+    if not raw_text:
+        return []
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _HEX_INLINE_RE.findall(raw_text):
+        v = m.lower()
+        if v in seen:
+            continue
+        seen.add(v)
+        try:
+            r = int(v[1:3], 16)
+            g = int(v[3:5], 16)
+            b = int(v[5:7], 16)
+        except ValueError:
+            continue
+        # Skip pure white / pure black — both are universal UI tokens,
+        # not brand identifiers. Skip near-grey too (all three channels
+        # within 8 of each other AND no channel >= 240 / <= 15) because
+        # the page chrome dumps hundreds of grey CSS vars that crowd out
+        # the actual brand picks.
+        if v in ("#ffffff", "#000000"):
+            continue
+        if max(r, g, b) - min(r, g, b) < 8:
+            # Allow if extreme (very near black/white can still be
+            # decorative, but mid-greys are noise).
+            if max(r, g, b) < 240 and min(r, g, b) > 15:
+                continue
+        out.append(v)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _clean_excerpt(raw_text: str, *, cap: int = 280) -> str:
@@ -148,12 +197,17 @@ def _heuristic(raw_text: str) -> dict:
         seen.add(tl)
         uniq_tags.append(t)
     excerpt = _clean_excerpt(text)
+    # Without an LLM we can't reason about which hex is the brand
+    # primary, but we can still surface every distinct candidate so
+    # the unified palette resolver has something to work with. Pure
+    # white / pure black / near-grey are filtered out in
+    # ``_scan_hex_candidates``.
     return {
         "voice_summary": excerpt,
         "keywords": [],
         "phrases_to_use": [],
         "phrases_to_avoid": [],
-        "palette_mentions": [],
+        "palette_mentions": _scan_hex_candidates(text),
         "typography_hint": "",
         "sponsor_mentions": [],
         "hashtag_patterns": uniq_tags[:8],
@@ -246,6 +300,15 @@ def extract_brand_dna(
         log.debug("content-extractor LLM call failed: %s", e)
         return _heuristic(raw_text)
     out = _normalise(raw)
+    # If the LLM didn't surface any palette_mentions, supplement with
+    # the regex scan over the raw body so the unified palette
+    # resolver has candidate colours to choose from. Without this the
+    # resolver gets zero signals from the website and the user lands
+    # on the setup page with an empty palette preview.
+    if not out.get("palette_mentions"):
+        scanned = _scan_hex_candidates(raw_text)
+        if scanned:
+            out["palette_mentions"] = scanned
     # Empty LLM result → fall back to heuristic so the user's data
     # isn't silently dropped.
     has_signal = bool(out["voice_summary"] or out["keywords"]
