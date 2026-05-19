@@ -1960,6 +1960,11 @@ p:last-child { margin-bottom: 0; }
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   background: var(--lane); color: var(--lane-ink);
   border: 0; padding: 11px 22px;
+  /* Touch-target minimum so .btn (and every inline-styled variant on
+     /pack, /sponsor-post, /upload, /make) clears the 44px tap-area
+     guideline on every viewport, even when an inline `padding:6px`
+     override tries to shrink it. */
+  min-height: 44px;
   font-family: var(--font-body);
   font-size: 13px; font-weight: 700;
   border-radius: var(--radius-sm); cursor: pointer;
@@ -2113,6 +2118,8 @@ input[type=text], input[type=file], input[type=email], input[type=password], inp
   background: rgba(245,242,232,0.025); color: var(--ink);
   border: 1px solid var(--chrome);
   border-radius: var(--radius-sm); padding: 11px 14px;
+  /* 44px touch-target floor for every text/file/email/number field. */
+  min-height: 44px;
   font-size: 14px; font-family: var(--font-body); width: 100%;
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
   appearance: none;
@@ -2126,7 +2133,11 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus, inp
   background: rgba(245,242,232,0.04);
 }
 input[type=checkbox], input[type=radio] {
-  width: auto; margin-right: 8px; accent-color: var(--lane);
+  /* Bump native checkbox/radio from the browser's ~13px default so it
+     reads as a real control and sits inside a 44px tap area when
+     paired with the label rule below. */
+  width: 18px; height: 18px;
+  margin-right: 8px; accent-color: var(--lane);
 }
 textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
 select { cursor: pointer; }
@@ -2152,8 +2163,18 @@ input[type=file]::file-selector-button:hover {
   background: var(--lane-h);
 }
 input[type=color] {
-  height: 36px; padding: 2px; cursor: pointer;
+  /* Native colour wells need 44px so the swatch is comfortable to tap
+     on phone / tablet. Width stays compact so the hex input next to it
+     dominates the row. */
+  height: 44px; min-width: 44px; padding: 2px; cursor: pointer;
   background: rgba(245,242,232,0.04); border-color: var(--chrome);
+}
+/* Pair the bumped checkbox with a 44px-tall click target on the wrapping
+   label. Covers /organisation/setup's `palette_use_fourth` row plus the
+   mh-choice tone / platform pickers. */
+label.mh-choice, label:has(> input[type=checkbox]), label:has(> input[type=radio]) {
+  min-height: 44px;
+  padding-top: 6px; padding-bottom: 6px;
 }
 
 /* STATS — pit-wall scoreboard. Display-font numerals, mono labels, side-rail accent */
@@ -2415,6 +2436,11 @@ a.card:hover, .card[data-interactive]:hover {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 6px 12px;
+  /* Card action utility buttons (Copy caption, Copy reasoning, etc.)
+     stay visually compact on desktop but must clear the 44px touch
+     target on phone / tablet. The mobile bump happens in the
+     `@media (max-width: 860px)` block further down. */
+  min-height: 32px;
   border-radius: 2px;
   cursor: pointer;
   transition: all var(--transition);
@@ -2543,9 +2569,52 @@ a.card:hover, .card[data-interactive]:hover {
   /* Hide the backend pill on narrow widths — it's available on /status */
   #backend-pill { display: none; }
   /* Active-org chip shrinks on narrow widths so the brand chip + nav
-     items both fit on one line under iPad / small-laptop viewports. */
-  #active-org-chip { font-size: 11px; padding: 4px 8px; }
-  #active-org-chip span:last-child { max-width: 92px; }
+     items both fit on one line under iPad / small-laptop viewports.
+     `position: sticky; right: 8px` pins it to the right edge of the
+     scrollable nav viewport — at 1024 px the chip used to render at
+     `right=1052` (off-screen by 28 px); sticky keeps it glued to the
+     visible nav edge so the active organisation is always readable
+     regardless of horizontal scroll position. The opaque background
+     stops other nav items showing through as they scroll under.
+     `!important` is required because the chip's inline `style=` block
+     sets font-size / padding / background directly, and PR #106's
+     responsive shrink had no effect without it. */
+  #active-org-chip {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    position: sticky; right: 8px;
+    background: var(--bg, #0A0B11) !important;
+    z-index: 2;
+    /* Subtle shadow on the left so the chip reads as foreground when
+       nav items scroll underneath. */
+    box-shadow: -8px 0 12px -8px rgba(10,11,17,0.85);
+  }
+  #active-org-chip span:last-child { max-width: 92px !important; }
+}
+/* Phone / tablet (≤860px): every interactive control needs the full
+   44px tap area. Card-action utility buttons (Copy caption, etc.) and
+   inline-styled .btn variants on /pack get their compact desktop sizing
+   overridden here so the touch flow on /pack and /sponsor-post is
+   usable on iPhone / iPad. */
+@media (max-width: 860px) {
+  .mh-card-actions button,
+  .mh-card-actions .btn,
+  .mh-card-actions a.btn {
+    min-height: 44px;
+    padding-top: 10px; padding-bottom: 10px;
+  }
+  /* The reel / newsletter strip on /pack uses inline `padding:6px` on
+     download / preview buttons. Force the touch height there too. */
+  .card .btn { min-height: 44px; }
+}
+/* Palette pickers on /organisation/setup: at 1024 px the 3-col grid
+   leaves enough room for swatch + 7-char hex; under 540 px the hex
+   input gets squeezed to ~30 px wide and #A30D2D is clipped. Drop to a
+   single column so each picker has the full row width. */
+@media (max-width: 540px) {
+  .mh-palette-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 /* Wider 720px treatment: smaller spacing, table tweaks, stat squeeze */
 @media (max-width: 720px) {
@@ -12530,16 +12599,17 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                     f'<span style="display:flex;gap:6px;align-items:center">'
                     f'<input type="color" name="palette_{slot}" '
                     f'id="palette-{slot}-color" value="{_h(default_hex)}" {attr} '
-                    f'style="width:42px;height:34px;padding:0;'
+                    f'style="width:52px;height:44px;padding:0;'
                     f'border:1px solid var(--border);border-radius:4px;'
-                    f'background:var(--panel);cursor:pointer"/>'
+                    f'background:var(--panel);cursor:pointer;flex-shrink:0"/>'
                     f'<input type="text" name="palette_{slot}_hex" '
                     f'id="palette-{slot}-hex" value="{_h(default_hex)}" '
                     f'pattern="^#[0-9a-fA-F]{{6}}$" maxlength="7" '
                     f'data-palette-mirror="palette_{slot}" {attr} '
-                    f'style="flex:1;padding:6px 8px;border:1px solid var(--border);'
+                    f'style="flex:1;min-width:0;padding:11px 10px;min-height:44px;'
+                    f'border:1px solid var(--border);'
                     f'border-radius:4px;background:var(--bg);color:var(--ink);'
-                    f'font-family:var(--font-mono,monospace);font-size:12px"/>'
+                    f'font-family:var(--font-mono,monospace);font-size:13px"/>'
                     f'</span></label>'
                 )
 
@@ -12571,7 +12641,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     Use the pickers below only if it got it wrong &mdash; otherwise leave them
     as-is and the AI's values keep flowing through to every generated card.
   </p>
-  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+  <div class="mh-palette-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
               margin-bottom:10px">{pickers_html}</div>
   <label style="display:inline-flex;align-items:center;gap:8px;font-size:12px;
                 color:var(--ink);cursor:pointer;margin-bottom:8px">
@@ -12582,7 +12652,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   <div id="palette-fourth-row" style="margin-bottom:10px;{fourth_visible_style}">
     {fourth_picker_html}
   </div>
-  <button type="submit" class="btn" style="font-size:12px;padding:8px 14px">
+  <button type="submit" class="btn" style="font-size:13px;padding:11px 16px">
     Save brand colours
   </button>
   <span class="muted" style="margin-left:10px;font-size:11.5px">
