@@ -58,6 +58,9 @@ src/mediahub/club_profiles/
 src/mediahub/motion_cache/
 src/mediahub/runs_v4/
 src/mediahub/turn_into_packs/
+# Phase 1.6 Stage G/J — theme_store falls back to writing here when
+# DATA_DIR isn't set. Real deployments + tests always set DATA_DIR.
+src/themes/
 
 # Node (legacy frontend tooling)
 node_modules/
