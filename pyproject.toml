@@ -78,6 +78,9 @@ include = ["mediahub*"]
 [tool.setuptools.package-data]
 "mediahub.graphic_renderer" = ["layouts/*.html", "layouts/*.css"]
 "mediahub" = ["**/*.json"]
+# Phase 1.6 Stage C — Adaptive Theming Engine static CSS files. The
+# loader in mediahub.web.theme_tokens reads these at import time.
+"mediahub.web" = ["static/theme/*.css"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
