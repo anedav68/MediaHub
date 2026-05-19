@@ -9642,12 +9642,69 @@ Relay team broke club record"></textarea>
                 '</div>'
             )
 
+        # Brand-flow strip: small visible indicator that the active
+        # organisation's brand IS being applied to whatever the user
+        # creates here. Without it, the user has no quick signal that
+        # picking one of the tiles below will honour their colours —
+        # which was the core "doesn't carry through" complaint.
+        #
+        # Note on building the HTML below: ``_h`` is ``markupsafe.escape``,
+        # which returns ``Markup``. Concatenating ``Markup + str`` causes
+        # the trailing str to be re-escaped — so we build the whole
+        # block as a single f-string with escaped values pre-strified.
+        brand_strip_html = ""
+        prof_for_strip = _active_profile()
+        if prof_for_strip is not None:
+            try:
+                from mediahub.brand.palette import effective_palette as _eff_pal
+                _bs_pal = _eff_pal(
+                    manual=prof_for_strip.brand_palette_manual or {},
+                    extracted=prof_for_strip.brand_palette_extracted or {},
+                )
+            except Exception:
+                _bs_pal = {}
+            _bs_swatches_parts: list[str] = []
+            for slot in ("primary", "secondary", "accent", "fourth"):
+                hex_v = _bs_pal.get(slot)
+                if not (isinstance(hex_v, str) and hex_v.startswith("#")):
+                    continue
+                _slot_esc = str(_h(slot))
+                _hex_esc = str(_h(hex_v))
+                _bs_swatches_parts.append(
+                    f'<span aria-hidden="true" title="{_slot_esc} {_hex_esc}" '
+                    f'style="display:inline-block;width:14px;height:14px;'
+                    f'border-radius:3px;background:{_hex_esc};'
+                    f'border:1px solid rgba(245,242,232,0.20);'
+                    f'margin-right:6px;vertical-align:middle"></span>'
+                )
+            if _bs_swatches_parts:
+                _setup_url = str(_h(url_for("organisation_setup")))
+                _name_esc = str(_h(prof_for_strip.display_name or ""))
+                _bs_swatches = "".join(_bs_swatches_parts)
+                brand_strip_html = (
+                    f'<div style="margin-bottom:var(--sp-5);padding:10px 14px;'
+                    f'border:1px solid var(--border);border-radius:8px;'
+                    f'background:var(--surface);display:flex;align-items:center;'
+                    f'gap:12px;flex-wrap:wrap;font-size:13px;color:var(--ink-dim)">'
+                    f'<span style="font-family:var(--font-mono,monospace);'
+                    f'font-size:10.5px;text-transform:uppercase;letter-spacing:0.12em;'
+                    f'color:var(--ink-muted)">Brand in use</span>'
+                    f'{_bs_swatches}'
+                    f'<span style="color:var(--ink);font-weight:600">{_name_esc}</span>'
+                    f'<a href="{_setup_url}" '
+                    f'style="margin-left:auto;font-size:12px;'
+                    f'color:var(--ink-muted);text-decoration:underline">'
+                    f'Review brand setup &rarr;</a>'
+                    f'</div>'
+                )
+
         body = (
             '<section class="mh-hero" data-lane="03" style="padding-top:var(--sp-9);padding-bottom:var(--sp-7);margin-bottom:var(--sp-6)">'
             '<span class="mh-hero-eyebrow">Create</span>'
             '<h1>What do you want<br>to <em class="editorial">make</em>?</h1>'
             '<p class="lede">Upload a file, paste a brief, or describe a moment in your own words. Pick a starting point and the engine takes it from there.</p>'
             '</section>'
+            f'{brand_strip_html}'
             f'{tiles_section}'
         )
         return _layout("Create", body, active="create")
