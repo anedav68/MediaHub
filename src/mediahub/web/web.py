@@ -933,6 +933,49 @@ def _run_state(run_id: str) -> str:
     return "done"
 
 
+_WF_STATUS_LABEL = {
+    "queue":    "In queue",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "posted":   "Posted",
+    "edited":   "Edited",
+}
+
+
+def _render_wf_actions(run_id: str, card_id: str, wf_status: str) -> str:
+    """Render the per-card Approve / Reject / Re-queue action strip.
+
+    Round-8: shared between /pack/<id>/grouped (where the audit found
+    no approval primitive at all) and any other page that wants the
+    same workflow control surface. The "Status" strap shows the
+    current state and is updated optimistically by the global
+    `[data-mh-wf]` click handler in _layout.
+    """
+    status_key = (wf_status or "queue").lower()
+    label = _WF_STATUS_LABEL.get(status_key, status_key.replace("_", " ").capitalize() or "In queue")
+    # Visually de-emphasise the action that matches the current state
+    # so the user sees "I'm already in this state".
+    def _disabled_attrs(target: str) -> str:
+        return ' aria-pressed="true" style="opacity:0.55;cursor:default"' if status_key == target else ''
+    return (
+        f'<span class="strap" data-mh-wf-target="{_h(card_id)}" '
+        f'data-mh-wf-state="{_h(status_key)}" style="padding:0">'
+        f'<span data-mh-wf-label>{_h(label)}</span></span>'
+        f'<button class="btn" type="button" style="font-size:12px;padding:4px 10px;background:var(--good);color:var(--lane-ink);border:0"'
+        f' data-mh-wf="approved" data-mh-run-id="{_h(run_id)}" data-mh-card-id="{_h(card_id)}"'
+        f'{_disabled_attrs("approved")}'
+        f' title="Mark this card approved — it lands in the approved set the content pack exports.">Approve</button>'
+        f'<button class="btn danger" type="button" style="font-size:12px;padding:4px 10px"'
+        f' data-mh-wf="rejected" data-mh-run-id="{_h(run_id)}" data-mh-card-id="{_h(card_id)}"'
+        f'{_disabled_attrs("rejected")}'
+        f' title="Reject this card so it\'s hidden from the approved content pack.">Reject</button>'
+        f'<button class="btn secondary" type="button" style="font-size:12px;padding:4px 10px"'
+        f' data-mh-wf="queue" data-mh-run-id="{_h(run_id)}" data-mh-card-id="{_h(card_id)}"'
+        f'{_disabled_attrs("queue")}'
+        f' title="Send back to the queue — neither approved nor rejected.">Re-queue</button>'
+    )
+
+
 def _in_progress_page(run_id: str, return_url_endpoint: str = "review") -> str:
     """Return a friendly HTML page that auto-refreshes every 4 seconds."""
     try:
@@ -995,7 +1038,7 @@ def _schedule_modal_html() -> str:
       <button class="btn secondary" style="font-size:14px;padding:4px 10px"
               onclick="mhScheduleClose()" aria-label="Close">&times;</button>
     </div>
-    <div id="mh-sched-error" style="display:none;color:#ff8a99;margin-bottom:10px"></div>
+    <div id="mh-sched-error" style="display:none;color:var(--mh-prim-error-600);margin-bottom:10px"></div>
     <div id="mh-sched-channels-wrap" style="margin-bottom:12px">
       <div style="font-weight:600;margin-bottom:6px">Channels</div>
       <div id="mh-sched-channels" style="display:flex;flex-direction:column;gap:6px;
@@ -1182,6 +1225,85 @@ def _schedule_modal_js() -> str:
     if (modal) modal.style.display = 'none';
   };
 
+  // Global workflow-status helper used by per-card Approve / Reject /
+  // Re-queue buttons across /review AND /pack/<id>/grouped. Posts to the
+  // shared /api/workflow/<run>/<card> endpoint. Returns a Promise so the
+  // caller can chain UI updates; surfaces failures via MH.toast.
+  window.mhWorkflowSet = function(runId, cardId, status) {
+    if (!runId || !cardId || !status) return Promise.reject(new Error('mhWorkflowSet: missing arg'));
+    var url = (API_BASE || '') + '/api/workflow/' + encodeURIComponent(runId) +
+              '/' + encodeURIComponent(cardId);
+    return fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'set_status', status: status})
+    }).then(function(r){
+      return r.json().then(function(j){ return {ok: r.ok, body: j}; });
+    }).then(function(o){
+      if (!o.ok || !o.body || o.body.ok === false) {
+        var msg = (o.body && (o.body.error || o.body.message)) || ('HTTP ' + (o.ok ? 200 : 'err'));
+        if (window.MH && MH.toast) MH.toast('Workflow update failed: ' + msg, 'error', 4000);
+        throw new Error(msg);
+      }
+      return o.body;
+    }).catch(function(e){
+      if (window.MH && MH.toast) MH.toast('Workflow update failed: ' + (e && e.message || e), 'error', 4000);
+      throw e;
+    });
+  };
+
+  // Delegated click handler for any element marked with
+  // data-mh-wf="approved|rejected|queue|posted". Updates pill on the
+  // same card group (matching data-mh-wf-target="<cardId>") and
+  // optimistically swaps in the new state before the server confirms.
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-mh-wf]');
+    if (!btn) return;
+    var status = btn.getAttribute('data-mh-wf');
+    var runId  = btn.getAttribute('data-mh-run-id');
+    var cardId = btn.getAttribute('data-mh-card-id');
+    if (!runId || !cardId || !status) return;
+    e.preventDefault();
+    // Optimistic UI: tint matching pills on the same card AND swap the
+    // strap label so the user sees the new state immediately.
+    var labelMap = {
+      'queue':    'In queue',
+      'approved': 'Approved',
+      'rejected': 'Rejected',
+      'posted':   'Posted',
+      'edited':   'Edited'
+    };
+    var groupSel = '[data-mh-wf-target="' + (window.CSS && CSS.escape ? CSS.escape(cardId) : cardId) + '"]';
+    document.querySelectorAll(groupSel).forEach(function(el){
+      el.dataset.mhWfState = status;
+      var labelEl = el.querySelector('[data-mh-wf-label]');
+      if (labelEl) labelEl.textContent = labelMap[status] || status;
+    });
+    // De-emphasise the new "current" button across the card; restore the others.
+    var rowSel = '[data-mh-card-id="' + (window.CSS && CSS.escape ? CSS.escape(cardId) : cardId) + '"]';
+    document.querySelectorAll(rowSel + '[data-mh-wf]').forEach(function(b){
+      if (b.getAttribute('data-mh-wf') === status) {
+        b.setAttribute('aria-pressed', 'true');
+        b.style.opacity = '0.55';
+        b.style.cursor = 'default';
+      } else {
+        b.removeAttribute('aria-pressed');
+        b.style.opacity = '';
+        b.style.cursor = '';
+      }
+    });
+    var origLabel = btn.textContent;
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+    window.mhWorkflowSet(runId, cardId, status).then(function(){
+      btn.disabled = false; btn.style.opacity = '';
+      if (window.MH && MH.toast) MH.toast('Marked as ' + status, 'success', 1800);
+    }).catch(function(){
+      btn.disabled = false; btn.style.opacity = '';
+      btn.textContent = origLabel;
+    });
+  });
+
   window.mhScheduleSend = function() {
     var runId  = document.getElementById('mh-sched-run-id').value;
     var cardId = document.getElementById('mh-sched-card-id').value;
@@ -1359,71 +1481,79 @@ BASE_CSS = """
    costing ~500-700ms of FCP per the round-6 performance audit. */
 
 :root {
+  /* PHASE 1.6 STAGE A — every colour token below now resolves through the
+     three-tier vocabulary defined in src/mediahub/web/theme_tokens.py
+     (prepended ahead of BASE_CSS). Pixel-identical to the previous flat
+     palette; the indirection is what lets Stage E re-skin the whole site
+     from a single brand seed without touching component CSS. */
+
   /* Surfaces — pit-wall black to deep ink. Near-monochrome, no purple. */
-  --bg:        #0A0B11;     /* pit-wall black (never pure #000) */
-  --bg-deep:   #06070C;
-  --surface:   #14171F;     /* card / panel base */
-  --surface-2: #1A1E28;     /* raised */
-  --surface-3: #232838;     /* hover */
-  --hairline:  rgba(245,242,232,0.06);  /* 0.5px-style separators on dark */
-  --rule:      rgba(245,242,232,0.10);  /* 1px section rules */
-  --chrome:    rgba(245,242,232,0.14);  /* form borders, button outlines */
+  --bg:        var(--mh-surface);             /* #0A0B11 — pit-wall black */
+  --bg-deep:   var(--mh-surface-deep);        /* #06070C */
+  --surface:   var(--mh-surface-variant);     /* #14171F — card / panel base */
+  --surface-2: var(--mh-surface-container);   /* #1A1E28 — raised */
+  --surface-3: var(--mh-surface-container-high); /* #232838 — hover */
+  --hairline:  var(--mh-outline-variant);     /* rgba(245,242,232,0.06) */
+  --rule:      var(--mh-outline-rule);        /* rgba(245,242,232,0.10) */
+  --chrome:    var(--mh-outline);             /* rgba(245,242,232,0.14) */
 
   /* Ink — paper-cream on dark for editorial warmth (not white-on-blue).
      --ink-muted raised from #7A7869 (4.41:1) to #9A988A (5.69:1 on bg)
      to clear WCAG AA for normal body text. The smallest text in the app
      (10.5px mono labels) lives at this token and was just below spec. */
-  --ink:       #F5F2E8;     /* primary text, paper-cream */
-  --ink-dim:   #B6B2A6;     /* 9.27:1 — safe on every surface */
-  --ink-muted: #9A988A;     /* 5.69:1 — passes AA */
-  --ink-faint: #62604F;     /* 3.14:1 — large/decorative only; raised from #4A4940 */
+  --ink:       var(--mh-on-surface);          /* #F5F2E8 — primary text */
+  --ink-dim:   var(--mh-on-surface-variant);  /* #B6B2A6 — 9.27:1 safe */
+  --ink-muted: var(--mh-on-surface-muted);    /* #9A988A — 5.69:1 AA */
+  --ink-faint: var(--mh-on-surface-faint);    /* #62604F — large/decorative */
 
   /* SIGNATURE ACCENT — lane-marker yellow.
      The single chrome colour. Every CTA, focus ring, link, live state.
      No gradient, no fade — flat saturated hi-vis. */
-  --lane:      #D4FF3A;
-  --lane-h:    #E6FF6B;     /* hover lift */
-  --lane-deep: #A8CC2E;     /* pressed / underline */
-  --lane-ink:  #0A0B11;     /* text on lane bg = pit-wall black */
+  --lane:      var(--mh-primary);             /* #D4FF3A */
+  --lane-h:    var(--mh-primary-hover);       /* #E6FF6B — hover lift */
+  --lane-deep: var(--mh-primary-pressed);     /* #A8CC2E — pressed/underline */
+  --lane-ink:  var(--mh-on-primary);          /* #0A0B11 — text on lane bg */
   --lane-glow: rgba(212,255,58,0.35);
 
   /* SIGNATURE ACCENT 2 — medal gold.
      Reserved EXCLUSIVELY for athlete achievements (PB, medal, first-time,
      ranked, standout). NEVER chrome. NEVER UI. Earns its weight by scarcity. */
-  --medal:        #F4D58D;
-  --medal-h:      #FFE5A1;
-  --medal-deep:   #C9A04B;
-  --medal-ink:    #2B1F00;
+  --medal:        var(--mh-tertiary);                  /* #F4D58D */
+  --medal-h:      var(--mh-prim-tertiary-200);         /* #FFE5A1 */
+  --medal-deep:   var(--mh-prim-tertiary-600);         /* #C9A04B */
+  --medal-ink:    var(--mh-on-tertiary);               /* #2B1F00 */
   --medal-glow:   rgba(244,213,141,0.30);
-  --grad-medal:   linear-gradient(135deg, #FFE5A1 0%, #C9A04B 100%);
+  --grad-medal:   linear-gradient(135deg, var(--mh-prim-tertiary-200) 0%, var(--mh-prim-tertiary-600) 100%);
 
   /* Tertiary — timing-screen blue. Rare. Used for INFO / NEUTRAL state only. */
-  --info:      #4DA3FF;
+  --info:      var(--mh-info);                /* #4DA3FF */
   --info-bg:   rgba(77,163,255,0.10);
 
   /* Semantic — desaturated, readable, no neon */
-  --good:      #5EE39A;
+  --good:      var(--mh-success);             /* #5EE39A */
   --good-bg:   rgba(94,227,154,0.10);
-  --warn:      #FFB454;
+  --warn:      var(--mh-warning);             /* #FFB454 */
   --warn-bg:   rgba(255,180,84,0.10);
-  --bad:       #FF6B6B;
+  --bad:       var(--mh-error);               /* #FF6B6B */
   --bad-bg:    rgba(255,107,107,0.10);
 
   /* Legacy aliases so old class names keep working through the cascade.
-     The new code should reference --lane and --medal directly. */
-  --accent:    var(--lane);
-  --accent-h:  var(--lane-h);
-  --accent2:   var(--lane);
-  --accent2-h: var(--lane-h);
-  --accent3:   var(--medal);
-  --gold:      var(--medal);
-  --gold-h:    var(--medal-h);
-  --panel:     var(--surface);
-  --panel2:    var(--surface-2);
-  --panel-h:   var(--surface-3);
-  --border:    var(--hairline);
-  --border-h:  var(--chrome);
-  --bg-soft:   var(--surface);
+     The new code should reference --mh-* (tier-2) directly. The middle
+     layer (--lane, --medal, …) is preserved for backward compatibility
+     and re-resolves through the tier-2 tokens above. */
+  --accent:    var(--mh-primary);
+  --accent-h:  var(--mh-primary-hover);
+  --accent2:   var(--mh-primary);
+  --accent2-h: var(--mh-primary-hover);
+  --accent3:   var(--mh-tertiary);
+  --gold:      var(--mh-tertiary);
+  --gold-h:    var(--mh-prim-tertiary-200);
+  --panel:     var(--mh-surface-variant);
+  --panel2:    var(--mh-surface-container);
+  --panel-h:   var(--mh-surface-container-high);
+  --border:    var(--mh-outline-variant);
+  --border-h:  var(--mh-outline);
+  --bg-soft:   var(--mh-surface-variant);
 
   /* Typography stacks — every face here is intentional */
   --font-display: 'Big Shoulders Display', 'Impact', 'Oswald', sans-serif;
@@ -1443,10 +1573,11 @@ BASE_CSS = """
   --radius-lg: 10px;
   --radius-pill: 999px;
 
-  /* Shadows — depth-by-elevation, not depth-by-decoration */
-  --shadow-1: 0 1px 0 rgba(245,242,232,0.04);
-  --shadow-2: 0 1px 0 rgba(245,242,232,0.04), 0 14px 32px rgba(0,0,0,0.45);
-  --shadow-3: 0 1px 0 rgba(245,242,232,0.06), 0 24px 60px rgba(0,0,0,0.55);
+  /* Shadows — depth-by-elevation, not depth-by-decoration. Re-pointed
+     at the tier-2 --mh-elevation-{1,2,3} tokens defined in theme_tokens. */
+  --shadow-1: var(--mh-elevation-1);
+  --shadow-2: var(--mh-elevation-2);
+  --shadow-3: var(--mh-elevation-3);
   --shadow-lane:  0 0 0 1px var(--lane-glow), 0 8px 26px var(--lane-glow);
   --shadow-medal: 0 0 0 1px var(--medal-glow), 0 8px 26px var(--medal-glow);
   /* legacy */
@@ -3090,13 +3221,23 @@ select:focus-visible {
 }
 """
 
-# Append the responsive guardrails layer. Imported here (after BASE_CSS is
-# fully defined) and concatenated so guardrails always sit last in the cascade,
-# never overriding existing MediaHub rules but providing safe fallbacks,
-# user-preference handling, and opt-in modern utilities.
-# See src/mediahub/web/responsive_guardrails.py for the full rationale.
+# Prepend the Adaptive Theming Engine's token foundation (Phase 1.6 Stage A)
+# so BASE_CSS's :root block can reference the tier-2 semantic role tokens.
+# See src/mediahub/web/theme_tokens.py for the three-tier vocabulary, the
+# @property registrations, and the academic citations.
+#
+# Append the responsive guardrails layer last so guardrails always sit
+# final in the cascade — never overriding existing MediaHub rules but
+# providing safe fallbacks, user-preference handling, and opt-in modern
+# utilities. See src/mediahub/web/responsive_guardrails.py for the full
+# rationale.
+#
+# Final cascade order:
+#   THEME_TOKENS_CSS  →  BASE_CSS (legacy aliases re-point at --mh-*)  →
+#   RESPONSIVE_GUARDRAILS_CSS
+from mediahub.web.theme_tokens import THEME_TOKENS_CSS as _MH_TT_CSS  # noqa: E402
 from mediahub.web.responsive_guardrails import RESPONSIVE_GUARDRAILS_CSS as _MH_RG_CSS  # noqa: E402
-BASE_CSS = BASE_CSS + _MH_RG_CSS
+BASE_CSS = _MH_TT_CSS + BASE_CSS + _MH_RG_CSS
 
 
 def _render_markdown(text: str) -> str:
@@ -3243,7 +3384,6 @@ def _layout(title: str, body: str, active: str = "home") -> str:
   </a>
   <nav>
     <a href="{{ url_for('home') }}" class="{{ 'active' if active=='home' else '' }}">Home</a>
-    <a href="{{ url_for('add_input_page') }}" class="{{ 'active' if active=='add_input' else '' }}">Add Input</a>
     <a href="{{ url_for('make_page') }}" class="{{ 'active' if active=='create' else '' }}">Create</a>
     <a href="{{ url_for('organisation_page') }}" class="{{ 'active' if active=='organisation' else '' }}">Organisation</a>
     <a href="{{ url_for('media_library_page') }}" class="{{ 'active' if active=='media' else '' }}">Media library</a>
@@ -3577,6 +3717,39 @@ def _recovery_page(
     return _layout(headline, "".join(sects)), code
 
 
+# Module-level JS for the palette confirmation form (rendered inside an
+# f-string). Lifted out so we don't have to double every `{` for f-string
+# escaping every time the form is rendered.
+_PALETTE_PICKER_JS = """
+(function() {
+  var checkbox = document.getElementById('palette-use-fourth');
+  var row = document.getElementById('palette-fourth-row');
+  var colour = document.getElementById('palette-fourth-color');
+  var hex = document.getElementById('palette-fourth-hex');
+  if (!checkbox || !row || !colour || !hex) return;
+  function sync() {
+    row.style.display = checkbox.checked ? '' : 'none';
+    colour.disabled = !checkbox.checked;
+    hex.disabled = !checkbox.checked;
+  }
+  checkbox.addEventListener('change', sync);
+  sync();
+  document.querySelectorAll('[data-palette-mirror]').forEach(function(text) {
+    var name = text.getAttribute('data-palette-mirror');
+    var colourInput = document.querySelector('input[type=color][name="' + name + '"]');
+    if (!colourInput) return;
+    text.addEventListener('input', function() {
+      var v = text.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) colourInput.value = v.toLowerCase();
+    });
+    colourInput.addEventListener('input', function() {
+      text.value = colourInput.value;
+    });
+  });
+})();
+"""
+
+
 # ---------------------------------------------------------------------
 # Flask app
 # ---------------------------------------------------------------------
@@ -3764,7 +3937,7 @@ def create_app() -> Flask:
         Two-button hero — "Create organisation" + "Sign in to existing" —
         plus the established four-step explainer. When an org is already
         pinned, the hero swaps in a "Continue as <name>" CTA pointing at
-        Add Input, with the sign-in / create paths still accessible below
+        Create, with the sign-in / create paths still accessible below
         so the user can switch tenants without rummaging through nav.
         """
         prof = _active_profile()
@@ -3797,7 +3970,7 @@ def create_app() -> Flask:
                 'leaves this deployment without your approval.'
             )
             hero_actions = (
-                f'<a class="mh-cta-primary" href="{url_for("add_input_page")}">'
+                f'<a class="mh-cta-primary" href="{url_for("make_page")}">'
                 'Create new content &rarr;</a>'
                 f'<a class="mh-cta-secondary" href="{url_for("sign_in_page")}">'
                 'Switch organisation</a>'
@@ -3955,7 +4128,7 @@ def create_app() -> Flask:
                 'one-click link back into the review.'
                 '</p>'
                 '<div class="mh-hero-actions">'
-                f'<a class="mh-cta-primary" href="{url_for("add_input_page")}">Create your first piece &rarr;</a>'
+                f'<a class="mh-cta-primary" href="{url_for("make_page")}">Create your first piece &rarr;</a>'
                 '</div>'
                 '</section>'
             )
@@ -4009,10 +4182,10 @@ def create_app() -> Flask:
                 rows_html += (
                     '<tr class="run-error-row">'
                     '<td colspan="7" style="padding:6px 14px 14px 14px;'
-                    'background:rgba(255,93,108,0.06);border-left:3px solid #ff5d6c">'
+                    'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
                     '<details>'
                     '<summary style="cursor:pointer;font-size:13px;font-weight:600;'
-                    'color:#ffbcc3">Why did this run fail?</summary>'
+                    'color:var(--mh-prim-error-300)">Why did this run fail?</summary>'
                     '<pre style="margin:8px 0 0;padding:10px 12px;'
                     'background:rgba(0,0,0,0.25);border-radius:6px;'
                     'font-size:12px;white-space:pre-wrap;word-break:break-word">'
@@ -4044,7 +4217,7 @@ def create_app() -> Flask:
                     f'<td style="font-size:12px">{_h(channel)}</td>'
                     f'<td>{badge_html}</td>'
                     f'<td style="font-size:12px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{_h(excerpt)}">{_h(excerpt)}</td>'
-                    f'<td style="font-size:12px;color:#ff8a99" title="{_h(err)}">{_h(err[:80])}</td>'
+                    f'<td style="font-size:12px;color:var(--mh-prim-error-600)" title="{_h(err)}">{_h(err[:80])}</td>'
                     f'</tr>'
                 )
             posting_panel_html = (
@@ -4069,7 +4242,7 @@ def create_app() -> Flask:
             label = "1 run failed" if n_errored == 1 else f"{n_errored} runs failed"
             failure_callout = (
                 '<div class="card" style="padding:12px 18px;margin-bottom:20px;'
-                'background:rgba(255,93,108,0.06);border-left:3px solid #ff5d6c">'
+                'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
                 f'<b>{_h(label)}</b> in the last 100 runs. '
                 'Expand <i>Why did this run fail?</i> on each row below to '
                 'see the pipeline error.</div>'
@@ -4105,10 +4278,10 @@ def create_app() -> Flask:
         if request.method == "POST":
             f = request.files.get("file")
             if not f or not f.filename:
-                return _layout("Upload", '<div class="card"><p class="tag bad">No file selected.</p></div>', active="add_input")
+                return _layout("Upload", '<div class="card"><p class="tag bad">No file selected.</p></div>', active="create")
             data = f.read()
             if not data:
-                return _layout("Upload", '<div class="card"><p class="tag bad">Uploaded file was empty.</p></div>', active="add_input")
+                return _layout("Upload", '<div class="card"><p class="tag bad">Uploaded file was empty.</p></div>', active="create")
 
             temp_run_id = uuid.uuid4().hex[:12]
             tmp_dir = RUNS_DIR / temp_run_id
@@ -4162,7 +4335,7 @@ def create_app() -> Flask:
   </form>
 </div>
 """
-        return _layout("Upload", body, active="add_input")
+        return _layout("Upload", body, active="create")
 
     # ---- UPLOAD CONFIGURE (V8.1 issue 6: two-step; V8.2 issue 6: photos) ---
     def _render_configure(run_id: str, meta: dict, *, error: str = "",
@@ -4224,11 +4397,11 @@ def create_app() -> Flask:
   <p class="dim" style="font-size:13px;margin-top:14px">Supported formats: Hytek Meet Manager <code>.hy3</code>, a <code>.zip</code> containing one, or a Sportsystems PDF results file.</p>
   <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn" href="{upload_url}">\u2190 Try another file</a>
-    <a class="btn secondary" href="{url_for('add_input_page')}">Pick a different input type</a>
+    <a class="btn secondary" href="{url_for("make_page")}">Pick a different input type</a>
   </div>
 </div>
 """
-            return _layout("Couldn't read file", body, active="add_input")
+            return _layout("Couldn't read file", body, active="create")
 
         # V8.2 issue 4: ONLY clubs from this file are listed.
         opts = "".join(
@@ -4311,7 +4484,7 @@ def create_app() -> Flask:
   </form>
 </div>
 """
-        return _layout("Configure run", body, active="add_input")
+        return _layout("Configure run", body, active="create")
 
     @app.route("/upload/configure", methods=["GET", "POST"])
     def upload_configure():
@@ -4322,7 +4495,7 @@ def create_app() -> Flask:
                 "The configure step is the second half of the upload flow — you reach it by uploading a file first. Open the upload page and pick a meet results file to start.",
                 eyebrow="Upload",
                 primary_cta=("Start an upload", url_for("upload")),
-                secondary_cta=("All input types", url_for("add_input_page")),
+                secondary_cta=("All input types", url_for("make_page")),
             )
         tmp_dir = RUNS_DIR / run_id
         meta_path = tmp_dir / "upload_meta.json"
@@ -4343,7 +4516,7 @@ def create_app() -> Flask:
         if request.method == "POST":
             club_filter = (request.form.get("club_filter") or "").strip() or None
             if not club_filter:
-                return _layout("Configure", '<div class="card"><p class="tag bad">Pick a club to feature.</p></div>', active="add_input")
+                return _layout("Configure", '<div class="card"><p class="tag bad">Pick a club to feature.</p></div>', active="create")
 
             # Phase 1.5 logo consolidation: logos now live on the active
             # organisation profile, not on individual runs. The configure
@@ -4368,7 +4541,7 @@ def create_app() -> Flask:
             # Pin the run to the active organisation so it appears on
             # /activity for the right tenant. Falls back to the upload
             # meta only if it carries a profile_id (older flows); modern
-            # flows always come through the org-gated /add-input page,
+            # flows always come through the org-gated Create tab,
             # so the session pin is the authoritative source.
             profile_id = (
                 meta.get("profile_id")
@@ -4546,7 +4719,7 @@ def create_app() -> Flask:
                     f'<pre style="font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;margin:0;color:var(--ink)">{_h(_err_msg)}</pre>'
                     '</div>'
                 )
-                return _layout("Run failed", _err_body, active="add_input")
+                return _layout("Run failed", _err_body, active="create")
             # Round-6 fix: when neither the in-memory cache nor the DB has
             # the run id, we used to fall through to the "Processing run"
             # hero with an indefinite poller — users bookmarking a stale
@@ -4638,7 +4811,7 @@ def create_app() -> Flask:
 }})();
 </script>
 """
-        return _layout("Run progress", body, active="add_input")
+        return _layout("Run progress", body, active="create")
 
     @app.route("/api/runs/<run_id>/status")
     def api_status(run_id):
@@ -5287,8 +5460,20 @@ function turnMeetIntoPack() {{
             # V8: Create-graphic API URL (lazy visual generation)
             _create_graphic_url = url_for("api_create_graphic", run_id=run_id, card_id=card_id_raw)
             _motion_url = url_for("api_card_motion", run_id=run_id, card_id=card_id_raw)
+            # Round-8: per-card Schedule button parity with /pack/grouped.
+            # The schedule modal reads the active tone's caption text via
+            # `pickActiveCaption(cardEl)` (web.py mhScheduleOpen), so we
+            # point it at the tone-picker's wrapper id `wf-{card_uuid}`
+            # which contains the `.tone-panel.active .caption-text`.
+            _wf_card_el_id = f"wf-{card_uuid}"
+            schedule_btn_review = (
+                f'<button class="btn" style="font-size:11px;padding:4px 10px" data-mh-schedule-btn '
+                f"onclick='mhScheduleOpen({json.dumps(run_id)}, {json.dumps(str(card_id_raw))}, \"{_wf_card_el_id}\")'>"
+                f'Schedule&hellip;</button>'
+            ) if card_id_raw else ""
+
             tone_tabs_html = (
-                f'<div class="tone-picker" data-caption-url="{_h(_caption_url)}" data-card="{card_uuid}" style="margin-top:10px;padding:12px;background:rgba(212,255,58,0.04);border:1px solid var(--border);border-radius:8px">'
+                f'<div class="tone-picker" id="wf-{card_uuid}" data-caption-url="{_h(_caption_url)}" data-card="{card_uuid}" style="margin-top:10px;padding:12px;background:rgba(212,255,58,0.04);border:1px solid var(--border);border-radius:8px">'
                 f'<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;letter-spacing:0.5px">Caption tone</div>'
                 f'<div style="margin-bottom:8px">{tabs_html}</div>'
                 f'<div class="tone-panels" data-card="{card_uuid}">{panels_html}</div>'
@@ -5297,6 +5482,7 @@ function turnMeetIntoPack() {{
                 f'<button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick="regenerateCaption(this, {repr(_caption_url)}, \'{card_uuid}\')">&#x21BA; Regenerate caption</button>'
                 f'<button class="btn" style="font-size:11px;padding:4px 10px;background:var(--lane);color:var(--lane-ink);border:none" onclick="createGraphic(this, {repr(_create_graphic_url)}, \'{card_uuid}\')">&#x2726; Create graphic</button>'
                 f'<button class="btn" style="font-size:11px;padding:4px 10px;background:var(--medal);color:var(--medal-ink);border:none" onclick="generateMotion(this, {repr(_motion_url)}, \'{card_uuid}\')">&#x25B6; Generate motion</button>'
+                f'{schedule_btn_review}'
                 f'<span class="caption-timestamp" style="font-size:10px;color:var(--ink-muted)"></span>'
                 f'</div>'
                 f'<div class="visual-panel" data-card="{card_uuid}" data-create-url="{_h(_create_graphic_url)}" style="display:none;margin-top:10px;padding:12px;background:rgba(212,255,58,0.04);border:1px solid var(--border);border-radius:8px"></div>'
@@ -6375,12 +6561,17 @@ function addGraphicToPack(btn, visualId) {{
                 n_variants = int(request.args.get("n_variants") or 1)
                 n_variants = max(1, min(n_variants, 4))
 
+                # V9: feed the AI the last few captions for this swim so
+                # it actively writes something different on each regenerate.
+                _recent_captions = _v9_load_caption_history(run_id, swim_id_dec)
+
                 def _gen_one():
                     try:
                         return _gen_tone(
                             ach_dict, club_brand, tone=tone,
                             voice_profile=_run_voice_profile,
                             club_profile=club_profile_obj,
+                            recent_captions=_recent_captions,
                         )
                     except _ClaudeUE:
                         # Terminal-shaped errors must propagate so the
@@ -6429,6 +6620,11 @@ function addGraphicToPack(btn, visualId) {{
                         ),
                         "explanation": explanation,
                     }), 200
+                # Persist the new caption(s) so the next regenerate can
+                # ask the AI to differ. We store ALL produced variants
+                # to widen the "avoid" window in one go.
+                for v in variants:
+                    _v9_save_caption_history(run_id, swim_id_dec, v)
                 return jsonify({
                     "caption": caption_text,
                     "variants": variants,
@@ -7491,7 +7687,7 @@ Relay team broke club record"></textarea>
         if last_err:
             err_html = (
                 '<div class="card" style="padding:16px 22px;margin-bottom:18px;'
-                'border-left:3px solid #ff5d6c">'
+                'border-left:3px solid var(--mh-prim-error-500)">'
                 f'<div style="font-weight:600;margin-bottom:4px">'
                 f'Last LLM error &mdash; {_h(last_err.get("provider", "unknown"))}</div>'
                 f'<div class="dim" style="font-size:12px;margin-bottom:6px">'
@@ -7731,7 +7927,7 @@ Relay team broke club record"></textarea>
                 f'{section_header}'
                 f'{section_intro}'
                 '<div class="card empty">No runs yet for this organisation. '
-                f'<a href="{url_for("add_input_page")}">Create your first piece of content &rarr;</a>'
+                f'<a href="{url_for("make_page")}">Create your first piece of content &rarr;</a>'
                 '</div>'
             )
 
@@ -7778,10 +7974,10 @@ Relay team broke club record"></textarea>
                 rows_html += (
                     '<tr class="run-error-row">'
                     '<td colspan="7" style="padding:6px 14px 14px 14px;'
-                    'background:rgba(255,93,108,0.06);border-left:3px solid #ff5d6c">'
+                    'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
                     '<details>'
                     '<summary style="cursor:pointer;font-size:13px;font-weight:600;'
-                    'color:#ffbcc3">Why did this run fail?</summary>'
+                    'color:var(--mh-prim-error-300)">Why did this run fail?</summary>'
                     '<pre style="margin:8px 0 0;padding:10px 12px;'
                     'background:rgba(0,0,0,0.25);border-radius:6px;'
                     'font-size:12px;white-space:pre-wrap;word-break:break-word">'
@@ -7795,7 +7991,7 @@ Relay team broke club record"></textarea>
             label = "1 run failed" if n_errored == 1 else f"{n_errored} runs failed"
             failure_callout = (
                 '<div class="card" style="padding:12px 18px;margin-bottom:20px;'
-                'background:rgba(255,93,108,0.06);border-left:3px solid #ff5d6c">'
+                'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
                 f'<b>{_h(label)}</b> in the last 100 runs. '
                 'Expand <i>Why did this run fail?</i> on each row below to '
                 'see the pipeline error.</div>'
@@ -7821,7 +8017,7 @@ Relay team broke club record"></textarea>
                     f'<td style="font-size:12px">{_h(channel)}</td>'
                     f'<td>{badge_html}</td>'
                     f'<td style="font-size:12px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{_h(excerpt)}">{_h(excerpt)}</td>'
-                    f'<td style="font-size:12px;color:#ff8a99" title="{_h(err)}">{_h(err[:80])}</td>'
+                    f'<td style="font-size:12px;color:var(--mh-prim-error-600)" title="{_h(err)}">{_h(err[:80])}</td>'
                     f'</tr>'
                 )
             posting_panel_html = (
@@ -8034,7 +8230,7 @@ Relay team broke club record"></textarea>
             'font-weight:600;border:1px solid rgba(44,201,127,0.30)">healthy</span>'
             if health_ok else
             '<span style="display:inline-block;padding:3px 12px;border-radius:999px;'
-            'background:rgba(255,93,108,0.12);color:#ff5d6c;font-size:12px;'
+            'background:rgba(255,93,108,0.12);color:var(--mh-prim-error-500);font-size:12px;'
             'font-weight:600;border:1px solid rgba(255,93,108,0.30)">degraded</span>'
         )
 
@@ -8059,7 +8255,7 @@ Relay team broke club record"></textarea>
                 check_rows += (
                     f'<tr><td><b>{_h(name)}</b></td>'
                     f'<td>{badge}</td>'
-                    f'<td style="font-size:12px;color:#ff8a99">{_h(err)}</td></tr>'
+                    f'<td style="font-size:12px;color:var(--mh-prim-error-600)">{_h(err)}</td></tr>'
                 )
 
         if not check_rows:
@@ -8715,25 +8911,17 @@ Relay team broke club record"></textarea>
     # V7 NEW ROUTES
     # ====================================================================
 
-    # ---- /make &mdash; legacy alias, redirects to /add-input ------------------
+    # ---- /make &mdash; the Create tab (single entry point) -------------------
     @app.route("/make")
     def make_page():
-        # The Create page consolidates two card groups:
-        #   1. Content-type tiles (from REGISTRY) — packaged content
-        #      formats like meet recap, athlete spotlight pack, etc.
-        #   2. Input-type cards (shared with /add-input) — the starting
-        #      points: meet results upload, athlete spotlight, event
-        #      preview, sponsor post, session update, free text.
-        # Both surfaces lead to producing a content pack; grouping
-        # them here means "Create" is the single entry to actually
-        # start work, while "Add Input" stays focused on the input
-        # picker for users who prefer that mental model.
+        # The Create tab is the single chooser for starting work. Tiles
+        # come from the ContentType REGISTRY — the canonical catalogue
+        # of every content type the platform produces. /add-input is
+        # preserved as a redirect alias so external links still resolve.
         try:
-            from mediahub.club_platform.content_types import REGISTRY, ContentType
-            registry_available = True
+            from mediahub.club_platform.content_types import REGISTRY
         except ImportError:
             REGISTRY = {}
-            registry_available = False
 
         tiles_html = ""
         for ct, meta in REGISTRY.items():
@@ -8766,33 +8954,27 @@ Relay team broke club record"></textarea>
                 f'{badge}'
                 '</div>'
                 f'<p>{_h(meta.description)}</p>'
-                '<span class="mh-template-cta">Open</span>'
+                '<span class="mh-template-cta">Start</span>'
                 '</a>'
             )
 
-        if registry_available and tiles_html:
-            content_types_section = (
-                '<div class="mh-section-eyebrow" style="margin-top:0">Content types</div>'
-                '<h2 class="mh-section-title" style="text-align:left">Packaged <em class="editorial">deliverables</em></h2>'
-                '<p class="lede" style="margin-bottom:var(--sp-5)">Pick a deliverable and the engine routes you to the right input.</p>'
-                f'<div class="mh-template-grid">{tiles_html}</div>'
-                '<div style="height:var(--sp-7)"></div>'
-            )
+        if tiles_html:
+            tiles_section = f'<div class="mh-template-grid">{tiles_html}</div>'
         else:
-            content_types_section = ""
+            tiles_section = (
+                '<div class="card empty">'
+                '<p class="muted">No content types are registered on this deployment. '
+                'Check the deployment configuration.</p>'
+                '</div>'
+            )
 
-        input_cards_html = _render_input_type_cards()
         body = (
             '<section class="mh-hero" data-lane="03" style="padding-top:var(--sp-9);padding-bottom:var(--sp-7);margin-bottom:var(--sp-6)">'
             '<span class="mh-hero-eyebrow">Create</span>'
             '<h1>What do you want<br>to <em class="editorial">make</em>?</h1>'
-            '<p class="lede">Pick a deliverable, or pick an input. Both lead to the same content pack — the difference is whether you start from a format or from raw material.</p>'
+            '<p class="lede">Upload a file, paste a brief, or describe a moment in your own words. Pick a starting point and the engine takes it from there.</p>'
             '</section>'
-            f'{content_types_section}'
-            '<div class="mh-section-eyebrow" style="margin-top:0">Inputs</div>'
-            '<h2 class="mh-section-title" style="text-align:left">Start from <em class="editorial">raw material</em></h2>'
-            f'<p class="lede" style="margin-bottom:var(--sp-5)">The same inputs on <a href="{url_for("add_input_page")}">/add-input</a> — included here so Create stays the single jumping-off point.</p>'
-            f'<div class="mh-template-grid">{input_cards_html}</div>'
+            f'{tiles_section}'
         )
         return _layout("Create", body, active="create")
 
@@ -8985,7 +9167,7 @@ Relay team broke club record"></textarea>
                 '</p>'
                 '<div class="mh-hero-actions">'
                 f'<a class="mh-cta-primary" href="{url_for("upload")}">Upload a meet &rarr;</a>'
-                f'<a class="mh-cta-secondary" href="{url_for("add_input_page")}">All input types</a>'
+                f'<a class="mh-cta-secondary" href="{url_for("make_page")}">All input types</a>'
                 '</div>'
                 '</section>'
             )
@@ -9262,7 +9444,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         )
 
     def _render_stub(stub_cls_name: str, route_endpoint: str, title: str,
-                     active_tab: str = "add_input"):
+                     active_tab: str = "create"):
         """Shared handler for stub routes. GET renders form, POST renders cards."""
         try:
             from mediahub.club_platform import stubs as _stubs_mod
@@ -9270,7 +9452,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             return _recovery_page(
                 "Temporarily unavailable",
                 f"The content engine failed to load: {exc}. The stub content type can't render until the underlying module is back. Try refreshing in a moment.",
-                primary_cta=("Back to Add Input", url_for("add_input_page")),
+                primary_cta=("Back to Create", url_for("make_page")),
                 secondary_cta=("System status", url_for("status_page")),
                 code=503,
             )
@@ -9280,7 +9462,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             return _recovery_page(
                 "Content type unavailable",
                 f"The {title} stub class isn't registered on this deployment. The route still exists, but the generator wasn't loaded.",
-                primary_cta=("Back to Add Input", url_for("add_input_page")),
+                primary_cta=("Back to Create", url_for("make_page")),
             )
 
         stub = StubCls()
@@ -9357,7 +9539,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                     return _recovery_page(
                         "AI features unavailable",
                         f"{e}. Contact your deployment operator to enable Gemini or Anthropic on this instance.",
-                        primary_cta=("Back to Add Input", url_for("add_input_page")),
+                        primary_cta=("Back to Create", url_for("make_page")),
                         secondary_cta=("System status", url_for("status_page")),
                         code=503,
                     )
@@ -9366,7 +9548,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                         "AI provider error",
                         f"{e}. Rate limits usually clear within seconds — try the same form again, or fall back to a simpler input.",
                         primary_cta=("Try again", url_for(route_endpoint)),
-                        secondary_cta=("Back to Add Input", url_for("add_input_page")),
+                        secondary_cta=("Back to Create", url_for("make_page")),
                         code=502,
                     )
             # Persist this pack so it survives refresh + is exportable.
@@ -9423,11 +9605,11 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             body += (
                 f'<p style="margin-top:var(--sp-5);display:flex;gap:var(--sp-4);flex-wrap:wrap">'
                 f'<a href="{_packs_url}">View your saved drafts &rarr;</a>'
-                f'<a href="{url_for("add_input_page")}">&larr; All input types</a>'
+                f'<a href="{url_for("make_page")}">&larr; All input types</a>'
                 f'</p>'
             )
         except Exception:
-            body += f'<p style="margin-top:var(--sp-5)"><a href="{url_for("add_input_page")}">&larr; All input types</a></p>'
+            body += f'<p style="margin-top:var(--sp-5)"><a href="{url_for("make_page")}">&larr; All input types</a></p>'
         return _layout(title, body, active=active_tab)
 
     def _render_library_picker_for_active_profile() -> str:
@@ -9566,7 +9748,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   Prefer the one-shot form? <a href="{url_for('stub_free_text_quick')}">Use the legacy quick generator →</a>
 </p>
 """
-        return _layout("Free text — chat", body, active="add_input")
+        return _layout("Free text — chat", body, active="create")
 
     @app.route("/free-text/chat/new", methods=["GET", "POST"])
     def free_text_chat_new():
@@ -9725,7 +9907,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
   </div>
 </form>
 """
-        return _layout(s.title or "Chat", body, active="add_input")
+        return _layout(s.title or "Chat", body, active="create")
 
     @app.route("/free-text/chat/<chat_id>/send", methods=["POST"])
     def free_text_chat_send(chat_id):
@@ -9859,11 +10041,11 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 'come back, edit, and approve later.'
                 '</p>'
                 '<div class="mh-hero-actions">'
-                f'<a class="mh-cta-primary" href="{url_for("add_input_page")}">Add an input &rarr;</a>'
+                f'<a class="mh-cta-primary" href="{url_for("make_page")}">Start creating &rarr;</a>'
                 '</div>'
                 '</section>'
             )
-            return _layout("Saved drafts", body, active="add_input")
+            return _layout("Saved drafts", body, active="create")
 
         rows_html = ""
         for it in items:
@@ -9896,9 +10078,9 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     <tbody>{rows_html}</tbody>
   </table>
 </div>
-<p style="margin-top:var(--sp-4)"><a class="btn secondary" href="{url_for('add_input_page')}">+ New draft</a></p>
+<p style="margin-top:var(--sp-4)"><a class="btn secondary" href="{url_for("make_page")}">+ New draft</a></p>
 """
-        return _layout("Saved drafts", body, active="add_input")
+        return _layout("Saved drafts", body, active="create")
 
     @app.route("/drafts/<pack_id>")
     def stub_pack_view(pack_id):
@@ -9907,7 +10089,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         rec = load_pack(pack_id)
         if not rec:
             body = '<div class="empty">Draft not found.</div>'
-            return _layout("Draft not found", body, active="add_input"), 404
+            return _layout("Draft not found", body, active="create"), 404
 
         stub_type = rec.get("stub_type", "other")
         type_label = _STUB_TYPE_LABEL.get(stub_type, stub_type)
@@ -9961,7 +10143,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             1,
         )
         body = header + attached_html + cards_html
-        return _layout(rec.get("title") or "Draft", body, active="add_input")
+        return _layout(rec.get("title") or "Draft", body, active="create")
 
     def _render_pack_attached_media(rec: dict) -> str:
         """Render thumbnails for the library assets attached to a saved pack.
@@ -10065,146 +10247,12 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             "status": card.get("status", status),
         })
 
-    # ---- /add-input &mdash; multi-input landing page --------------------------
-    # The catalogue of input-type cards rendered on both /add-input and
-    # /make. Kept as module-scoped data inside create_app() so add_input_page
-    # and make_page share the exact same list — adding a new input type
-    # surfaces it in both places, no duplication.
-    _INPUT_TYPE_CATALOGUE = [
-        {
-            "title": "Meet Results",
-            "description": "Upload results from any sport meet, gala, or competition. Ranked content cards with confidence scores.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>'
-                '<path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>'
-                '<path d="M4 22h16"/>'
-                '<path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>'
-                '<path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>'
-                '<path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "upload",
-        },
-        {
-            "title": "Athlete Spotlight",
-            "description": "Pick a member from a processed meet and get a single-person achievement pack.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<circle cx="12" cy="8" r="4"/>'
-                '<path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "spotlight_landing",
-        },
-        {
-            "title": "Event Preview",
-            "description": "Tease an upcoming event, fixture, or competition before it starts.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>'
-                '<line x1="16" y1="2" x2="16" y2="6"/>'
-                '<line x1="8" y1="2" x2="8" y2="6"/>'
-                '<line x1="3" y1="10" x2="21" y2="10"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "stub_weekend_preview",
-        },
-        {
-            "title": "Sponsor Post",
-            "description": "Create brand-safe sponsor activation content with your partners.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "stub_sponsor_post",
-        },
-        {
-            "title": "Session Update",
-            "description": "Share live updates from training or events as they happen.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
-                '<polyline points="14 2 14 8 20 8"/>'
-                '<line x1="16" y1="13" x2="8" y2="13"/>'
-                '<line x1="16" y1="17" x2="8" y2="17"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "stub_session_update",
-        },
-        {
-            "title": "Free Text",
-            "description": "Describe any moment in your own words and get content suggestions.",
-            "icon": (
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="28" height="28">'
-                '<path d="M12 20h9"/>'
-                '<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
-                '</svg>'
-            ),
-            "status": "live",
-            "endpoint": "free_text_chat_page",
-        },
-    ]
-
-    def _render_input_type_cards() -> str:
-        """Render the input-type cards grid used on /add-input and /make.
-
-        Round-7 bug fix: the previous version referenced `meta.primary_route_endpoint`
-        from a since-deleted REGISTRY-based render, leaving `href_attr` undefined on
-        the success path. Every tile was rendered with `href="#"` regardless of
-        whether the route existed. Now we read from card["endpoint"] directly and
-        set href_attr in both branches.
-        """
-        cards_html = ""
-        for card in _INPUT_TYPE_CATALOGUE:
-            is_live = card.get("status") == "live"
-            if is_live:
-                badge = '<span class="tag live">Live</span>'
-            else:
-                badge = '<span class="tag">Coming soon</span>'
-            try:
-                href_attr = f'href="{url_for(card["endpoint"])}"'
-                disabled_cls = ""
-            except Exception:
-                href_attr = 'href="#" onclick="return false"'
-                disabled_cls = " is-disabled"
-            cards_html += (
-                f'<a {href_attr} class="mh-template{disabled_cls}">'
-                f'<div class="mh-template-icon">{card["icon"]}</div>'
-                '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:var(--sp-1)">'
-                f'<h3 style="margin:0">{_h(card["title"])}</h3>'
-                f'{badge}'
-                '</div>'
-                f'<p>{_h(card["description"])}</p>'
-                '<span class="mh-template-cta">Start</span>'
-                '</a>'
-            )
-        return cards_html
-
     @app.route("/add-input")
     def add_input_page():
-        cards_html = _render_input_type_cards()
-        body = (
-            '<section class="mh-hero" data-lane="02" style="padding-top:var(--sp-9);padding-bottom:var(--sp-7);margin-bottom:var(--sp-6)">'
-            '<span class="mh-hero-eyebrow">Add input</span>'
-            '<h1>What are we <em class="editorial">making</em>?</h1>'
-            '<p class="lede">Each input type produces a different set of social-ready cards. Pick one to start.</p>'
-            '</section>'
-            f'<div class="mh-template-grid">{cards_html}</div>'
-        )
-        return _layout("Add Input", body, active="add_input")
+        # The "Add Input" tab was merged into "Create". The route stays
+        # as a redirect alias so old bookmarks and external links still
+        # resolve to the unified chooser on /make.
+        return redirect(url_for("make_page"), code=301)
 
     # ---- /organisation &mdash; organisation DNA / club identity ---------------
     @app.route("/organisation", methods=["GET", "POST"])
@@ -11200,14 +11248,172 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 f'{_h(k)}</span>'
                 for k in (prof.brand_keywords or [])[:10]
             )
-            pal = prof.brand_palette_extracted or {}
-            sw = "".join(
-                f'<span title="{_h(pal[k])}" style="display:inline-block;'
-                f'width:22px;height:22px;border-radius:4px;margin-right:6px;'
-                f'background:{_h(pal[k])};border:1px solid rgba(255,255,255,0.15);'
-                f'vertical-align:middle"></span>'
-                for k in ("primary", "secondary", "accent") if pal.get(k)
+            # Effective palette = manual override slots > AI-detected.
+            # Show that as the "Confirmed" row of swatches, with the AI's
+            # raw pick rendered separately so the user can see what the
+            # engine actually inferred.
+            from mediahub.brand import palette as _palette_mod
+            extracted_pal = prof.brand_palette_extracted or {}
+            manual_pal = prof.brand_palette_manual or {}
+            effective_pal = _palette_mod.effective_palette(
+                manual=manual_pal, extracted=extracted_pal,
             )
+            use_fourth = bool(prof.brand_palette_use_fourth)
+
+            slot_labels = _palette_mod.SLOTS
+            if (use_fourth
+                    or extracted_pal.get(_palette_mod.FOURTH_SLOT)
+                    or manual_pal.get(_palette_mod.FOURTH_SLOT)):
+                slot_labels = slot_labels + (_palette_mod.FOURTH_SLOT,)
+
+            def _swatch_row(palette: dict) -> str:
+                rendered = ""
+                for k in slot_labels:
+                    hexv = palette.get(k)
+                    if not hexv:
+                        continue
+                    rendered += (
+                        f'<span title="{_h(k)}: {_h(hexv)}" style="display:inline-flex;'
+                        f'align-items:center;gap:6px;padding:3px 8px;margin-right:6px;'
+                        f'margin-bottom:4px;border:1px solid var(--border);'
+                        f'border-radius:6px;background:var(--panel)">'
+                        f'<span style="display:inline-block;width:18px;height:18px;'
+                        f'border-radius:4px;background:{_h(hexv)};'
+                        f'border:1px solid rgba(255,255,255,0.15)"></span>'
+                        f'<code style="font-size:11px;color:var(--ink)">{_h(hexv)}</code></span>'
+                    )
+                return rendered or '<span class="dim" style="font-size:12px">(none)</span>'
+
+            ai_row = _swatch_row(extracted_pal)
+            effective_row = _swatch_row(effective_pal)
+
+            # Per-source colour breakdown — surface every signal that
+            # informed the AI's pick so the user can see "this was
+            # mentioned in your style guide, that came off Instagram".
+            sources_dict = prof.brand_palette_sources or {}
+            sources_html = ""
+            if sources_dict:
+                rows = []
+                for label, hexes in sources_dict.items():
+                    if not hexes:
+                        continue
+                    chips = "".join(
+                        f'<span style="display:inline-flex;align-items:center;'
+                        f'gap:4px;padding:2px 6px;margin:2px 4px 2px 0;'
+                        f'border:1px solid var(--border);border-radius:4px;'
+                        f'font-size:10.5px;font-family:var(--font-mono,monospace);'
+                        f'color:var(--ink-dim)">'
+                        f'<span style="display:inline-block;width:10px;height:10px;'
+                        f'border-radius:2px;background:{_h(h)};'
+                        f'border:1px solid rgba(255,255,255,0.12)"></span>'
+                        f'{_h(h)}</span>'
+                        for h in hexes[:8]
+                    )
+                    rows.append(
+                        f'<div style="margin-bottom:6px"><span style="font-size:11px;'
+                        f'color:var(--ink-dim);margin-right:6px">{_h(label)}</span>{chips}</div>'
+                    )
+                if rows:
+                    sources_html = (
+                        '<details style="margin-top:10px">'
+                        '<summary style="cursor:pointer;font-size:12px;color:var(--ink-dim);'
+                        'user-select:none">Where these colours came from '
+                        f'({len(sources_dict)} source{"s" if len(sources_dict) != 1 else ""})</summary>'
+                        f'<div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.02);'
+                        f'border-radius:6px">{"".join(rows)}</div>'
+                        '</details>'
+                    )
+
+            reasoning_html = ""
+            if prof.brand_palette_reasoning:
+                reasoning_html = (
+                    f'<p class="muted" style="font-size:11.5px;margin:6px 0 0 0;'
+                    f'line-height:1.4;font-style:italic">'
+                    f'Engine reasoning: {_h(prof.brand_palette_reasoning)}</p>'
+                )
+
+            confirm_url = url_for("organisation_setup_palette")
+
+            def _slot_default(slot: str, fallback: str) -> str:
+                # Prefer the user's previous manual entry; else fall
+                # back to the AI's pick; else a neutral placeholder so
+                # the colour picker has something to show.
+                v = manual_pal.get(slot) or extracted_pal.get(slot) or fallback
+                return v if isinstance(v, str) and v.startswith("#") else fallback
+
+            def _picker_block(slot: str, label: str, default_hex: str,
+                              *, disabled: bool = False, max_width: str = "") -> str:
+                attr = "disabled" if disabled else ""
+                wrap_style = f"max-width:{max_width};" if max_width else ""
+                return (
+                    f'<label style="display:flex;flex-direction:column;gap:4px;'
+                    f'font-size:11.5px;color:var(--ink-dim);{wrap_style}">'
+                    f'<span>{_h(label)}</span>'
+                    f'<span style="display:flex;gap:6px;align-items:center">'
+                    f'<input type="color" name="palette_{slot}" '
+                    f'id="palette-{slot}-color" value="{_h(default_hex)}" {attr} '
+                    f'style="width:42px;height:34px;padding:0;'
+                    f'border:1px solid var(--border);border-radius:4px;'
+                    f'background:var(--panel);cursor:pointer"/>'
+                    f'<input type="text" name="palette_{slot}_hex" '
+                    f'id="palette-{slot}-hex" value="{_h(default_hex)}" '
+                    f'pattern="^#[0-9a-fA-F]{{6}}$" maxlength="7" '
+                    f'data-palette-mirror="palette_{slot}" {attr} '
+                    f'style="flex:1;padding:6px 8px;border:1px solid var(--border);'
+                    f'border-radius:4px;background:var(--bg);color:var(--ink);'
+                    f'font-family:var(--font-mono,monospace);font-size:12px"/>'
+                    f'</span></label>'
+                )
+
+            pickers_html = "".join(
+                _picker_block(slot, label, _slot_default(slot, fallback))
+                for slot, label, fallback in (
+                    ("primary",   "Primary",   "#0a2540"),
+                    ("secondary", "Secondary", "#1a1a1a"),
+                    ("accent",    "Accent",    "#d4ff3a"),
+                )
+            )
+            fourth_picker_html = _picker_block(
+                "fourth", "Fourth colour",
+                _slot_default("fourth", "#ffffff"),
+                disabled=not use_fourth, max_width="33%",
+            )
+            fourth_checked_attr = "checked" if use_fourth else ""
+            fourth_visible_style = "" if use_fourth else "display:none"
+
+            confirm_form_html = f"""
+<form method="POST" action="{confirm_url}" data-no-loader="1"
+      style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08)">
+  <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px;
+              text-transform:uppercase;letter-spacing:0.04em">
+    Override the AI's pick
+  </div>
+  <p class="muted" style="font-size:11.5px;margin:0 0 10px 0;line-height:1.45">
+    The engine reads every link and document you supplied and decides a palette.
+    Use the pickers below only if it got it wrong &mdash; otherwise leave them
+    as-is and the AI's values keep flowing through to every generated card.
+  </p>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+              margin-bottom:10px">{pickers_html}</div>
+  <label style="display:inline-flex;align-items:center;gap:8px;font-size:12px;
+                color:var(--ink);cursor:pointer;margin-bottom:8px">
+    <input type="checkbox" name="palette_use_fourth" id="palette-use-fourth"
+           value="on" {fourth_checked_attr}/>
+    <span>Add a fourth brand colour (some clubs use four)</span>
+  </label>
+  <div id="palette-fourth-row" style="margin-bottom:10px;{fourth_visible_style}">
+    {fourth_picker_html}
+  </div>
+  <button type="submit" class="btn" style="font-size:12px;padding:8px 14px">
+    Save brand colours
+  </button>
+  <span class="muted" style="margin-left:10px;font-size:11.5px">
+    Leave any field blank to fall back to the AI's pick for that slot.
+  </span>
+</form>
+<script>{_PALETTE_PICKER_JS}</script>
+"""
+
             preview_html = f"""
 <div class="card" style="margin-bottom:24px;border:1px solid var(--accent);
      background:rgba(212,255,58,0.04)">
@@ -11216,11 +11422,16 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     {_h(prof.brand_voice_summary or '(no voice summary yet — capture again from a richer source)')}</p>
   <div style="font-size:12px;color:var(--ink-dim);margin-bottom:4px">Keywords</div>
   <div style="margin-bottom:10px">{kw_chips or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
-  <div style="font-size:12px;color:var(--ink-dim);margin-bottom:4px">Palette</div>
-  <div style="margin-bottom:10px">{sw or '<span class="dim" style="font-size:12px">(none)</span>'}</div>
-  <p class="muted" style="font-size:12px;margin:8px 0 0 0">Source: {_h(prof.brand_source_url or '—')} &middot; captured {_h((prof.brand_captured_at or '')[:19])}</p>
+  <div style="font-size:12px;color:var(--ink-dim);margin-bottom:4px">Palette in use</div>
+  <div style="margin-bottom:6px">{effective_row}</div>
+  <div style="font-size:11px;color:var(--ink-dim);margin-bottom:4px">AI's pick from all sources</div>
+  <div style="margin-bottom:6px">{ai_row}</div>
+  {reasoning_html}
+  {sources_html}
+  <p class="muted" style="font-size:12px;margin:10px 0 0 0">Source: {_h(prof.brand_source_url or '—')} &middot; captured {_h((prof.brand_captured_at or '')[:19])}</p>
+  {confirm_form_html}
   <div style="margin-top:14px">
-    <a class="btn" href="{url_for('add_input_page')}">Looks right &mdash; start creating &rarr;</a>
+    <a class="btn" href="{url_for("make_page")}">Looks right &mdash; start creating &rarr;</a>
     <span class="muted" style="margin-left:12px;font-size:12px">Or refine the inputs below and re-analyse.</span>
   </div>
 </div>
@@ -11260,7 +11471,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                     preview = (
                         f'<img src="{_h(serve_url)}" alt="{_h(label)}" '
                         'style="display:block;max-width:100%;max-height:96px;'
-                        'object-fit:contain;background:#ffffff;border-radius:4px"/>'
+                        'object-fit:contain;background:var(--mh-prim-neutral-0);border-radius:4px"/>'
                     )
                 else:
                     preview = (
@@ -11926,6 +12137,12 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             result = {"brand_capture_status": f"error: {e}"}
 
         status = (result or {}).get("brand_capture_status", "")
+        # Per-source palette signals from every captured link. Kept in a
+        # local so the unified palette resolver below can combine these
+        # with the (yet-to-be-ingested) guidelines doc + logos. Survives
+        # the "no_sources" branch as an empty dict so resolution still
+        # runs when only guidelines / logos were supplied.
+        link_palette_signals: dict[str, list[str]] = {}
         if status in ("ok", "ok_heuristic"):
             for k in (
                 "brand_voice_summary", "brand_keywords",
@@ -11951,6 +12168,12 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             lcs = result.get("link_capture_state") or {}
             if isinstance(lcs, dict):
                 prof.link_capture_state = lcs
+            sigs = result.get("brand_palette_signals") or {}
+            if isinstance(sigs, dict):
+                link_palette_signals = {
+                    str(k): list(v) for k, v in sigs.items()
+                    if isinstance(v, list)
+                }
         elif status == "no_sources":
             # User submitted no links at all — keep the identity fields
             # and let them try again. The gate will keep them here until
@@ -12054,6 +12277,43 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 current_logos.append(meta)
             prof.brand_logos = current_logos
 
+        # ---- Unified palette resolution across ALL sources ------------
+        # Previously the palette displayed on the confirmation page came
+        # only from the website link (richest single source). The user
+        # now expects the AI to reason over every signal the org
+        # supplied: website + each social link + the brand-guidelines
+        # document + every uploaded logo. ``brand.palette.resolve_palette``
+        # does that AI pass; we re-run it here every save so adding a
+        # new logo or replacing the guidelines doc updates the pick.
+        try:
+            from mediahub.brand import palette as _palette
+            sources = _palette.gather_colour_sources(
+                link_palette_signals=link_palette_signals,
+                brand_guidelines=prof.brand_guidelines or {},
+                brand_logos=prof.brand_logos or [],
+            )
+            if sources:
+                resolved = _palette.resolve_palette(
+                    org_name=prof.display_name,
+                    voice_summary=prof.brand_voice_summary or "",
+                    sources=sources,
+                    allow_fourth=bool(prof.brand_palette_use_fourth),
+                )
+                # Preserve any existing primary/secondary/accent that the
+                # resolver didn't fill (e.g. when the user hadn't uploaded
+                # anything new and the resolver returned an empty pick).
+                if resolved:
+                    merged = dict(prof.brand_palette_extracted or {})
+                    for k in _palette.ALL_SLOTS:
+                        if resolved.get(k):
+                            merged[k] = resolved[k]
+                    prof.brand_palette_extracted = merged
+                    prof.brand_palette_reasoning = resolved.get("reasoning", "")
+            prof.brand_palette_sources = sources
+        except Exception as e:
+            # Never block save on palette resolution; fall back silently.
+            log.info("unified palette resolve failed: %s", e)
+
         # ---- AI-derive operating profile from the assembled context ----
         # One LLM call here means zero LLM calls per page render. The
         # derived dict carries the org-specific tone prose, ranking
@@ -12073,6 +12333,105 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 
         save_profile(prof)
         session["active_profile_id"] = prof.profile_id
+        return redirect(url_for("organisation_setup"))
+
+    @app.route("/organisation/setup/palette", methods=["POST"])
+    def organisation_setup_palette():
+        """Persist a user-confirmed brand palette override.
+
+        The AI-driven resolver runs in ``organisation_setup_capture`` over
+        every signal the org supplied (links + guidelines doc + logos).
+        That pick is shown back to the user on the setup preview card so
+        they can confirm or correct. This endpoint accepts:
+
+          - palette_primary / palette_secondary / palette_accent  (hex)
+          - palette_use_fourth ("on" when the tickbox is enabled)
+          - palette_fourth                                         (hex, optional)
+
+        A blank field clears that slot so the AI's value can resurface on
+        the next render. The route never raises; bad inputs are filtered
+        out by ``palette.sanitise_manual_palette``.
+        """
+        prof = _active_profile()
+        if not prof:
+            return redirect(url_for("organisation_setup"))
+
+        use_fourth = (request.form.get("palette_use_fourth") or "").strip().lower() in (
+            "on", "true", "1", "yes",
+        )
+        from mediahub.brand import palette as _palette
+        manual = _palette.sanitise_manual_palette(
+            primary=(request.form.get("palette_primary") or "").strip(),
+            secondary=(request.form.get("palette_secondary") or "").strip(),
+            accent=(request.form.get("palette_accent") or "").strip(),
+            fourth=(request.form.get("palette_fourth") or "").strip(),
+            include_fourth=use_fourth,
+        )
+        prof.brand_palette_manual = manual
+        prof.brand_palette_use_fourth = use_fourth
+
+        # Unticking the 4th-colour box must always drop the stale 4th
+        # slot from the AI's pick — otherwise the next render still
+        # surfaces a fourth swatch the user just opted out of. Done
+        # outside the re-resolve branch below so the tickbox-only path
+        # also clears it.
+        if not use_fourth and prof.brand_palette_extracted:
+            extracted = dict(prof.brand_palette_extracted)
+            if extracted.pop(_palette.FOURTH_SLOT, None) is not None:
+                prof.brand_palette_extracted = extracted
+
+        # Re-run the AI resolver only when the user gave us nothing to
+        # honour (all slots blank → defer fully to AI) OR explicitly
+        # asked for a 4th colour the manual override doesn't supply
+        # (we need the AI to surface a candidate). When all three
+        # manual slots are set, the visible palette is fully overridden
+        # via ``effective_palette`` and an LLM round-trip is pure waste.
+        all_slots_blank = not manual
+        wants_ai_fourth = use_fourth and not manual.get(_palette.FOURTH_SLOT)
+        if all_slots_blank or wants_ai_fourth:
+            try:
+                signals = {}
+                lcs = prof.link_capture_state or {}
+                for plat, entry in lcs.items():
+                    if isinstance(entry, dict) and entry.get("palette_mentions"):
+                        signals[plat] = list(entry["palette_mentions"])
+                sources = _palette.gather_colour_sources(
+                    link_palette_signals=signals,
+                    brand_guidelines=prof.brand_guidelines or {},
+                    brand_logos=prof.brand_logos or [],
+                )
+                if sources:
+                    resolved = _palette.resolve_palette(
+                        org_name=prof.display_name,
+                        voice_summary=prof.brand_voice_summary or "",
+                        sources=sources,
+                        allow_fourth=use_fourth,
+                    )
+                    if resolved:
+                        merged = dict(prof.brand_palette_extracted or {})
+                        for k in _palette.ALL_SLOTS:
+                            if resolved.get(k):
+                                merged[k] = resolved[k]
+                        if not use_fourth:
+                            merged.pop(_palette.FOURTH_SLOT, None)
+                        prof.brand_palette_extracted = merged
+                        prof.brand_palette_reasoning = resolved.get("reasoning", "")
+                    prof.brand_palette_sources = sources
+            except Exception as e:
+                log.info("manual palette re-resolve failed: %s", e)
+
+        # Keep the legacy brand_primary / brand_secondary in step so the
+        # BrandKit fallback path renders the same colours as the form.
+        eff = _palette.effective_palette(
+            manual=prof.brand_palette_manual,
+            extracted=prof.brand_palette_extracted,
+        )
+        if eff.get("primary"):
+            prof.brand_primary = eff["primary"]
+        if eff.get("secondary"):
+            prof.brand_secondary = eff["secondary"]
+
+        save_profile(prof)
         return redirect(url_for("organisation_setup"))
 
     @app.route("/organisation/setup/logo/<logo_id>", methods=["GET"])
@@ -12995,6 +13354,19 @@ function tiRegenerate() {{
         if not _v73_ok or _build_grouped_pack is None:
             return redirect(_pack_url)
 
+        # Round-8: load the per-card workflow sidecar so the new
+        # Approve / Reject / Re-queue strap below each card can stamp
+        # the current state (queue|approved|rejected|posted|edited).
+        # Falls back to an empty dict so the loop below stays
+        # crash-safe when the workflow store can't be reached.
+        _wf_states: dict = {}
+        try:
+            _ws = _get_wf_store()
+            if _ws is not None:
+                _wf_states = _ws.load(run_id) or {}
+        except Exception:
+            _wf_states = {}
+
         try:
             grouped = _build_grouped_pack(run_data, profile_id)
         except Exception as e:
@@ -13030,6 +13402,15 @@ function tiRegenerate() {{
                 band = _h(item.get("quality_band") or "")
                 prio = item.get("priority", 0)
                 n_ach = item.get("n_achievements", 0)
+                # Pull the per-card workflow status so the approve/reject row
+                # below can render the current state strap. Sidecar workflow
+                # state lives in _wf_states (loaded once at the top of the
+                # route), falling back to whatever the item itself carries.
+                _card_wf = _wf_states.get(card_id_raw) if isinstance(_wf_states, dict) else None
+                if _card_wf is not None and hasattr(_card_wf, "status"):
+                    wf_status = _card_wf.status.value
+                else:
+                    wf_status = str((item.get("workflow") or {}).get("status") or "queue").lower()
                 # Schedule state pill (queued|scheduled|published|failed).
                 sched_state_raw = (item.get("schedule_status")
                                    or (item.get("workflow") or {}).get("schedule_status")
@@ -13116,7 +13497,9 @@ function tiRegenerate() {{
     </div>
   </div>
   {why_html}
-  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    {_render_wf_actions(run_id, str(card_id_raw), wf_status) if card_id_raw else ""}
+    <span style="flex:1"></span>
     <button class="btn secondary" style="font-size:12px;padding:4px 10px" onclick="copyText(this,'cap-{card_id}-1')">Copy caption</button>
     <textarea id="cap-{card_id}-1" style="display:none">{cap_only}</textarea>
     <button class="btn secondary" style="font-size:12px;padding:4px 10px" onclick="copyText(this,'cap-{card_id}-2')">Copy + hashtags</button>
@@ -13444,19 +13827,19 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             _profs = list_profiles()
             if not _profs:
                 _org_url = url_for('organisation_page')
-                _add_input_url = url_for('add_input_page')
+                _create_url = url_for("make_page")
                 empty_body = (
                     '<section class="mh-hero" data-lane="" style="padding-top:var(--sp-9);padding-bottom:var(--sp-8)">'
                     '<span class="mh-hero-eyebrow">Media library</span>'
                     '<h1>No organisation,<br><em class="editorial">no library.</em></h1>'
                     '<p class="lede">'
                     'The media library is scoped per organisation. Set up your '
-                    'organisation first &mdash; or just add an input and one '
+                    'organisation first &mdash; or jump into Create and one '
                     'gets created automatically.'
                     '</p>'
                     '<div class="mh-hero-actions">'
                     f'<a class="mh-cta-primary" href="{_org_url}">Set up organisation &rarr;</a>'
-                    f'<a class="mh-cta-secondary" href="{_add_input_url}">Or add an input</a>'
+                    f'<a class="mh-cta-secondary" href="{_create_url}">Or start creating</a>'
                     '</div>'
                     '</section>'
                 )
@@ -13639,6 +14022,98 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             })
         return jsonify({"profile_id": profile_id, "assets": assets_out})
 
+    # ------------------------------------------------------------------
+    # V9 variation history — small JSON sidecar per (run, card). Tracks
+    # the last ~12 variation signatures + hooks so each regenerate can
+    # actively pick something the user hasn't seen yet. Bounded so the
+    # file never grows unbounded.
+    # ------------------------------------------------------------------
+    def _v9_variation_history_path(run_id: str, card_id: str) -> "Path":
+        safe = re.sub(r"[^a-zA-Z0-9_-]", "_", str(card_id))[:80]
+        return RUNS_DIR / run_id / "variations" / f"{safe}.json"
+
+    def _v9_load_variation_history(run_id: str, card_id: str) -> dict:
+        p = _v9_variation_history_path(run_id, card_id)
+        if not p.exists():
+            return {"signatures": [], "hooks": []}
+        try:
+            data = json.loads(p.read_text("utf-8"))
+            if not isinstance(data, dict):
+                return {"signatures": [], "hooks": []}
+            sigs = list(data.get("signatures") or [])
+            hooks = list(data.get("hooks") or [])
+            return {"signatures": sigs, "hooks": hooks}
+        except Exception:
+            return {"signatures": [], "hooks": []}
+
+    def _v9_save_variation_history(run_id: str, card_id: str,
+                                    signature: str, hook: str) -> None:
+        if not signature:
+            return
+        p = _v9_variation_history_path(run_id, card_id)
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            data = _v9_load_variation_history(run_id, card_id)
+            sigs = data.get("signatures") or []
+            hooks = data.get("hooks") or []
+            sigs.append(signature)
+            if hook:
+                hooks.append(hook)
+            # Cap at 12 entries — the AI / picker only ever looks at the
+            # most recent 6 so this gives a comfortable buffer.
+            sigs = sigs[-12:]
+            hooks = hooks[-12:]
+            p.write_text(json.dumps({"signatures": sigs, "hooks": hooks}), encoding="utf-8")
+        except Exception:
+            # History is a nice-to-have, not a hard requirement — never
+            # surface persistence failures to the user.
+            pass
+
+    # ------------------------------------------------------------------
+    # V9 caption history — same idea as variation history but per swim.
+    # The caption route feeds the most recent ~5 captions back into the
+    # system prompt so the AI actively writes something different on
+    # each regenerate. Capped at 10 stored entries.
+    # ------------------------------------------------------------------
+    def _v9_caption_history_path(run_id: str, swim_id: str) -> "Path":
+        safe = re.sub(r"[^a-zA-Z0-9_-]", "_", str(swim_id))[:80]
+        return RUNS_DIR / run_id / "caption_history" / f"{safe}.json"
+
+    def _v9_load_caption_history(run_id: str, swim_id: str) -> list[str]:
+        p = _v9_caption_history_path(run_id, swim_id)
+        if not p.exists():
+            return []
+        try:
+            data = json.loads(p.read_text("utf-8"))
+            if isinstance(data, dict):
+                items = data.get("captions") or []
+                return [c for c in items if isinstance(c, str) and c.strip()]
+            if isinstance(data, list):
+                return [c for c in data if isinstance(c, str) and c.strip()]
+        except Exception:
+            pass
+        return []
+
+    def _v9_save_caption_history(run_id: str, swim_id: str, caption: str) -> None:
+        if not caption or not caption.strip():
+            return
+        p = _v9_caption_history_path(run_id, swim_id)
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            existing = _v9_load_caption_history(run_id, swim_id)
+            existing.append(caption.strip())
+            # Dedupe (preserve order) and cap at 10.
+            seen: set[str] = set()
+            unique: list[str] = []
+            for c in existing[-20:]:
+                if c not in seen:
+                    seen.add(c)
+                    unique.append(c)
+            unique = unique[-10:]
+            p.write_text(json.dumps({"captions": unique}), encoding="utf-8")
+        except Exception:
+            pass
+
     @app.route("/api/runs/<run_id>/cards/<card_id>/create-graphic", methods=["POST"])
     def api_create_graphic(run_id: str, card_id: str):
         """Render a visual for a single content item / recognition card."""
@@ -13721,15 +14196,33 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             req_fmt = _req.args.get("format")
         formats_kw = [req_fmt] if req_fmt else None
 
-        # Variation seed. Default behaviour now: pick a UNIQUE per-card seed
-        # so every card in a pack looks visibly different (different layout
-        # family, palette permutation, headline phrasing) while still using
-        # the club's own colours, logo, and photos.
-        # Caller can override with ?variation_seed=N (explicit int).
-        # Setting variation_seed=0 explicitly restores the legacy "identity"
-        # render (no variation), useful for debugging / regression tests.
+        # V9 variation overhaul: every regenerate produces a fresh random
+        # creative direction (different layout family + background style +
+        # accent decoration + typography pair + composition + headline
+        # hook). When an AI provider is configured we ask the AI to pick
+        # the direction; otherwise the random profile picker fills it.
+        # The route persists the last few signatures + hooks per card so
+        # the AI / picker actively avoids repeating itself.
+        #
+        # Stability mode for callers that need it (page reload, debug):
+        #   ?stable=true       → use the legacy deterministic seed
+        #   ?variation_seed=N  → force a specific integer seed
         seed_raw = _req.args.get("variation_seed")
-        if seed_raw is None or seed_raw == "":
+        stable_mode = (_req.args.get("stable") or "").lower() in ("1", "true", "yes")
+        variation_seed = 0
+        variation_profile = None
+        ai_directed = False
+
+        history = _v9_load_variation_history(run_id, card_id)
+        recent_sigs = history.get("signatures", [])[-6:]
+        recent_hooks = history.get("hooks", [])[-6:]
+
+        if seed_raw not in (None, ""):
+            try:
+                variation_seed = int(seed_raw)
+            except (TypeError, ValueError):
+                variation_seed = 0
+        elif stable_mode:
             try:
                 from mediahub.creative_brief.generator import auto_variation_seed_for
                 variation_seed = auto_variation_seed_for(
@@ -13738,10 +14231,18 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             except Exception:
                 variation_seed = 1
         else:
+            # Fresh random direction. The AI director runs inside
+            # generate() when a provider is configured; otherwise the
+            # random profile picker provides the variety.
             try:
-                variation_seed = int(seed_raw)
-            except (TypeError, ValueError):
-                variation_seed = 0
+                from mediahub.creative_brief.generator import random_variation_profile
+                variation_profile = random_variation_profile(
+                    angle=item.get("post_angle") or "",
+                    avoid_signatures=recent_sigs,
+                )
+            except Exception:
+                variation_profile = None
+            ai_directed = True   # generate() will try the AI director first
 
         try:
             res = _v8_create_visual_for_item(
@@ -13750,16 +14251,29 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                 media_assets=media_assets,
                 formats=formats_kw,
                 variation_seed=variation_seed,
+                variation_profile=variation_profile,
+                use_ai_director=ai_directed,
+                recent_signatures=recent_sigs,
+                recent_hooks=recent_hooks,
             )
         except Exception as e:
             return jsonify({"error": f"render_failed: {e}"}), 500
         # V9: Attach the "Why this card?" explanation so JSON consumers can
         # render the same plain-English reasoning the UI shows.
         explanation = _build_card_explanation(target)
+        # Persist the new variation signature + hook so the next
+        # regenerate avoids it.
+        brief_d = res.get("brief") or {}
+        new_sig = brief_d.get("variation_signature") or ""
+        new_hook = brief_d.get("primary_hook") or ""
+        if new_sig:
+            _v9_save_variation_history(run_id, card_id, new_sig, new_hook)
         # Include the seed in the response so the UI / debugging can see it.
         return jsonify({
             "ok": True,
             "variation_seed": variation_seed,
+            "variation_signature": new_sig,
+            "ai_directed": bool(brief_d.get("ai_directed")),
             "explanation": explanation,
             **res,
         })
@@ -14044,31 +14558,50 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             pass
 
         from concurrent.futures import ThreadPoolExecutor
+        # V9: build three distinct random variation profiles so the
+        # variant picker actually shows three different visual directions
+        # (not the legacy palette-only seeds 1/2/3).
+        from mediahub.creative_brief.generator import random_variation_profile
 
-        def _one(seed: int) -> dict:
+        history = _v9_load_variation_history(run_id, card_id)
+        recent_sigs = history.get("signatures", [])[-6:]
+
+        profiles: list[Any] = []
+        sigs_so_far = list(recent_sigs)
+        for _ in range(3):
+            prof = random_variation_profile(
+                angle=item.get("post_angle") or "",
+                avoid_signatures=sigs_so_far,
+            )
+            profiles.append(prof)
+            sigs_so_far.append(prof.signature())
+
+        def _one(profile) -> dict:
             try:
                 res = _v8_create_visual_for_item(
                     item, brand_kit,
                     profile_id=profile_id, run_id=run_id,
                     media_assets=media_assets,
-                    variation_seed=seed,
+                    variation_profile=profile,
+                    use_ai_director=True,
+                    recent_signatures=sigs_so_far,
                 )
                 visuals = res.get("visuals") or []
                 # Pick the feed_portrait by default if present, else first.
                 primary = next((v for v in visuals if v.get("format_name") == "feed_portrait"), visuals[0] if visuals else None)
                 return {
-                    "seed": seed,
+                    "seed": 0,
+                    "variation_signature": (res.get("brief") or {}).get("variation_signature", ""),
                     "visual": primary,
                     "visuals": visuals,
                     "brief": res.get("brief"),
                     "errors": res.get("errors") or [],
                 }
             except Exception as e:
-                return {"seed": seed, "visual": None, "visuals": [], "brief": None, "errors": [str(e)]}
+                return {"seed": 0, "visual": None, "visuals": [], "brief": None, "errors": [str(e)]}
 
-        seeds = [1, 2, 3]
         with ThreadPoolExecutor(max_workers=3) as ex:
-            variants = list(ex.map(_one, seeds))
+            variants = list(ex.map(_one, profiles))
         return jsonify({"ok": True, "variants": variants})
 
     # ------------------------------------------------------------------

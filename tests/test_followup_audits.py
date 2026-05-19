@@ -378,8 +378,11 @@ class TestV1FullSignupFlow:
             assert "instagram" in prof.link_capture_state
             assert prof.link_capture_state["instagram"]["status"] == "real_content"
 
-            # 5. Next page renders for this active profile
-            r5 = c.get("/add-input")
+            # 5. Next page renders for this active profile.
+            # /add-input is a redirect alias to /make (the "Add Input"
+            # tab was merged into "Create"); follow redirects so this
+            # check survives the alias.
+            r5 = c.get("/add-input", follow_redirects=True)
             assert r5.status_code == 200
 
 
