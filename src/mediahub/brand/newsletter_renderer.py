@@ -83,6 +83,30 @@ def _safe_hex(value: Optional[str], fallback: str) -> str:
     return fallback
 
 
+def _resolve_email_primary(profile) -> str:
+    """Phase 1.6 Stage G: prefer the theme-store light-scheme primary
+    over the legacy ``brand_primary`` field.
+
+    Emails are viewed on white email-body backgrounds (the current
+    template uses ``#f3f4f6``), so the LIGHT scheme's primary is the
+    correct role to inline into the header band — it's the darker,
+    more saturated brand tone with high contrast against white.
+    """
+    pid = _get(profile, "profile_id")
+    if pid:
+        try:
+            from mediahub.theming.theme_store import read_theme, palette_for_email
+            theme_json = read_theme(pid)
+            if theme_json:
+                p = palette_for_email(theme_json)
+                hex_value = p.get("primary")
+                if isinstance(hex_value, str) and hex_value.startswith("#"):
+                    return _safe_hex(hex_value, "#0A2540")
+        except Exception:
+            pass
+    return _safe_hex(_get(profile, "brand_primary"), "#0A2540")
+
+
 def _para_html(text: str) -> str:
     """Convert plaintext (double-newline-separated paragraphs) into
     a series of <p> tags with inline styles. Single newlines become
@@ -120,7 +144,8 @@ def render_email_html(
     body_html = _para_html(plain)
 
     org_name = _get(profile, "display_name") or _get(profile, "short_name") or ""
-    brand_primary = _safe_hex(_get(profile, "brand_primary"), "#0A2540")
+    # Phase 1.6 Stage G — prefer theme-store light primary over legacy field.
+    brand_primary = _resolve_email_primary(profile)
     logo_url = _get(profile, "brand_logo_url") or ""
 
     meet_summary = meet_summary or {}

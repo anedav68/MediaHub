@@ -831,8 +831,35 @@ def _common_replacements(brief, width: int, height: int, brand_kit, *,
                          athlete_data_uri: str | None,
                          logo_block: str,
                          result_chip: str,
-                         sponsor_block: str) -> dict[str, str]:
-    palette = brief.palette or {}
+                         sponsor_block: str,
+                         theme_json: Optional[dict] = None) -> dict[str, str]:
+    palette = dict(brief.palette or {})
+
+    # Phase 1.6 Stage G — when an on-disk theme JSON is reachable
+    # (via the brand_kit's profile_id) prefer its light-scheme roles
+    # over brief.palette. Static graphics are posted to social feeds
+    # which default to light backgrounds, so the LIGHT scheme's
+    # primary gives high contrast.
+    if theme_json is None:
+        pid = getattr(brand_kit, "profile_id", None) if brand_kit else None
+        if isinstance(brand_kit, dict):
+            pid = brand_kit.get("profile_id") or pid
+        if pid:
+            try:
+                from mediahub.theming.theme_store import read_theme
+                theme_json = read_theme(pid)
+            except Exception:
+                theme_json = None
+    if theme_json:
+        try:
+            from mediahub.theming.theme_store import palette_for_static
+            p = palette_for_static(theme_json)
+            for k in ("primary", "secondary", "accent"):
+                if isinstance(p.get(k), str) and p[k].startswith("#"):
+                    palette[k] = p[k]
+        except Exception:
+            pass
+
     primary = palette.get("primary", "#0A2540")
     secondary = palette.get("secondary", "#000000")
     accent = palette.get("accent", "#FFFFFF")
