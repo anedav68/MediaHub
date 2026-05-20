@@ -6,6 +6,23 @@ import pytest
 from mediahub.brand.kit import BrandKit
 
 
+@pytest.fixture(autouse=True)
+def _isolate_data_dir(tmp_path, monkeypatch):
+    """Pin DATA_DIR at a temp dir so ``ensure_derived_palette``'s disk-
+    mirror side-effect (Stage G writes ``DATA_DIR/themes/<id>.json``)
+    lands in tmp, not the source tree.
+
+    Without this, deriving a palette for ``profile_id="x"`` here writes
+    ``src/themes/x.json``, which then leaks into other suites — e.g.
+    ``test_newsletter_renderer`` reads the theme store for profile "x"
+    and fails its invalid-colour fallback assertion. Mirrors the
+    isolation the sibling theming tests already use.
+    """
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    from mediahub.theming.theme_store import _read_cached
+    _read_cached.cache_clear()
+
+
 class TestBrandKitDerivedPaletteField:
     def test_default_kit_has_no_derived_palette(self):
         kit = BrandKit.generic_default()
