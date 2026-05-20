@@ -990,6 +990,88 @@ time.mh-rel[title] { cursor: help; border-bottom: 1px dotted var(--hairline); }
 }
 
 /* =====================================================================
+   PHASE 5 — ACTIVITY PAGE
+   ===================================================================== */
+
+/* Stat-summary strip — three big numbers at the top of /activity that
+   compress total / cards-generated / errored at a glance. Uses the
+   existing .stat block primitives plus a row container. */
+.mh-activity-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+/* Search + filter toolbar above the table. */
+.mh-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+.mh-toolbar .grow { flex: 1; min-width: 220px; }
+.mh-toolbar .mh-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+}
+.mh-toolbar .mh-search svg {
+  position: absolute;
+  left: 12px;
+  width: 16px; height: 16px;
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+.mh-toolbar .mh-search input {
+  padding-left: 36px;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  width: 100%;
+}
+.mh-toolbar .mh-search input::placeholder { color: var(--ink-faint); }
+
+/* Date-group section header inside the table — used when grouping
+   runs by Today / Yesterday / Earlier. */
+.mh-date-group-row td {
+  padding: 18px 14px 6px;
+  border-bottom: 0;
+  background: transparent;
+}
+.mh-date-group-row {
+  background: transparent !important;
+}
+.mh-date-group-row td::before { content: '' !important; margin: 0 !important; }
+.mh-date-group-row .label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.mh-date-group-row .label::after {
+  content: '';
+  width: 60px; height: 1px;
+  background: var(--hairline);
+}
+
+/* Empty-search inline state — shown by JS when no rows match the
+   client-side text filter. */
+.mh-empty-inline {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--ink-muted);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+}
+.mh-empty-inline b { color: var(--ink); font-weight: 600; }
+
+/* =====================================================================
    PHASE 4 — CONFIGURE & BRAND KIT
    ===================================================================== */
 

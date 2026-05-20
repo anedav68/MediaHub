@@ -5116,14 +5116,48 @@ def create_app() -> Flask:
         if prof is None:
             return redirect(url_for("organisation_setup"))
 
+        # Phase 5 — optional ?status= filter. Whitelist the values to
+        # avoid arbitrary SQL.
+        status_q = (request.args.get("status") or "").strip()
+        if status_q not in ("done", "running", "queued", "error"):
+            status_q = ""
+
         conn = _db()
-        rows = conn.execute(
-            "SELECT id, created_at, finished_at, status, profile_id, "
-            "meet_name, our_swims, n_cards, n_queue, error, file_name "
-            "FROM runs WHERE profile_id = ? "
-            "ORDER BY created_at DESC LIMIT 100",
-            (prof.profile_id,),
-        ).fetchall()
+        if status_q:
+            rows = conn.execute(
+                "SELECT id, created_at, finished_at, status, profile_id, "
+                "meet_name, our_swims, n_cards, n_queue, error, file_name "
+                "FROM runs WHERE profile_id = ? AND status = ? "
+                "ORDER BY created_at DESC LIMIT 100",
+                (prof.profile_id, status_q),
+            ).fetchall()
+            # Also pull totals for the stat strip + chip counts so the
+            # filtered view still shows the full picture at the top.
+            counts_row = conn.execute(
+                "SELECT status, COUNT(*) AS n FROM runs WHERE profile_id = ? "
+                "GROUP BY status",
+                (prof.profile_id,),
+            ).fetchall()
+            unfiltered_counts = {r["status"]: r["n"] for r in counts_row}
+            total_unfiltered = sum(unfiltered_counts.values())
+            _cards_row = conn.execute(
+                "SELECT COALESCE(SUM(n_cards), 0) AS s FROM runs WHERE profile_id = ?",
+                (prof.profile_id,),
+            ).fetchone()
+            cards_unfiltered = int(_cards_row["s"] if _cards_row else 0)
+        else:
+            rows = conn.execute(
+                "SELECT id, created_at, finished_at, status, profile_id, "
+                "meet_name, our_swims, n_cards, n_queue, error, file_name "
+                "FROM runs WHERE profile_id = ? "
+                "ORDER BY created_at DESC LIMIT 100",
+                (prof.profile_id,),
+            ).fetchall()
+            unfiltered_counts = {}
+            for r in rows:
+                unfiltered_counts[r["status"]] = unfiltered_counts.get(r["status"], 0) + 1
+            total_unfiltered = len(rows)
+            cards_unfiltered = sum(int(r["n_cards"] or 0) for r in rows)
         conn.close()
 
         # Phase 1.3 — Recent posting activity. Last 20 Buffer attempts for
@@ -5199,51 +5233,102 @@ def create_app() -> Flask:
                              f'{s["failed"]} failed</span>')
             return " ".join(parts)
 
-        rows_html = ""
+        # Phase 5 — group rows by date bucket so the table reads as a
+        # newsroom log instead of an undifferentiated 100-row dump.
+        from datetime import datetime as _dt
+        import datetime as _dtmod
+        def _bucket(iso_str: str) -> str:
+            if not iso_str:
+                return "earlier"
+            try:
+                t = _dt.fromisoformat(iso_str.replace("Z", "").replace("T", " ")[:19])
+            except Exception:
+                return "earlier"
+            now = _dt.now()
+            delta = now - t
+            if delta.total_seconds() < 0:
+                return "today"
+            days = delta.days
+            if days == 0:
+                return "today"
+            if days == 1:
+                return "yesterday"
+            if days < 7:
+                return "this_week"
+            if days < 30:
+                return "this_month"
+            return "earlier"
+        bucket_labels = {
+            "today":      "Today",
+            "yesterday":  "Yesterday",
+            "this_week":  "Earlier this week",
+            "this_month": "Earlier this month",
+            "earlier":    "Earlier",
+        }
+        bucket_order = ["today", "yesterday", "this_week", "this_month", "earlier"]
+        grouped: dict[str, list] = {b: [] for b in bucket_order}
+        # Also keep a flat count of total cards / failures for the top stats.
+        n_cards_total = 0
+        n_done = 0
+        n_running = 0
         n_errored = 0
         for r in rows:
-            badge = {"done": "good", "running": "info", "queued": "info",
-                     "error": "bad"}.get(r["status"], "")
-            review_href = url_for('review', run_id=r['id'])
-            delete_href = url_for('privacy_delete_run', run_id=r['id'])
-            started = (r["created_at"] or "")[:19]
-            started_iso = started.replace(" ", "T") + "Z" if started else ""
+            n_cards_total += int(r["n_cards"] or 0)
+            if r["status"] == "done":     n_done += 1
+            if r["status"] == "running":  n_running += 1
+            if r["status"] == "error":    n_errored += 1
+            grouped[_bucket((r["created_at"] or "")[:19])].append(r)
+
+        rows_html = ""
+        for bucket in bucket_order:
+            bucket_rows = grouped[bucket]
+            if not bucket_rows:
+                continue
             rows_html += (
-                f'<tr><td data-label="Input"><a href="{review_href}">{_h(r["meet_name"] or r["file_name"] or r["id"])}</a></td>'
-                f'<td data-label="Status"><span class="tag {badge}">{_h(r["status"])}</span></td>'
-                f'<td data-label="Matched">{_h(r["our_swims"] or 0)}</td>'
-                f'<td data-label="Queue / Total">{_h(r["n_queue"] or 0)} / {_h(r["n_cards"] or 0)}</td>'
-                f'<td data-label="Schedule">{_schedule_summary_html(r["id"])}</td>'
-                f'<td data-label="Started"><time class="mh-rel" datetime="{_h(started_iso)}">{_h(started)}</time></td>'
-                f'<td><form method="post" action="{delete_href}" '
-                f'style="display:inline" data-no-loader="1" onsubmit="return confirm(\'Delete this run? This cannot be undone.\')">'
-                f'<button class="btn danger" type="submit" '
-                f'style="font-size:11px;padding:4px 10px">Delete</button>'
-                f'</form></td></tr>'
+                '<tr class="mh-date-group-row">'
+                f'<td colspan="7"><span class="label">{bucket_labels[bucket]} '
+                f'<span style="color:var(--ink-faint)">&middot; {len(bucket_rows):02d}</span></span></td>'
+                '</tr>'
             )
-            # Phase 1.5 — "Why did this run fail?" surfacing. Errored runs
-            # get a second row with the persisted error message so an
-            # operator (or pilot club) can see what went wrong without
-            # clicking through to the broken review page.
-            if r["status"] == "error" and r["error"]:
-                n_errored += 1
-                err_text = str(r["error"])
-                # Trim absurdly long stack traces — keep the first ~600 chars.
-                truncated = err_text[:600] + ("…" if len(err_text) > 600 else "")
+            for r in bucket_rows:
+                badge = {"done": "good", "running": "info", "queued": "info",
+                         "error": "bad"}.get(r["status"], "")
+                review_href = url_for('review', run_id=r['id'])
+                delete_href = url_for('privacy_delete_run', run_id=r['id'])
+                started = (r["created_at"] or "")[:19]
+                started_iso = started.replace(" ", "T") + "Z" if started else ""
+                search_haystack = (r["meet_name"] or r["file_name"] or r["id"] or "").lower()
                 rows_html += (
-                    '<tr class="run-error-row">'
-                    '<td colspan="7" style="padding:6px 14px 14px 14px;'
-                    'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
-                    '<details>'
-                    '<summary style="cursor:pointer;font-size:13px;font-weight:600;'
-                    'color:var(--mh-prim-error-300)">Why did this run fail?</summary>'
-                    '<pre style="margin:8px 0 0;padding:10px 12px;'
-                    'background:rgba(0,0,0,0.25);border-radius:6px;'
-                    'font-size:12px;white-space:pre-wrap;word-break:break-word">'
-                    f'{_h(truncated)}</pre>'
-                    '</details>'
-                    '</td></tr>'
+                    f'<tr data-status="{_h(r["status"])}" data-q="{_h(search_haystack)}">'
+                    f'<td data-label="Input"><a href="{review_href}">{_h(r["meet_name"] or r["file_name"] or r["id"])}</a></td>'
+                    f'<td data-label="Status"><span class="tag {badge}">{_h(r["status"])}</span></td>'
+                    f'<td data-label="Matched">{_h(r["our_swims"] or 0)}</td>'
+                    f'<td data-label="Queue / Total">{_h(r["n_queue"] or 0)} / {_h(r["n_cards"] or 0)}</td>'
+                    f'<td data-label="Schedule">{_schedule_summary_html(r["id"])}</td>'
+                    f'<td data-label="Started"><time class="mh-rel" datetime="{_h(started_iso)}">{_h(started)}</time></td>'
+                    f'<td><form method="post" action="{delete_href}" '
+                    f'style="display:inline" data-no-loader="1" onsubmit="return confirm(\'Delete this run? This cannot be undone.\')">'
+                    f'<button class="btn danger" type="submit" '
+                    f'style="font-size:11px;padding:4px 10px">Delete</button>'
+                    f'</form></td></tr>'
                 )
+                if r["status"] == "error" and r["error"]:
+                    err_text = str(r["error"])
+                    truncated = err_text[:600] + ("…" if len(err_text) > 600 else "")
+                    rows_html += (
+                        '<tr class="run-error-row">'
+                        '<td colspan="7" style="padding:6px 14px 14px 14px;'
+                        'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
+                        '<details>'
+                        '<summary style="cursor:pointer;font-size:13px;font-weight:600;'
+                        'color:var(--mh-prim-error-300)">Why did this run fail?</summary>'
+                        '<pre style="margin:8px 0 0;padding:10px 12px;'
+                        'background:rgba(0,0,0,0.25);border-radius:6px;'
+                        'font-size:12px;white-space:pre-wrap;word-break:break-word">'
+                        f'{_h(truncated)}</pre>'
+                        '</details>'
+                        '</td></tr>'
+                    )
 
         # Recent posting activity panel — bottom-of-page, collapsed by
         # default when empty; expanded when there's something to see so
@@ -5299,6 +5384,93 @@ def create_app() -> Flask:
                 'see the pipeline error.</div>'
             )
 
+        # Top stat strip — always shows the UNFILTERED picture so it's a
+        # stable org-level summary regardless of the active ?status= chip.
+        summary_html = (
+            '<div class="mh-activity-summary">'
+            f'<div class="stat live"><div class="l">Total runs</div><div class="v">{total_unfiltered:02d}</div></div>'
+            f'<div class="stat medal"><div class="l">Cards generated</div><div class="v">{cards_unfiltered:,}</div></div>'
+            f'<div class="stat good"><div class="l">Completed</div><div class="v">{unfiltered_counts.get("done", 0):02d}</div></div>'
+        )
+        if unfiltered_counts.get("error", 0):
+            summary_html += (
+                f'<div class="stat bad"><div class="l">Failed</div><div class="v">{unfiltered_counts.get("error", 0):02d}</div></div>'
+            )
+        summary_html += '</div>'
+
+        # Toolbar — search input + status segment filter.
+        # Filter buttons use ?status= for server-side filtering plus the
+        # client-side text search filters in-place. Counts are unfiltered
+        # so the chips always show the full picture.
+        seg_buttons = ""
+        seg_specs = [
+            ("",        "All",       total_unfiltered),
+            ("done",    "Completed", unfiltered_counts.get("done", 0)),
+            ("running", "Running",   unfiltered_counts.get("running", 0) + unfiltered_counts.get("queued", 0)),
+            ("error",   "Failed",    unfiltered_counts.get("error", 0)),
+        ]
+        for val, label, count in seg_specs:
+            active_cls = " is-active" if status_q == val else ""
+            url_arg = f"?status={val}" if val else ""
+            seg_buttons += (
+                f'<a class="{active_cls.strip()}" href="{url_for("activity_page")}{url_arg}">'
+                f'{label}<span class="count">{count}</span></a>'
+            )
+        toolbar_html = (
+            '<div class="mh-toolbar">'
+            '<div class="grow mh-search">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+            '<input id="mh-activity-search" type="search" placeholder="Search meet name, file or run id…" autocomplete="off" />'
+            '</div>'
+            '<nav class="mh-segmented" role="tablist" aria-label="Filter by run status">'
+            f'{seg_buttons}'
+            '</nav>'
+            '</div>'
+            '<div id="mh-activity-empty" class="mh-empty-inline" style="display:none">'
+            '<b>Nothing matches.</b><br>Try clearing the search box or picking a different status.'
+            '</div>'
+        )
+
+        # Inline JS — client-side filter on the table rows.
+        filter_js = '''
+<script>
+(function(){
+  var search = document.getElementById('mh-activity-search');
+  var tbody  = document.querySelector('table.mh-table-stack tbody');
+  var empty  = document.getElementById('mh-activity-empty');
+  if (!search || !tbody) return;
+  function apply() {
+    var q = (search.value || '').toLowerCase().trim();
+    var rows = tbody.querySelectorAll('tr[data-q]');
+    var visible = 0;
+    rows.forEach(function(r){
+      var hay = r.getAttribute('data-q') || '';
+      var ok = !q || hay.indexOf(q) !== -1;
+      r.style.display = ok ? '' : 'none';
+      // Hide the matching error-detail row (immediately following).
+      var next = r.nextElementSibling;
+      if (next && next.classList.contains('run-error-row')) {
+        next.style.display = ok ? '' : 'none';
+      }
+      if (ok) visible++;
+    });
+    // Hide group-header rows whose group has no visible siblings.
+    tbody.querySelectorAll('tr.mh-date-group-row').forEach(function(g){
+      var sib = g.nextElementSibling, any = false;
+      while (sib && !sib.classList.contains('mh-date-group-row')) {
+        if (sib.style.display !== 'none' && sib.hasAttribute('data-q')) {
+          any = true; break;
+        }
+        sib = sib.nextElementSibling;
+      }
+      g.style.display = any ? '' : 'none';
+    });
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
+  }
+  search.addEventListener('input', apply);
+})();
+</script>'''
+
         body = (
             '<section class="mh-hero" data-lane="" style="padding-top:var(--sp-7);padding-bottom:var(--sp-6);margin-bottom:var(--sp-5)">'
             '<span class="mh-hero-eyebrow">Activity</span>'
@@ -5308,7 +5480,9 @@ def create_app() -> Flask:
             f'<span>{len(rows):02d} {"run" if len(rows) == 1 else "runs"}</span>'
             '</div>'
             '</section>'
+            f'{summary_html}'
             f'{failure_callout}'
+            f'{toolbar_html}'
             '<div class="card"><table class="mh-table-stack">'
             '<thead><tr><th>Input</th><th>Status</th>'
             '<th>Matched</th><th>Queue / Total</th><th>Schedule</th>'
@@ -5316,6 +5490,7 @@ def create_app() -> Flask:
             f'<tbody>{rows_html}</tbody>'
             '</table></div>'
             f'{posting_panel_html}'
+            f'{filter_js}'
         )
         return _layout("Activity", body, active="activity")
 
