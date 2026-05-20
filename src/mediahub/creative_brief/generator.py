@@ -200,7 +200,8 @@ def generate(content_item: dict, evaluation, brand_kit, *,
              variation_profile: Optional[VariationProfile] = None,
              use_ai_director: bool = False,
              recent_signatures: Optional[list[str]] = None,
-             recent_hooks: Optional[list[str]] = None) -> CreativeBrief:
+             recent_hooks: Optional[list[str]] = None,
+             allowed_families: Optional[list[str]] = None) -> CreativeBrief:
     """Build a CreativeBrief. Pure function — never reaches network unless
     LLM is available; falls back to deterministic defaults otherwise.
 
@@ -254,6 +255,7 @@ def generate(content_item: dict, evaluation, brand_kit, *,
                 default_family=pattern["family"],
                 recent_signatures=recent_signatures or [],
                 recent_hooks=recent_hooks or [],
+                allowed_families=allowed_families,
             )
         except Exception:
             ai_direction = None
@@ -261,7 +263,8 @@ def generate(content_item: dict, evaluation, brand_kit, *,
             # Promote the AI direction into a VariationProfile so the rest
             # of the function only has one code path to follow.
             variation_profile = _profile_from_ai_direction(
-                ai_direction, default_family=pattern["family"]
+                ai_direction, default_family=pattern["family"],
+                allowed_families=allowed_families,
             )
 
     # ---- Apply variation profile when provided ----
@@ -277,6 +280,30 @@ def generate(content_item: dict, evaluation, brand_kit, *,
     # ---- Variation seed: rotate pattern / image treatment if requested ----
     elif variation_seed and variation_seed != 0:
         pattern = _rotate_pattern_for_seed(pattern, angle, variation_seed)
+
+    # ---- Hard layout constraint (caption-only / forced-photo graphics) ----
+    # Applied AFTER every variation path so even the no-AI random fallback
+    # can't land on a family outside the allowed set — otherwise a no_photo
+    # request could pick a photo family, or a forced-photo request a text-led
+    # one. Keeps the profile + pattern in lock-step.
+    if allowed_families:
+        if pattern.get("family") not in allowed_families:
+            _target = next((p for p in PATTERNS if p["family"] == allowed_families[0]), None)
+            if _target is not None:
+                pattern = _target
+        if variation_profile is not None and getattr(variation_profile, "layout_family", None) not in allowed_families:
+            import dataclasses as _dc
+            _is_text = pattern["family"] in {"text_led_recap", "weekend_numbers"}
+            try:
+                variation_profile = _dc.replace(
+                    variation_profile,
+                    layout_family=pattern["family"],
+                    photo_treatment=("no-photo" if _is_text else (
+                        "cutout" if variation_profile.photo_treatment == "no-photo"
+                        else variation_profile.photo_treatment)),
+                )
+            except Exception:
+                pass
 
     # Athlete + result vocabulary (sport-agnostic — we read whatever the
     # detectors put in the achievement dict)
@@ -495,6 +522,27 @@ def generate(content_item: dict, evaluation, brand_kit, *,
             _legacy_axes_from_seed(variation_seed)
         mood = ""
         ai_directed = False
+
+    # ---- Caller-supplied display copy (caption-only content types) ----
+    # Free Text / Session Update / Event Preview / Sponsor Post carry no
+    # swim achievement to synthesise a headline + bullets from, so their
+    # route hands us ready-made text via ``graphic_text``. Honour it
+    # verbatim — it only feeds the text-led layouts, and the swim pipeline
+    # never sets this key, so the achievement-driven path is unaffected.
+    gt = content_item.get("graphic_text")
+    if isinstance(gt, dict):
+        if gt.get("headline_line1"):
+            layers["headline_line1"] = str(gt["headline_line1"])
+        if gt.get("headline_line2"):
+            layers["headline_line2"] = str(gt["headline_line2"])
+        _gt_bullets = gt.get("bullets")
+        if isinstance(_gt_bullets, list):
+            _clean = [str(b).strip() for b in _gt_bullets if str(b).strip()]
+            if _clean:
+                layers["bullets"] = _clean[:4]
+        if gt.get("primary_hook"):
+            primary_hook = str(gt["primary_hook"])
+            layers["achievement_label"] = primary_hook
 
     brief = CreativeBrief(
         id="cb_" + uuid.uuid4().hex[:12],
@@ -970,13 +1018,21 @@ def _legacy_axes_from_seed(seed: int) -> tuple[str, str, str, str, str, float]:
     )
 
 
-def _profile_from_ai_direction(direction: dict, *, default_family: str) -> VariationProfile:
+def _profile_from_ai_direction(
+    direction: dict, *, default_family: str,
+    allowed_families: Optional[list[str]] = None,
+) -> VariationProfile:
     """Convert the AI director's structured output into a VariationProfile.
 
     The director returns a JSON object describing the creative
     direction; this maps it into the in-memory profile, normalising
     unknown values to safe defaults so a hallucinated key never
     breaks the renderer.
+
+    ``allowed_families`` hard-constrains the layout (caption-only graphics
+    must stay text-led); when the chosen family is text-led the photo
+    treatment is forced to no-photo so the render never expects a cutout
+    that doesn't exist.
     """
     def _norm(key: str, allowed: tuple[str, ...], default: str) -> str:
         v = str(direction.get(key, "") or "").strip().lower()
@@ -985,6 +1041,9 @@ def _profile_from_ai_direction(direction: dict, *, default_family: str) -> Varia
     family = str(direction.get("layout_family", "") or default_family).strip().lower()
     if not family or family not in {p["family"] for p in PATTERNS}:
         family = default_family
+    if allowed_families and family not in allowed_families:
+        family = allowed_families[0]
+    photo_override = "no-photo" if family in {"text_led_recap", "weekend_numbers"} else None
 
     try:
         deco = float(direction.get("decoration_strength", 0.5))
@@ -1005,7 +1064,7 @@ def _profile_from_ai_direction(direction: dict, *, default_family: str) -> Varia
         accent_style=_norm("accent_style", ACCENT_STYLES, "brackets"),
         typography_pair=_norm("typography_pair", TYPOGRAPHY_PAIRS, "anton-inter"),
         composition=_norm("composition", COMPOSITIONS, "right"),
-        photo_treatment=_norm("photo_treatment", PHOTO_TREATMENTS, "cutout"),
+        photo_treatment=photo_override or _norm("photo_treatment", PHOTO_TREATMENTS, "cutout"),
         decoration_strength=deco,
         hook_phrase=str(direction.get("hook_phrase", "") or "").strip()[:80],
         mood=str(direction.get("mood", "") or "").strip()[:40],

@@ -2016,8 +2016,9 @@ function copyActiveTone(btn, cardId) {
 
 // V8: Lazy visual generation. Cached per (card, format) within session.
 var _visualCache = {};
-function createGraphic(btn, createUrl, cardId, fmt) {
+function createGraphic(btn, createUrl, cardId, fmt, assetId, noPhoto) {
   fmt = fmt || 'feed_portrait';
+  assetId = assetId || '';
   var panel = document.querySelector('.visual-panel[data-card="' + cardId + '"]');
   if (!panel) return;
   panel.style.display = '';
@@ -2027,13 +2028,16 @@ function createGraphic(btn, createUrl, cardId, fmt) {
   panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px">' +
     '<div style="width:24px;height:24px;border:2px solid rgba(212,255,58,0.30);border-top-color:var(--lane);border-radius:50%;margin:0 auto 10px;animation:spin 600ms linear infinite"></div>' +
     'Generating graphic&hellip; this may take 5-15 seconds</div>';
-  var cacheKey = cardId + '|' + fmt;
+  var cacheKey = cardId + '|' + fmt + '|' + assetId + '|' + (noPhoto ? '1' : '0');
   if (_visualCache[cacheKey]) {
     _renderVisualPanel(panel, _visualCache[cacheKey], cardId, createUrl);
     btn.disabled = false; btn.textContent = origLabel;
     return;
   }
-  fetch(createUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({format: fmt})})
+  var reqBody = {format: fmt};
+  if (assetId) reqBody.asset_id = assetId;
+  if (noPhoto) reqBody.no_photo = true;
+  fetch(createUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reqBody)})
     .then(function(r) { return r.json().then(function(j){ return {ok: r.ok, body: j}; }); })
     .then(function(res) {
       btn.disabled = false; btn.textContent = origLabel;
@@ -2070,27 +2074,51 @@ function _renderVisualPanel(panel, data, cardId, createUrl) {
   var v = visuals[0];
   // Use absolute path that respects the deployed /port/5000 prefix; the backend prepends location.pathname's base via window._API_BASE.
   var apiBase = (window._API_BASE || '');
-  var imgUrl = apiBase + '/api/visual/' + encodeURIComponent(v.id) + '/png/' + encodeURIComponent(v.format_name || 'feed_portrait');
+  var cur = v.format_name || 'feed_portrait';
+  var chosen = data.chosen_asset_id || '';
+  var noP = !!data.no_photo;
+  var imgUrl = apiBase + '/api/visual/' + encodeURIComponent(v.id) + '/png/' + encodeURIComponent(cur);
   var why = (data.brief && data.brief.why_this_design) || v.why_this_design || '';
   var layout = v.layout_template || (data.brief && data.brief.layout_template) || '';
   var formats = ['feed_portrait', 'feed_square', 'story_vertical'];
   var formatLabels = {'feed_portrait':'Portrait', 'feed_square':'Square', 'story_vertical':'Story'};
   var tabsHtml = formats.map(function(f) {
-    var active = (f === (v.format_name || 'feed_portrait'));
-    return '<button class="vfmt-tab" data-fmt="' + f + '" onclick=' + _attrEsc('createGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ', ' + JSON.stringify(f) + ')') + ' style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);cursor:pointer;background:' + (active ? 'rgba(212,255,58,0.15)' : 'transparent') + ';color:' + (active ? 'var(--lane)' : 'var(--ink-dim)') + ';font-family:inherit;margin-right:4px">' + formatLabels[f] + '</button>';
+    var active = (f === cur);
+    return '<button class="vfmt-tab" data-fmt="' + f + '" onclick=' + _attrEsc('createGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ', ' + JSON.stringify(f) + ', ' + JSON.stringify(chosen) + ', ' + (noP ? 'true' : 'false') + ')') + ' style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);cursor:pointer;background:' + (active ? 'rgba(212,255,58,0.15)' : 'transparent') + ';color:' + (active ? 'var(--lane)' : 'var(--ink-dim)') + ';font-family:inherit;margin-right:4px">' + formatLabels[f] + '</button>';
   }).join('');
+  // Per-graphic photo picker — the user decides which uploaded photo lands here.
+  var photos = data.available_photos || [];
+  var pickerHtml = '';
+  if (photos.length) {
+    function _pchip(label, active, oc) {
+      return '<button type="button" onclick=' + _attrEsc(oc) + ' style="font-size:11px;padding:3px 9px;border-radius:6px;cursor:pointer;border:1px solid ' + (active ? 'var(--lane)' : 'var(--border)') + ';background:' + (active ? 'rgba(212,255,58,0.12)' : 'transparent') + ';color:var(--ink-dim);font-family:inherit;margin:0 4px 4px 0">' + label + '</button>';
+    }
+    var autoOc = 'createGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ', ' + JSON.stringify(cur) + ', "", false)';
+    var noneOc = 'createGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ', ' + JSON.stringify(cur) + ', "", true)';
+    var thumbs = photos.map(function(ph) {
+      var on = (ph.id === chosen);
+      var oc = 'createGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ', ' + JSON.stringify(cur) + ', ' + JSON.stringify(ph.id) + ', false)';
+      return '<button type="button" title="' + (ph.label || '') + '" onclick=' + _attrEsc(oc) + ' style="padding:0;border-radius:6px;cursor:pointer;border:2px solid ' + (on ? 'var(--lane)' : 'var(--border)') + ';background:var(--bg);margin:0 4px 4px 0;line-height:0"><img src="' + ph.url + '" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:4px;pointer-events:none"/></button>';
+    }).join('');
+    pickerHtml =
+      '<div style="margin-bottom:8px">' +
+        '<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:4px">Photo &middot; pick which goes on this graphic</div>' +
+        _pchip('Auto', (!chosen && !noP), autoOc) + _pchip('No photo', noP, noneOc) + thumbs +
+      '</div>';
+  }
   panel.innerHTML =
     '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">' +
       '<div style="flex:0 0 220px;max-width:240px">' +
-        '<img src="' + imgUrl + '" alt="Generated graphic" style="width:100%;border-radius:6px;border:1px solid var(--border);background:#0a0a0a" />' +
+        '<img src="' + imgUrl + '" alt="Generated graphic" style="width:100%;border-radius:6px;border:1px solid var(--border);background:var(--bg)" />' +
       '</div>' +
       '<div style="flex:1;min-width:200px">' +
         '<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:4px">Generated visual &middot; ' + (layout || 'auto') + '</div>' +
         (why ? '<div style="font-size:12px;color:var(--ink);margin-bottom:8px;line-height:1.4">' + why + '</div>' : '') +
         '<div style="margin-bottom:8px">' + tabsHtml + '</div>' +
+        pickerHtml +
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
           '<a class="btn secondary" href="' + imgUrl + '" download style="font-size:11px;padding:4px 10px">Download PNG</a>' +
-          '<button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick=' + _attrEsc('regenerateGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ')') + '>&#x21BA; Regenerate (3 variants)</button>' +
+          '<button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick=' + _attrEsc('regenerateGraphic(this, ' + JSON.stringify(createUrl) + ', ' + JSON.stringify(cardId) + ', ' + JSON.stringify(chosen) + ', ' + (noP ? 'true' : 'false') + ')') + '>&#x21BA; Regenerate (3 variants)</button>' +
           '<button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick=' + _attrEsc('addGraphicToPack(this, ' + JSON.stringify(v.id) + ')') + '>+ Add to pack</button>' +
         '</div>' +
       '</div>' +
@@ -2196,20 +2224,24 @@ function generateReel(btn, reelUrl) {
     });
 }
 
-function regenerateGraphic(btn, createUrl, cardId) {
+function regenerateGraphic(btn, createUrl, cardId, assetId, noPhoto) {
   // V8.1 issue 4: replace single-output regenerate with a 3-variant picker.
   var panel = document.querySelector('.visual-panel[data-card="' + cardId + '"]');
   if (!panel) return;
   panel.style.display = '';
   // Derive the variants endpoint from the create-graphic URL.
   var variantsUrl = createUrl.replace(/\\/create-graphic$/, '/regenerate-variants');
+  // Carry the user's photo choice so the 3 variants keep that photo.
+  var regenBody = {};
+  if (assetId) regenBody.asset_id = assetId;
+  if (noPhoto) regenBody.no_photo = true;
   var origLabel = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Generating 3 options&hellip;';
   panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px">' +
     '<div style="width:24px;height:24px;border:2px solid rgba(212,255,58,0.30);border-top-color:var(--lane);border-radius:50%;margin:0 auto 10px;animation:spin 600ms linear infinite"></div>' +
     'Producing 3 alternative designs in parallel&hellip; 10-30 seconds.</div>';
-  fetch(variantsUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
+  fetch(variantsUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(regenBody)})
     .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
     .then(function(res){
       btn.disabled = false; btn.textContent = origLabel;
@@ -5138,6 +5170,264 @@ def _theme_seed_style_block() -> str:
         f':root {{ {" ".join(overrides)} }}'
         f'</style>'
     )
+
+
+# Self-contained "Create graphic" panel script for pages OTHER than the meet
+# review page (which has its own richer createGraphic with motion + add-to-pack).
+# Exposes window.mhCreateGraphic(btn, createUrl, cardId, fmt): POSTs to createUrl,
+# then renders the returned visual into <div class="visual-panel" data-card="cardId">.
+# Defined once (guarded), no f-string interpolation — embed verbatim via {_VISUAL_PANEL_JS}.
+_VISUAL_PANEL_JS = """<script>
+(function(){
+  if (window.mhCreateGraphic) return;
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function panelFor(cardId){
+    var sel = (window.CSS && CSS.escape) ? CSS.escape(cardId) : cardId;
+    return document.querySelector('.visual-panel[data-card="' + sel + '"]');
+  }
+  function chipStyle(active){
+    return 'font-size:11px;padding:3px 9px;border-radius:6px;cursor:pointer;border:1px solid '
+      + (active?'var(--lane)':'var(--border)') + ';background:' + (active?'rgba(212,255,58,0.12)':'transparent')
+      + ';color:var(--ink-dim);font-family:inherit;margin:0 4px 4px 0';
+  }
+  function render(panel, data){
+    var st = panel._mh || {};
+    var visuals = data.visuals || [];
+    if (!visuals.length){
+      panel.innerHTML = '<div style="padding:14px;color:var(--ink-muted);font-size:13px">No visual generated.' + ((data.errors && data.errors.length) ? ' (' + esc(data.errors.join('; ')) + ')' : '') + '</div>';
+      return;
+    }
+    var v = visuals[0];
+    var apiBase = (window._API_BASE || '');
+    var cur = v.format_name || st.fmt || 'feed_portrait';
+    st.fmt = cur;
+    if (data.chosen_asset_id != null) st.assetId = data.chosen_asset_id || '';
+    if (data.no_photo != null) st.noPhoto = !!data.no_photo;
+    var imgUrl = apiBase + '/api/visual/' + encodeURIComponent(v.id) + '/png/' + encodeURIComponent(cur);
+    var why = (data.brief && data.brief.why_this_design) || v.why_this_design || '';
+    var layout = v.layout_template || (data.brief && data.brief.layout_template) || '';
+    var formats = [['feed_portrait','Portrait'],['feed_square','Square']];
+    var tabs = formats.map(function(f){
+      var on = (f[0] === cur);
+      return '<button type="button" class="mh-vbtn" data-fmt="' + f[0] + '" style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);cursor:pointer;background:' + (on?'rgba(212,255,58,0.15)':'transparent') + ';color:' + (on?'var(--lane)':'var(--ink-dim)') + ';font-family:inherit;margin-right:4px">' + f[1] + '</button>';
+    }).join('');
+    var photos = data.available_photos || [];
+    var picker = '';
+    if (photos.length){
+      var autoOn = (!st.assetId && !st.noPhoto);
+      var pbtns =
+        '<button type="button" class="mh-vbtn" data-act="photo" data-asset="" data-nophoto="0" style="' + chipStyle(autoOn) + '">Auto</button>' +
+        '<button type="button" class="mh-vbtn" data-act="photo" data-asset="" data-nophoto="1" style="' + chipStyle(!!st.noPhoto) + '">No photo</button>';
+      var thumbs = photos.map(function(ph){
+        var on = (ph.id === st.assetId);
+        return '<button type="button" class="mh-vbtn" data-act="photo" data-asset="' + esc(ph.id) + '" data-nophoto="0" title="' + esc(ph.label) + '" style="padding:0;border-radius:6px;cursor:pointer;border:2px solid ' + (on?'var(--lane)':'var(--border)') + ';background:var(--bg);margin:0 4px 4px 0;line-height:0"><img src="' + esc(ph.url) + '" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:4px;pointer-events:none"/></button>';
+      }).join('');
+      picker =
+        '<div style="margin-bottom:8px">' +
+          '<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:4px">Photo &middot; pick which goes on this graphic</div>' +
+          pbtns + thumbs +
+        '</div>';
+    }
+    panel.innerHTML =
+      '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">' +
+        '<div style="flex:0 0 200px;max-width:220px"><img src="' + imgUrl + '" alt="Generated graphic" style="width:100%;border-radius:6px;border:1px solid var(--border);background:var(--bg)"/></div>' +
+        '<div style="flex:1;min-width:200px">' +
+          '<div style="font-size:10px;text-transform:uppercase;color:var(--ink-muted);letter-spacing:0.5px;margin-bottom:4px">Generated visual &middot; ' + esc(layout || 'auto') + '</div>' +
+          (why ? '<div style="font-size:12px;color:var(--ink);margin-bottom:8px;line-height:1.4">' + esc(why) + '</div>' : '') +
+          '<div style="margin-bottom:8px">' + tabs + '</div>' +
+          picker +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+            '<a class="btn secondary" href="' + imgUrl + '" download style="font-size:11px;padding:4px 10px">Download PNG</a>' +
+            '<button type="button" class="btn secondary mh-vbtn" data-act="regen" style="font-size:11px;padding:4px 10px">&#x21BA; Regenerate</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+  function mhGen(panel){
+    var st = panel._mh; if (!st || !st.url) return;
+    panel.style.display = '';
+    panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px"><div style="width:24px;height:24px;border:2px solid rgba(212,255,58,0.30);border-top-color:var(--lane);border-radius:50%;margin:0 auto 10px;animation:spin 600ms linear infinite"></div>Generating graphic\\u2026 this may take 5-15 seconds</div>';
+    var body = {format: st.fmt || 'feed_portrait'};
+    if (st.assetId) body.asset_id = st.assetId;
+    if (st.noPhoto) body.no_photo = true;
+    fetch(st.url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body), credentials:'same-origin'})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+      .then(function(res){
+        if (!res.ok || res.body.error){
+          panel.innerHTML = '<div style="padding:14px;color:var(--bad);font-size:13px">Error: ' + esc(res.body.error || 'render failed') + '</div>';
+          return;
+        }
+        render(panel, res.body);
+      })
+      .catch(function(err){
+        panel.innerHTML = '<div style="padding:14px;color:var(--bad);font-size:13px">Network error: ' + esc(String(err)) + '</div>';
+      });
+  }
+  // One delegated listener handles every in-panel control (format tabs, photo
+  // picker, regenerate) via data attributes — no per-button inline handlers.
+  document.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.mh-vbtn') : null;
+    if (!b) return;
+    var panel = b.closest('.visual-panel');
+    if (!panel || !panel._mh) return;
+    e.preventDefault();
+    if (b.dataset.fmt) panel._mh.fmt = b.dataset.fmt;
+    if (b.dataset.act === 'photo'){
+      panel._mh.assetId = b.dataset.asset || '';
+      panel._mh.noPhoto = (b.dataset.nophoto === '1');
+    }
+    mhGen(panel);
+  });
+  // Initial entry — the server-rendered "Create graphic" button calls this.
+  window.mhCreateGraphic = function(btn, url, cardId, fmt){
+    var panel = panelFor(cardId);
+    if (!panel) return;
+    panel._mh = {url: url, cardId: cardId, fmt: fmt || 'feed_portrait', assetId: '', noPhoto: false};
+    mhGen(panel);
+  };
+})();
+</script>"""
+
+
+# "Regenerate (fresh angles)" handler for the saved-draft pages. POSTs to the
+# content-engine regenerate route and reloads to the freshly-written set.
+_DRAFT_REGEN_JS = """<script>
+function mhRegenerateDraft(btn, url){
+  var orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '\\u21BA Regenerating\\u2026';
+  fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', credentials:'same-origin'})
+    .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+    .then(function(res){
+      if(res.ok && res.body && res.body.ok){
+        if(window.MH && MH.toast){ MH.toast('Fresh draft generated', 'success'); }
+        location.href = (res.body && res.body.redirect) || location.href;
+      } else {
+        btn.disabled = false; btn.innerHTML = orig;
+        var msg = (res.body && (res.body.message || res.body.error)) || 'Could not regenerate';
+        if(window.MH && MH.toast){ MH.toast(msg, 'error'); } else { alert(msg); }
+      }
+    })
+    .catch(function(){
+      btn.disabled = false; btn.innerHTML = orig;
+      if(window.MH && MH.toast){ MH.toast('Network error', 'error'); } else { alert('Network error'); }
+    });
+}
+</script>"""
+
+
+def _wrap_two_lines(text: str, limit: int = 18) -> tuple[str, str]:
+    """Split a short headline across two lines near a word boundary.
+
+    Used for the caption-only text-led graphics: the big recap headline
+    reads better as two balanced lines than one long one. Returns
+    ``(line1, line2)`` where ``line2`` may be empty for short input.
+    """
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text, ""
+    words = text.split(" ")
+    line1 = ""
+    i = 0
+    while i < len(words):
+        cand = (line1 + " " + words[i]).strip()
+        if len(cand) > limit and line1:
+            break
+        line1 = cand
+        i += 1
+    line2 = " ".join(words[i:])
+    if len(line2) > limit + 8:
+        line2 = line2[: limit + 7].rstrip() + "…"
+    return line1, line2
+
+
+_HOOK_STOPWORDS = frozenset({
+    "a", "an", "the", "of", "to", "for", "and", "at", "in", "on",
+    "with", "is", "are", "was", "were", "this", "that", "our", "we",
+})
+
+
+def _short_hook(text: str, max_words: int = 3, max_chars: int = 22) -> str:
+    """First few words of ``text`` as a short headline hook.
+
+    The text-led headline is sized for ~2 short lines; a long first sentence
+    overflows and collides with the stat strip. The full copy still lives in
+    the bullets (and the copyable caption), so a punchy 2-3 word hook is the
+    right call for the big headline. Trailing filler words ("for", "the", …)
+    are trimmed so the hook never ends on a dangling preposition.
+    """
+    words = (text or "").split()
+    out: list[str] = []
+    total = 0
+    for w in words[:max_words]:
+        if out and total + len(w) + 1 > max_chars:
+            break
+        out.append(w)
+        total += len(w) + 1
+    while len(out) > 1 and out[-1].lower().strip(",.;:!?") in _HOOK_STOPWORDS:
+        out.pop()
+    return " ".join(out)
+
+
+def _stub_card_to_graphic_item(stub_type: str, card: dict, form_data: dict) -> dict:
+    """Map a caption-only stub card into a text-led graphic ``content_item``.
+
+    The four AI-stub flows (Free Text / Session Update / Event Preview /
+    Sponsor Post) produce caption cards with no swim achievement, so the
+    creative-brief generator has nothing to synthesise a headline from. We
+    hand it ready-made display copy via ``graphic_text`` and pin the angle to
+    ``recap_mention`` so the renderer selects the text-led layout (which needs
+    no athlete photo). This is presentation shaping of already-AI-written copy
+    — not content generation — so it stays deterministic.
+    """
+    import re as _re
+    caption = str(card.get("caption") or "").strip()
+    fd = form_data or {}
+    meet = str(fd.get("meet_name") or "").strip()
+    sponsor = str(fd.get("sponsor_name") or "").strip()
+    # Sentence-ish split (also break on newlines).
+    parts = [p.strip() for p in _re.split(r"(?<=[.!?])\s+|\n+", caption) if p.strip()]
+
+    if stub_type == "sponsor_post":
+        hook = "SPONSOR"
+        head_src = _short_hook(sponsor or meet or "Thank you")
+        kicker = meet or sponsor or "Sponsor"
+        bullets = parts[:4]
+    elif stub_type == "weekend_preview":
+        hook = "PREVIEW"
+        head_src = _short_hook(meet or "Event preview")
+        kicker = meet or "Preview"
+        bullets = parts[:4]
+    elif stub_type == "session_update":
+        hook = "LIVE"
+        head_src = _short_hook(meet or "Session update")
+        kicker = meet or "Live update"
+        bullets = parts[:4]
+    else:  # free_text / other
+        hook = "HIGHLIGHT"
+        head_src = _short_hook(parts[0]) if parts else "Highlight"
+        kicker = meet or "Highlight"
+        # First sentence became the hook, so bullets are the rest (or the
+        # whole caption when there's only one sentence).
+        bullets = (parts[1:] if len(parts) > 1 else parts)[:4]
+
+    hl1, hl2 = _wrap_two_lines(str(head_src).upper(), limit=14)
+    bullets = [b[:80] for b in bullets if b]
+    if not bullets and caption:
+        bullets = [caption[:80]]
+    return {
+        "id": stub_type,
+        "post_angle": "recap_mention",
+        "confidence": 0.85,
+        "safe_to_post": {"level": "safe"},
+        "meet_name": kicker,
+        "achievement": {"post_angle": "recap_mention", "confidence": 0.85},
+        "graphic_text": {
+            "headline_line1": hl1,
+            "headline_line2": hl2,
+            "bullets": bullets,
+            "primary_hook": hook,
+        },
+    }
 
 
 def _layout(title: str, body: str, active: str = "home") -> str:
@@ -9188,8 +9478,11 @@ function copyWhyCard(btn, taId) {{
         explanation = _build_card_explanation(matched_ra or {"achievement": achievement})
 
         from mediahub.media_ai.llm import is_available as _llm_available
+        # Route the meet-recap caption through the unified content engine's
+        # single-caption front door (it delegates to the shared
+        # ai_caption.generate_caption_for_tone writer, preserving behaviour).
+        from mediahub.content_engine import generate_caption as _gen_tone
         from mediahub.web.ai_caption import (
-            generate_caption_for_tone as _gen_tone,
             KNOWN_AI_TONES as _AI_TONES,
             ClaudeUnavailableError as _ClaudeUE,  # type: ignore[attr-defined]
         )
@@ -11798,8 +12091,8 @@ Relay team broke club record"></textarea>
             "athlete_spotlight": (["Caption", "Graphic", "Story"], "~ 45s"),
             "weekend_preview":   (["Caption", "Graphic"],          "~ 40s"),
             "sponsor_post":      (["Caption", "Graphic"],          "~ 30s"),
-            "session_update":    (["Caption"],                     "~ 20s"),
-            "free_text":         (["Caption"],                     "~ 15s"),
+            "session_update":    (["Caption", "Graphic"],          "~ 20s"),
+            "free_text":         (["Caption", "Graphic"],          "~ 15s"),
         }
 
         tiles_html = ""
@@ -12401,6 +12694,27 @@ Relay team broke club record"></textarea>
                 cap_text = f"{headline}\\n\\n{angle}"
             cap_text_safe = cap_text.replace('"', '&quot;')
 
+            # "Create graphic" — only for achievements with a real swim_id,
+            # which api_create_graphic can resolve in the run's recognition
+            # report. Aggregate rows (synthetic "sp:..." ids) have no single
+            # swim to render, so they keep caption-only.
+            _sp_swim_id = a.get("swim_id")
+            sp_graphic_btn = ""
+            sp_visual_panel = ""
+            if _sp_swim_id:
+                _sp_g_url = url_for("api_create_graphic", run_id=run_id, card_id=_sp_swim_id)
+                sp_graphic_btn = (
+                    f'<button class="btn secondary" style="font-size:11px;padding:4px 10px" '
+                    f"onclick=\"mhCreateGraphic(this, '{_h(_sp_g_url)}', '{card_id_safe}')\">"
+                    f'&#x2726; Create graphic</button>'
+                )
+                sp_visual_panel = (
+                    f'<div class="visual-panel" data-card="{card_id_safe}" '
+                    f'style="display:none;margin-top:10px;padding:12px;'
+                    f'background:rgba(212,255,58,0.04);border:1px solid var(--border);'
+                    f'border-radius:8px"></div>'
+                )
+
             rows_html += f"""
 <div class="sp-row" data-card="{card_id_safe}" style="padding:14px 0;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:flex-start">
   <div style="min-width:28px;text-align:center;color:var(--ink-muted);font-size:13px">#{rank}</div>
@@ -12415,10 +12729,12 @@ Relay team broke club record"></textarea>
     </div>
     <div style="font-size:14px;font-weight:600;color:var(--ink)">{event}</div>
     <div style="font-size:13px;color:var(--ink-dim);margin-top:2px">{headline}</div>
-    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
       <button class="btn secondary" style="font-size:11px;padding:4px 10px" onclick="copySpotlightCaption(this, '{card_id_safe}')">Copy caption</button>
+      {sp_graphic_btn}
       <span id="sp-cap-{card_id_safe}" style="display:none">{cap_text}</span>
     </div>
+    {sp_visual_panel}
   </div>
 </div>"""
 
@@ -12509,6 +12825,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 }}
 </script>
 """
+        body += _VISUAL_PANEL_JS
         return _layout(f"Spotlight: {pack['swimmer_name']}", body, active="create")
 
     # ---- Stub routes (now functional with real LLM + fallback) ---------
@@ -12725,13 +13042,20 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             # render_cards_html a base it can append "/<idx>/status" to.
             _pack_id = saved["pack_id"] if saved else None
             _status_api_base = None
+            _graphic_api_base = None
             if _pack_id:
                 _full = url_for("api_stub_pack_card_status",
                                 pack_id=_pack_id, card_idx=0)
                 _status_api_base = _full.rsplit("/", 2)[0]
+                # Same strip trick for the create-graphic base: render_cards_html
+                # appends "/<idx>/create-graphic" itself.
+                _full_g = url_for("api_stub_pack_create_graphic",
+                                  pack_id=_pack_id, card_idx=0)
+                _graphic_api_base = _full_g.rsplit("/", 2)[0]
             body = _stubs_mod.render_cards_html(
                 cards_payload, back, f"{title} — drafts",
                 pack_id=_pack_id, status_api_base=_status_api_base,
+                graphic_api_base=_graphic_api_base,
             )
             if saved:
                 _packs_url = url_for("stub_packs_list")
@@ -12744,6 +13068,8 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                     ),
                     1,
                 )
+            if _graphic_api_base:
+                body += _VISUAL_PANEL_JS
             return _layout(title, body, active=active_tab)
         # GET &mdash; render hero + form
         body = _stub_hero(title) + _llm_unavailable_banner() + stub.render_stub_html()
@@ -13363,12 +13689,16 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             "api_stub_pack_card_status", pack_id=pack_id, card_idx=0
         )
         _status_api_base = _full_status_url.rsplit("/", 2)[0]
+        _graphic_api_base = url_for(
+            "api_stub_pack_create_graphic", pack_id=pack_id, card_idx=0
+        ).rsplit("/", 2)[0]
         cards_html = render_cards_html(
             {"cards": rec.get("cards") or []},
             back_url,
             rec.get("title") or "Draft pack",
             pack_id=pack_id,
             status_api_base=_status_api_base,
+            graphic_api_base=_graphic_api_base,
         )
         # Replace the renderer's default footer to add export + regenerate.
         export_url = url_for("stub_pack_export", pack_id=pack_id)
@@ -13378,9 +13708,13 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             "sponsor_post":    "stub_sponsor_post",
             "session_update":  "stub_session_update",
         }.get(stub_type, "free_text_chat_page"))
+        regen_api = url_for("api_stub_pack_regenerate", pack_id=pack_id)
         footer = (
             f'<div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap">'
-            f'<a class="btn" href="{export_url}">Export as text</a>'
+            f'<button type="button" class="btn" onclick="mhRegenerateDraft(this, {repr(regen_api)})" '
+            f'title="Re-run the content engine — the AI Director plans fresh angles, avoiding what you already have">'
+            f'&#x21BA; Regenerate (fresh angles)</button>'
+            f'<a class="btn secondary" href="{export_url}">Export as text</a>'
             f'<a class="btn secondary" href="{regenerate_url}">Generate new draft</a>'
             f'<a class="btn secondary" href="{back_url}">&larr; All drafts</a>'
             f'</div>'
@@ -13409,7 +13743,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             footer,
             1,
         )
-        body = header + attached_html + cards_html
+        body = header + attached_html + cards_html + _VISUAL_PANEL_JS + _DRAFT_REGEN_JS
         return _layout(rec.get("title") or "Draft", body, active="create")
 
     def _render_pack_attached_media(rec: dict) -> str:
@@ -13532,6 +13866,141 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             "card_idx": card_idx,
             "status": card.get("status", status),
         })
+
+    @app.route("/api/drafts/<pack_id>/card/<int:card_idx>/create-graphic",
+               methods=["POST"])
+    def api_stub_pack_create_graphic(pack_id, card_idx):
+        """Render a branded text-led graphic for one caption-only stub card.
+
+        Powers the "Create graphic" button on the Free Text / Event Preview /
+        Sponsor Post / Session Update draft pages. These flows carry no swim
+        achievement, so we shape the caption into a text-led item
+        (``_stub_card_to_graphic_item``) and render it through the same
+        graphic_renderer the meet-recap cards use, honouring the active
+        organisation's brand kit. PNGs land under a synthetic ``_stub_<pack_id>``
+        run dir so the existing /api/visual/<id>/png route serves them as-is.
+        """
+        if not _v8_ok:
+            return jsonify({"error": "v8_unavailable"}), 503
+        from flask import request as _req
+        from mediahub.club_platform.stub_pack_store import load_pack
+        rec = load_pack(pack_id)
+        # Tenant isolation: only the owning org may render its drafts. Same
+        # generic 404 as a real miss so existence isn't confirmable.
+        if not _can_access_pack(rec, _active_profile_id()):
+            return jsonify({"error": "pack_not_found"}), 404
+        cards = (rec or {}).get("cards") or []
+        if not (0 <= card_idx < len(cards)):
+            return jsonify({"error": "card_not_found"}), 404
+        card = cards[card_idx]
+        stub_type = rec.get("stub_type", "other")
+        form_data = rec.get("form_data") or {}
+        item = _stub_card_to_graphic_item(stub_type, card, form_data)
+
+        # Brand kit: the active organisation's palette + logo so the graphic is
+        # on-brand. Falls back to a neutral run-scoped kit when no org is
+        # pinned (pre-onboarding sandbox / tests).
+        run_id = f"_stub_{pack_id}"
+        prof = _active_profile()
+        try:
+            brand_kit = prof.get_brand_kit() if prof is not None else _v8_brand_kit_for(run_id)
+        except Exception:
+            brand_kit = _v8_brand_kit_for(run_id)
+        profile_id = rec.get("profile_id") or run_id
+
+        # Format from JSON body / query string (default portrait).
+        req_fmt = None
+        try:
+            if _req.is_json and _req.json:
+                req_fmt = _req.json.get("format")
+        except Exception:
+            req_fmt = None
+        if not req_fmt:
+            req_fmt = _req.args.get("format")
+        formats_kw = [req_fmt] if req_fmt else None
+
+        # The AI Director chooses the full visual treatment (palette role,
+        # background, accent, typography, composition, hook, mood) — same as
+        # meet-recap graphics — but is HARD-CONSTRAINED to the text-led layout
+        # because a caption-only card has no athlete photo for a photo-led
+        # family to use. The random text-led profile below is only the
+        # fallback for when no AI provider is configured; palette roles are
+        # restricted to the dark-primary-safe set so white headline text never
+        # disappears.
+        variation_profile = None
+        try:
+            import dataclasses as _dc
+            from mediahub.creative_brief.generator import random_variation_profile
+            vp = random_variation_profile(angle="recap_mention")
+            role = vp.palette_role_index if vp.palette_role_index in (0, 1, 3) else 0
+            variation_profile = _dc.replace(
+                vp, layout_family="text_led_recap",
+                photo_treatment="no-photo", palette_role_index=role,
+            )
+        except Exception:
+            variation_profile = None
+
+        try:
+            from mediahub.content_pack_visual.integration import create_visual_for_item
+            res = create_visual_for_item(
+                item, brand_kit,
+                profile_id=profile_id, run_id=run_id,
+                media_assets=[],
+                formats=formats_kw,
+                variation_profile=variation_profile,
+                use_ai_director=True,
+                allowed_families=["text_led_recap"],
+            )
+        except Exception as e:
+            return jsonify({"error": f"render_failed: {e}"}), 500
+        return jsonify({"ok": True, **res})
+
+    @app.route("/api/drafts/<pack_id>/regenerate", methods=["POST"])
+    def api_stub_pack_regenerate(pack_id):
+        """Regenerate a saved draft's cards through the content engine.
+
+        The pack's current cards (plus any archived history) are fed back to
+        the engine as the avoid-set, so the AI Director plans fresh angles and
+        the writer produces genuinely different captions every click. The new
+        cards replace the pack's cards; prior cards roll into ``card_history``.
+        """
+        from mediahub.club_platform.stub_pack_store import load_pack, replace_cards
+        from mediahub.club_platform import stubs as _stubs_mod
+        from mediahub.content_engine import generate_content
+        from mediahub.ai_core import ProviderNotConfigured, ProviderError
+
+        rec = load_pack(pack_id)
+        if not _can_access_pack(rec, _active_profile_id()):
+            return jsonify({"ok": False, "error": "pack_not_found"}), 404
+        stub_type = rec.get("stub_type", "")
+        stub = _stubs_mod.stub_for_type(stub_type)
+        if stub is None:
+            return jsonify({"ok": False, "error": "unsupported_type"}), 400
+        form_data = rec.get("form_data") or {}
+        brief = stub.generate_brief(form_data)
+        requirements = _stubs_mod.requirements_for(stub_type)
+        prior = rec.get("cards") or []
+        recent = list(rec.get("card_history") or []) + list(prior)
+        n_cards = max(1, min(len(prior) or 3, 6))
+        try:
+            res = generate_content(
+                content_type=stub_type, brief=brief, requirements=requirements,
+                recent_cards=recent, n_cards=n_cards,
+            )
+        except ProviderNotConfigured as e:
+            return jsonify({"ok": False, "error": "no_provider", "message": str(e)}), 503
+        except ProviderError as e:
+            return jsonify({"ok": False, "error": "provider_error", "message": str(e)}), 502
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"generate_failed: {e}"}), 500
+        new_cards = res.get("cards") or []
+        if not new_cards:
+            return jsonify({"ok": False, "error": "empty"}), 502
+        replace_cards(pack_id, new_cards)
+        # The draft view is a GET page that re-renders from the saved pack, so
+        # the client just reloads to show the fresh set.
+        return jsonify({"ok": True, "n_cards": len(new_cards),
+                        "redirect": url_for("stub_pack_view", pack_id=pack_id)})
 
     @app.route("/add-input")
     def add_input_page():
@@ -17819,6 +18288,52 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             req_fmt = _req.args.get("format")
         formats_kw = [req_fmt] if req_fmt else None
 
+        # User photo choice for THIS graphic — overrides the automatic scorer
+        # so the user decides exactly which uploaded photo lands on which card.
+        #   asset_id=<id>  → force that library photo as the hero (photo-led layout)
+        #   no_photo=1     → force a text-led, photo-free treatment
+        chosen_asset_id = None
+        force_no_photo = False
+        try:
+            if _req.is_json and _req.json:
+                chosen_asset_id = (_req.json.get("asset_id") or "").strip() or None
+                force_no_photo = bool(_req.json.get("no_photo"))
+        except Exception:
+            pass
+        if chosen_asset_id is None:
+            chosen_asset_id = (_req.args.get("asset_id") or "").strip() or None
+        if not force_no_photo:
+            force_no_photo = (_req.args.get("no_photo") or "").lower() in ("1", "true", "yes")
+        forced_hero_asset_id = None
+        choice_allowed_families = None
+        if force_no_photo:
+            chosen_asset_id = None
+            choice_allowed_families = ["text_led_recap", "weekend_numbers"]
+        elif chosen_asset_id:
+            forced_hero_asset_id = chosen_asset_id
+            # Constrain to photo-capable families so the chosen photo actually
+            # appears (a text-led family would ignore it).
+            choice_allowed_families = [
+                "individual_hero", "big_number_hero", "story_card",
+                "athlete_spotlight", "medal_card",
+            ]
+
+        # The photos the user can pick from for this card (their org's library
+        # images), surfaced in the panel as a per-graphic picker.
+        _photo_types = {"athlete_action", "athlete_headshot", "team_photo",
+                        "venue_photo", "other"}
+        available_photos = []
+        for _ad in media_assets:
+            _d = _ad if isinstance(_ad, dict) else {}
+            if _d.get("id") and _d.get("type") in _photo_types:
+                _names = _d.get("linked_athlete_names") or []
+                _label = (_names[0] if _names else "") or str(_d.get("type") or "").replace("_", " ")
+                available_photos.append({
+                    "id": _d["id"],
+                    "url": url_for("api_media_library_file", asset_id=_d["id"]),
+                    "label": _label,
+                })
+
         # V9 variation overhaul: every regenerate produces a fresh random
         # creative direction (different layout family + background style +
         # accent decoration + typography pair + composition + headline
@@ -17879,6 +18394,8 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                     use_ai_director=ai_directed,
                     recent_signatures=recent_sigs,
                     recent_hooks=recent_hooks,
+                    allowed_families=choice_allowed_families,
+                    forced_hero_asset_id=forced_hero_asset_id,
                 )
         except _RenderBusy:
             return _render_busy_response("graphic")
@@ -17901,6 +18418,10 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
             "variation_signature": new_sig,
             "ai_directed": bool(brief_d.get("ai_directed")),
             "explanation": explanation,
+            # Per-graphic photo picker state.
+            "available_photos": available_photos,
+            "chosen_asset_id": chosen_asset_id,
+            "no_photo": force_no_photo,
             **res,
         })
 
@@ -18188,7 +18709,27 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
         except Exception:
             pass
 
+        # Honour the per-graphic photo choice so the three variants keep the
+        # photo the user picked (just varying the rest of the treatment).
+        _chosen = None
+        _nop = False
+        try:
+            if request.is_json and request.json:
+                _chosen = (request.json.get("asset_id") or "").strip() or None
+                _nop = bool(request.json.get("no_photo"))
+        except Exception:
+            pass
+        _forced_asset = None
+        _choice_families = None
+        if _nop:
+            _choice_families = ["text_led_recap", "weekend_numbers"]
+        elif _chosen:
+            _forced_asset = _chosen
+            _choice_families = ["individual_hero", "big_number_hero", "story_card",
+                                "athlete_spotlight", "medal_card"]
+
         from concurrent.futures import ThreadPoolExecutor
+        import dataclasses as _dc
         # V9: build three distinct random variation profiles so the
         # variant picker actually shows three different visual directions
         # (not the legacy palette-only seeds 1/2/3).
@@ -18204,6 +18745,13 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                 angle=item.get("post_angle") or "",
                 avoid_signatures=sigs_so_far,
             )
+            # Pin the random fallback to the chosen-photo constraint so a
+            # no-AI render still respects the user's photo decision.
+            if _choice_families and getattr(prof, "layout_family", None) not in _choice_families:
+                try:
+                    prof = _dc.replace(prof, layout_family=_choice_families[0])
+                except Exception:
+                    pass
             profiles.append(prof)
             sigs_so_far.append(prof.signature())
 
@@ -18217,6 +18765,8 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                         variation_profile=profile,
                         use_ai_director=True,
                         recent_signatures=sigs_so_far,
+                        allowed_families=_choice_families,
+                        forced_hero_asset_id=_forced_asset,
                     )
                 visuals = res.get("visuals") or []
                 # Pick the feed_portrait by default if present, else first.

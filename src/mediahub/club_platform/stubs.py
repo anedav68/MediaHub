@@ -1,17 +1,18 @@
 """
-Stub content types — refactored onto the ai_core (Claude / ChatGPT /
-Gemini) reasoning layer.
+Stub content types — thin form-builders over the unified content engine.
 
-The four stubs (Weekend Preview, Sponsor Post, Session Update, Free
-Text) all funnel through one helper, ``_generate_cards_via_llm``, which:
+The four stubs (Weekend Preview, Sponsor Post, Session Update, Free Text)
+no longer carry any bespoke generation code. Each one:
 
-  * Takes an English brief built from the user's form input.
-  * Calls ai_core.ask_with_tools with a single tool, `submit_card`,
-    that the model uses to emit each card (platform, caption,
-    hashtags, notes). No JSON envelopes in the prompt, no parsing
-    JSON out of free-text replies — the model speaks via the tool.
-  * Surfaces honest errors when no provider is configured or the call
-    fails. No hardcoded heuristic template fallback any more.
+  * Renders its own input form (the only per-type code that remains).
+  * Builds an English brief from the user's form input (``generate_brief``).
+  * Delegates to ``content_engine.generate_content`` (via the
+    ``_generate_cards_via_llm`` shim), which runs the AI Director then writes
+    the cards. The director varies platform + angle per card and avoids any
+    ``recent_cards`` so every regenerate is fresh.
+
+Honest errors (no provider configured / provider failed) bubble up from the
+engine — there is no hardcoded heuristic template fallback.
 
 Classes:
   WeekendPreviewStub, SponsorPostStub, SessionUpdateStub, FreeTextStub
@@ -63,207 +64,59 @@ class ContentCard:
 
 
 # ---------------------------------------------------------------------------
-# Shared generator — every stub funnels through this
+# Shared generator — every stub funnels through the one content engine
 # ---------------------------------------------------------------------------
 
-_SUBMIT_CARD_TOOL = [{
-    "name": "submit_card",
-    "description": (
-        "Emit one social-media card for this brief. Call this 2-4 times, "
-        "once per platform you want to cover. Each call produces one "
-        "draft the user will review."
+def _generate_cards_via_llm(
+    brief_prose: str,
+    extra_context: str,
+    *,
+    content_type: str = "free_text",
+    recent_cards: Optional[list[dict]] = None,
+    n_cards: int = 3,
+) -> dict:
+    """Generate cards through the unified content engine.
+
+    The engine runs an AI Director (platform + angle + hook per card,
+    avoiding ``recent_cards`` so regenerate is always fresh) and then writes
+    the cards. Raises ai_core.ProviderNotConfigured / ProviderError so callers
+    surface the real reason — no silent template fallback.
+    """
+    from mediahub.content_engine import generate_content
+    res = generate_content(
+        content_type=content_type,
+        brief=brief_prose,
+        requirements=extra_context,
+        recent_cards=recent_cards,
+        n_cards=n_cards,
+    )
+    return {"cards": res.get("cards", [])}
+
+
+# Per-type creative requirements — the one line that tells the engine what
+# kind of brief this is. Keyed by ContentType value so the regenerate route
+# can reuse the exact same requirements without re-instantiating the stub.
+_TYPE_REQUIREMENTS: dict[str, str] = {
+    "weekend_preview": (
+        "an EVENT PREVIEW. Tease what's coming, build anticipation, no "
+        "results yet. Stay factual; only use names and events explicitly given."
     ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "platform": {"type": "string",
-                         "description": "Instagram | Stories | Twitter | Facebook | LinkedIn | TikTok"},
-            "caption":  {"type": "string",
-                         "description": "The caption body, 1-4 short lines."},
-            "hashtags": {"type": "array", "items": {"type": "string"},
-                         "description": "2-6 hashtags, no leading #."},
-            "notes":    {"type": "string",
-                         "description": "One-line rationale for this card."},
-        },
-        "required": ["platform", "caption"],
-    },
-}]
-
-
-def _load_brand_context() -> dict:
-    """Best-effort load of the ACTIVE ClubProfile for brand voice grounding.
-
-    Resolves through ``current_app.active_profile`` (set on the Flask app
-    in ``web.create_app`` so every route shares the same definition of
-    "which org am I"). Falls back to the most-recently-edited profile on
-    disk only when there is no Flask request context — e.g. background
-    jobs or unit tests. Using ``list_profiles()[0]`` used to mix up
-    different orgs' tone + sponsor rules on multi-tenant installs.
-    """
-    try:
-        from mediahub.web.club_profile import list_profiles, load_profile  # type: ignore
-    except Exception:
-        return {}
-    prof = None
-    try:
-        from flask import current_app
-        get_active = getattr(current_app, "active_profile", None)
-        if get_active:
-            prof = get_active()
-    except Exception:
-        prof = None
-    if prof is None:
-        try:
-            profiles = list_profiles()
-            if not profiles:
-                return {}
-            best_pid = None
-            try:
-                from mediahub.web.club_profile import _profiles_dir  # type: ignore
-                d = _profiles_dir()
-                best = max(
-                    profiles,
-                    key=lambda p: (d / f"{getattr(p, 'profile_id', '')}.json").stat().st_mtime,
-                )
-                best_pid = getattr(best, "profile_id", None)
-            except Exception:
-                first = profiles[0]
-                best_pid = (
-                    first.get("profile_id") if isinstance(first, dict)
-                    else getattr(first, "profile_id", None)
-                )
-            if not best_pid:
-                return {}
-            prof = load_profile(best_pid)
-        except Exception:
-            prof = None
-    if not prof:
-        return {}
-    try:
-        # Effective palette (manual override > AI extracted). Stub
-        # captions need to know the actual brand colour so language
-        # like "wear the navy" or "lean into the gold" is grounded.
-        from mediahub.brand.palette import effective_palette
-        eff = effective_palette(
-            manual=getattr(prof, "brand_palette_manual", {}) or {},
-            extracted=getattr(prof, "brand_palette_extracted", {}) or {},
-        )
-    except Exception:
-        eff = {}
-    return {
-        "name":          getattr(prof, "display_name", "") or "",
-        "short_name":    getattr(prof, "short_name", "") or "",
-        "org_type":      getattr(prof, "org_type", "") or "",
-        "tone":          getattr(prof, "tone", "") or "",
-        "tone_notes":    getattr(prof, "tone_notes", "") or "",
-        "exemplars":     getattr(prof, "exemplar_captions", []) or [],
-        "sponsor_name":  getattr(prof, "sponsor_name", "") or "",
-        "sponsor_rules": getattr(prof, "sponsor_guidelines", "") or "",
-        "voice_summary": (getattr(prof, "brand_voice_summary", "") or "")[:600],
-        "keywords":      list(getattr(prof, "brand_keywords", []) or [])[:8],
-        "phrases_to_use":   list(getattr(prof, "brand_phrases_to_use", []) or [])[:6],
-        "phrases_to_avoid": list(getattr(prof, "brand_phrases_to_avoid", []) or [])[:6],
-        "palette":       eff,
-    }
-
-
-def _system_prompt(extra_context: str) -> str:
-    """English-only system prompt: voice, brand, and the rule about
-    using the submit_card tool. No JSON envelope contracts."""
-    brand = _load_brand_context()
-    try:
-        from mediahub.ai_core import narrate_brand
-        brand_prose = narrate_brand(brand)
-    except Exception:
-        brand_prose = ""
-    base = (
-        "You are MediaHub's content engine for sports clubs, societies, "
-        "teams and organisations. You generate short, human-sounding "
-        "social captions grounded only in the user's input. Never invent "
-        "facts, names, times, places, or achievements not provided. If "
-        "the input is thin, write shorter cards rather than padding.\n\n"
-        "Emit each card by calling the `submit_card` tool. Produce 2-4 "
-        "cards covering different platforms (Instagram + Stories + "
-        "Twitter is a good default). Captions: 1-4 short lines, ~280 "
-        "characters. Hashtags: 2-6. After your last card, write nothing "
-        "— the tool calls are the answer."
-    )
-    if brand_prose:
-        base = base + "\n\nBrand voice:\n" + brand_prose
-
-    # Surface the confirmed brand palette + name so captions can
-    # reference the organisation's colours naturally ("wear the
-    # navy", "lean into the gold") and use the organisation's
-    # actual name instead of generic "the club".
-    name = (brand.get("name") or "").strip()
-    palette = brand.get("palette") or {}
-    palette_bits = []
-    for slot in ("primary", "secondary", "accent", "fourth"):
-        v = palette.get(slot)
-        if isinstance(v, str) and v.startswith("#"):
-            palette_bits.append(f"{slot} {v}")
-    keywords = [k for k in (brand.get("keywords") or []) if k]
-    use_phrases = [p for p in (brand.get("phrases_to_use") or []) if p]
-    avoid_phrases = [p for p in (brand.get("phrases_to_avoid") or []) if p]
-    brand_facts_lines = []
-    if name:
-        brand_facts_lines.append(f"Organisation name: {name}")
-    if palette_bits:
-        brand_facts_lines.append("Confirmed brand palette: " + ", ".join(palette_bits))
-    if keywords:
-        brand_facts_lines.append("Brand keywords: " + ", ".join(keywords))
-    if use_phrases:
-        brand_facts_lines.append("Phrases to use: " + "; ".join(use_phrases))
-    if avoid_phrases:
-        brand_facts_lines.append("Phrases to avoid: " + "; ".join(avoid_phrases))
-    if brand_facts_lines:
-        base = base + "\n\nBrand facts:\n" + "\n".join(brand_facts_lines)
-
-    if extra_context:
-        base = base + "\n\nThis brief is:\n" + extra_context
-    return base
-
-
-def _generate_cards_via_llm(brief_prose: str, extra_context: str) -> dict:
-    """Run a single ask_with_tools call and return {"cards": [...]}.
-
-    Raises ai_core.ProviderNotConfigured / ProviderError so callers can
-    surface the actual reason to the user — no silent template
-    fallback any more.
-    """
-    from mediahub.ai_core import ask_with_tools
-
-    cards: list[dict] = []
-
-    def _tool(name, inp):
-        if name != "submit_card":
-            return json.dumps({"error": f"unknown tool: {name}"})
-        platform = (inp.get("platform") or "Instagram").strip()
-        caption = (inp.get("caption") or "").strip()
-        hashtags = inp.get("hashtags") or []
-        if isinstance(hashtags, str):
-            hashtags = [h.strip() for h in hashtags.split() if h.strip()]
-        notes = (inp.get("notes") or "").strip()
-        if not caption:
-            return json.dumps({"ok": False, "reason": "empty caption — skipped"})
-        cards.append({
-            "platform":   platform,
-            "caption":    caption,
-            "hashtags":   [str(h).lstrip("#").strip() for h in list(hashtags)[:6] if str(h).strip()],
-            "confidence": 0.8,
-            "notes":      notes,
-        })
-        return json.dumps({"ok": True, "received": len(cards)})
-
-    ask_with_tools(
-        system=_system_prompt(extra_context),
-        user=brief_prose,
-        tools=_SUBMIT_CARD_TOOL,
-        on_tool_call=_tool,
-        max_tokens=1500,
-        max_rounds=6,
-    )
-    return {"cards": cards}
+    "free_text": (
+        "a FREE-TEXT moment. The user's description is the only source of "
+        "truth — do not invent specifics. If a fact isn't in the notes, leave "
+        "it out. Identify the strongest 2-3 angles and pick the platform per angle."
+    ),
+    "sponsor_post": (
+        "a SPONSOR POST. Respect every brand guideline. Never imply the "
+        "sponsor caused the achievement — they support, the athletes perform. "
+        "Make sponsor mentions feel natural, not forced."
+    ),
+    "session_update": (
+        "a LIVE SESSION UPDATE. Short, share-now energy. Stay factual — only "
+        "mention swimmers and times explicitly provided. Stories should feel "
+        "real-time."
+    ),
+}
 
 
 def _split_lines(raw: str) -> list[str]:
@@ -386,12 +239,9 @@ class WeekendPreviewStub(_StubContentType):
 
     def generate_cards(self, form_data: dict) -> dict:
         return _generate_cards_via_llm(
+            content_type=self._type.value,
             brief_prose=self.generate_brief(form_data),
-            extra_context=(
-                "an EVENT PREVIEW. Tease what's coming, build "
-                "anticipation, no results yet. Stay factual; only use "
-                "names and events explicitly given."
-            ),
+            extra_context=_TYPE_REQUIREMENTS[self._type.value],
         )
 
 
@@ -428,13 +278,9 @@ class FreeTextStub(_StubContentType):
         if not text:
             return {"cards": []}
         return _generate_cards_via_llm(
+            content_type=self._type.value,
             brief_prose=self.generate_brief(form_data),
-            extra_context=(
-                "a FREE-TEXT moment. The user's description is the only "
-                "source of truth — do not invent specifics. If a fact "
-                "isn't in the notes, leave it out. Identify the strongest "
-                "2-3 angles and pick the platform per angle."
-            ),
+            extra_context=_TYPE_REQUIREMENTS[self._type.value],
         )
 
 
@@ -487,13 +333,9 @@ class SponsorPostStub(_StubContentType):
 
     def generate_cards(self, form_data: dict) -> dict:
         return _generate_cards_via_llm(
+            content_type=self._type.value,
             brief_prose=self.generate_brief(form_data),
-            extra_context=(
-                "a SPONSOR POST. Respect every brand guideline. Never "
-                "imply the sponsor caused the achievement — they support, "
-                "the athletes perform. Make sponsor mentions feel natural, "
-                "not forced."
-            ),
+            extra_context=_TYPE_REQUIREMENTS[self._type.value],
         )
 
 
@@ -539,13 +381,34 @@ class SessionUpdateStub(_StubContentType):
 
     def generate_cards(self, form_data: dict) -> dict:
         return _generate_cards_via_llm(
+            content_type=self._type.value,
             brief_prose=self.generate_brief(form_data),
-            extra_context=(
-                "a LIVE SESSION UPDATE. Short, share-now energy. Stay "
-                "factual — only mention swimmers and times explicitly "
-                "provided. Stories should feel real-time."
-            ),
+            extra_context=_TYPE_REQUIREMENTS[self._type.value],
         )
+
+
+# ---------------------------------------------------------------------------
+# Type → stub lookup — lets the regenerate route rebuild a brief from a saved
+# pack's stub_type + form_data without the web layer hard-coding each class.
+# ---------------------------------------------------------------------------
+
+_STUB_CLASS_BY_TYPE: dict[str, type] = {
+    ContentType.WEEKEND_PREVIEW.value: WeekendPreviewStub,
+    ContentType.FREE_TEXT.value:       FreeTextStub,
+    ContentType.SPONSOR_POST.value:    SponsorPostStub,
+    ContentType.SESSION_UPDATE.value:  SessionUpdateStub,
+}
+
+
+def stub_for_type(content_type: str) -> Optional["_StubContentType"]:
+    """Return a stub instance for a ContentType value, or None if unknown."""
+    cls = _STUB_CLASS_BY_TYPE.get(content_type)
+    return cls() if cls else None
+
+
+def requirements_for(content_type: str) -> str:
+    """The engine `requirements` line for a content type ('' if unknown)."""
+    return _TYPE_REQUIREMENTS.get(content_type, "")
 
 
 # ---------------------------------------------------------------------------
@@ -601,6 +464,7 @@ def render_cards_html(
     title: str,
     pack_id: Optional[str] = None,
     status_api_base: Optional[str] = None,
+    graphic_api_base: Optional[str] = None,
 ) -> str:
     cards = (cards_payload or {}).get("cards") or []
     if not cards:
@@ -663,6 +527,28 @@ def render_cards_html(
                 f'{_h(label)}</button>'
             )
 
+        # "Create graphic" affordance — only when the page wired a graphic API
+        # base (the saved-pack flows do; the unsaved one-shot render doesn't).
+        # The button + panel reuse window.mhCreateGraphic (injected by the
+        # calling page via _VISUAL_PANEL_JS); cardId namespaces the panel by
+        # pack + index so multiple cards on one page don't collide.
+        graphic_button = ""
+        visual_panel = ""
+        if graphic_api_base and pack_id:
+            g_card_id = f"{pack_id}-{idx}"
+            g_url = f"{graphic_api_base}/{idx}/create-graphic"
+            graphic_button = (
+                f'<button type="button" class="secondary" '
+                f"onclick=\"mhCreateGraphic(this, '{_h(g_url)}', '{_h(g_card_id)}')\" "
+                f'style="font-size:13px">&#x2726; Create graphic</button>'
+            )
+            visual_panel = (
+                f'<div class="visual-panel" data-card="{_h(g_card_id)}" '
+                f'style="display:none;margin-top:10px;padding:12px;'
+                f'background:rgba(212,255,58,0.04);border:1px solid var(--border);'
+                f'border-radius:8px"></div>'
+            )
+
         cards_html += f"""
 <div class="mh-content-card" data-interactive data-card-status="{_h(status)}">
   <div class="mh-card-confidence" title="Model confidence">{conf_pct}% conf{pill_html}</div>
@@ -677,7 +563,9 @@ def render_cards_html(
         navigator.clipboard.writeText(c).then(function(){{ window.MH && MH.toast("Caption copied", "success"); }});
       }} else {{ window.MH && MH.toast("Clipboard not available", "error"); }}
     }})(this)'>Copy caption</button>
+    {graphic_button}
   </div>
+  {visual_panel}
 </div>"""
 
     pill_js = ""
