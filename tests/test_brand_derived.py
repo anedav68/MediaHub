@@ -280,9 +280,11 @@ class TestConsumerWiring:
         from mediahub.turn_into import templates as ti
         # Stub the caption call so we can inspect the enriched payload.
         captured = {}
-        def fake_caption(payload, club_brand, tone=None, club_profile=None):
+        def fake_caption(payload, club_brand, tone=None, club_profile=None,
+                         brief_prose=None, **_kw):
             captured["payload"] = payload
             captured["club_profile"] = club_profile
+            captured["brief_prose"] = brief_prose
             return "stubbed"
         monkeypatch.setattr(
             "mediahub.web.ai_caption.generate_caption_for_tone",
@@ -298,6 +300,9 @@ class TestConsumerWiring:
         assert out == "stubbed"
         assert captured["payload"]["_artefact_intent"] == "ORG-SPECIFIC-INTENT"
         assert captured["club_profile"] is p
+        # Aggregate "kind" payloads are narrated into a brief so the model
+        # actually writes them instead of falling back to a template.
+        assert captured["brief_prose"] and "recap" in captured["brief_prose"].lower()
 
 
 # ---------------------------------------------------------------------------

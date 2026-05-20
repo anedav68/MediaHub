@@ -133,6 +133,124 @@ def _club_brand(meet_summary: dict, brand_kit, profile, voice_profile) -> dict:
     }
 
 
+def _ach_line(d: dict) -> str:
+    """Render one flattened achievement payload (the dict shape returned
+    by :func:`_ach_payload`) as a single readable English clause, for use
+    inside an aggregate-artefact brief."""
+    if not isinstance(d, dict):
+        return ""
+    name = (d.get("swimmer_name") or "").strip()
+    event = (d.get("event") or "").strip()
+    time = (d.get("time") or "").strip()
+    headline = (d.get("headline") or "").strip()
+    place = d.get("place")
+
+    if event and time:
+        ev = f"{event} in {time}"
+    elif event:
+        ev = event
+    elif time:
+        ev = time
+    else:
+        ev = ""
+    core = f"{name} — {ev}" if (name and ev) else (name or ev)
+
+    extras: list[str] = []
+    try:
+        p = int(place) if place not in (None, "") else None
+    except (TypeError, ValueError):
+        p = None
+    if p:
+        ord_suffix = {1: "st", 2: "nd", 3: "rd"}.get(p, "th")
+        extras.append(f"{p}{ord_suffix} place")
+    if d.get("pb"):
+        extras.append("a personal best")
+    if extras:
+        core = f"{core} ({', '.join(extras)})" if core else ", ".join(extras)
+    if headline and headline.lower() not in core.lower():
+        core = f"{core} — {headline}" if core else headline
+    return core.strip(" —")
+
+
+def _narrate_brief(payload: dict) -> str:
+    """Turn an aggregate artefact payload (keyed by ``kind``) into a single
+    English paragraph for the caption model. Returns ``""`` for unknown
+    kinds so the caller falls back to the single-swim narration path."""
+    kind = (payload.get("kind") or "").strip()
+    meet = (payload.get("meet") or "").strip() or "the meet"
+
+    def _lines(key: str) -> list[str]:
+        return [ln for ln in (_ach_line(x) for x in (payload.get(key) or [])) if ln]
+
+    if kind == "meet_recap":
+        course = (payload.get("course") or "").strip()
+        heads = _lines("headliners")
+        s = f"Write a feed recap of {meet}"
+        if course:
+            s += f" ({course})"
+        s += "."
+        if heads:
+            s += " The standout performances were: " + "; ".join(heads) + "."
+        else:
+            s += " No individual standouts were flagged — keep it about the squad as a whole."
+        return s
+    if kind == "thread_intro":
+        try:
+            n = int(payload.get("n_top") or 0)
+        except (TypeError, ValueError):
+            n = 0
+        s = f"This is the opening post of a data-led thread about {meet}."
+        if n:
+            s += f" There are {n} ranked moments to tease in the posts that follow."
+        return s
+    if kind == "thread_linkedin":
+        highs = _lines("highlights")
+        s = f"Summarise {meet} for a LinkedIn audience."
+        if highs:
+            s += " Key results: " + "; ".join(highs) + "."
+        return s
+    if kind == "newsletter":
+        club = (payload.get("club") or "").strip()
+        heads = _lines("headliners")
+        s = f"Write a parent-and-supporter newsletter update about {meet}"
+        if club:
+            s += f" for {club}"
+        s += "."
+        if heads:
+            s += " Headline swims to mention: " + "; ".join(heads) + "."
+        return s
+    if kind == "sponsor_thank_you":
+        sponsor = (payload.get("sponsor") or "").strip() or "our sponsor"
+        guide = (payload.get("sponsor_guidelines") or "").strip()
+        s = f"Thank the sponsor {sponsor} for supporting {meet}."
+        if guide:
+            s += f" Sponsor guidelines to respect: {guide}"
+        return s
+    if kind == "coach_quote":
+        highs = _lines("highlights")
+        s = f"Draft a single coach-style quote reflecting on {meet}."
+        if highs:
+            s += " Performances the coach can refer to: " + "; ".join(highs) + "."
+        else:
+            s += " No specific standouts were flagged — keep it about squad effort and progress."
+        return s
+    if kind == "next_meet_preview":
+        nm = payload.get("next_meet") or {}
+        nm_name = (nm.get("name") or "").strip()
+        nm_date = (nm.get("date") or "").strip()
+        prev = (payload.get("previous_meet") or "").strip()
+        s = "Write a short teaser for the upcoming meet"
+        if nm_name:
+            s += f" {nm_name}"
+        if nm_date:
+            s += f" ({nm_date})"
+        s += "."
+        if prev:
+            s += f" It follows on from {prev}."
+        return s
+    return ""
+
+
 def _gen_caption(
     payload: dict,
     club_brand: dict,
@@ -174,9 +292,20 @@ def _gen_caption(
     enriched["_artefact_key"] = intent_key
     if intent:
         enriched["_artefact_intent"] = intent
+    # Aggregate artefacts (meet recap, thread intro/LinkedIn, newsletter,
+    # sponsor thank-you, coach quote, next-meet preview) describe a whole
+    # meet, not one swim. narrate_achievement only understands a single
+    # swim, so it returned empty prose for these — which made
+    # generate_caption_for_tone raise and silently drop the artefact to
+    # the heuristic fallback, i.e. NOT AI-written. Narrate the brief here
+    # and feed it through the model's brief_prose channel so these
+    # artefacts are genuinely AI-made. Single-swim payloads carry no
+    # "kind" and keep the narrate_achievement path untouched.
+    brief_prose = _narrate_brief(payload) if payload.get("kind") else None
     try:
         text = generate_caption_for_tone(
             enriched, club_brand, tone=tone, club_profile=profile,
+            brief_prose=brief_prose,
         )
     except Exception:
         return fallback_text

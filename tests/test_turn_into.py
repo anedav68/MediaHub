@@ -370,6 +370,143 @@ class TestWebRoutes(unittest.TestCase):
                 r = client.get(path)
                 self.assertEqual(r.status_code, 200, f"{path} != 200")
 
+    def test_async_status_survives_cross_worker_poll(self):
+        """Regression: with gunicorn --workers 2 the status poll often
+        lands on a different worker than the POST that created the job.
+        The job must still resolve from the shared on-disk record instead
+        of the spurious 'job not found' the user saw in the UI."""
+        import time as _time
+        import mediahub.web.web as wm
+        with tempfile.TemporaryDirectory() as tmp:
+            app = self._make_app(tmp)
+            Path(tmp + "/runs_v4/run-z.json").write_text(json.dumps({
+                **_run_data(), "run_id": "run-z",
+            }))
+            client = app.test_client()
+            r = client.post("/api/runs/run-z/turn-into",
+                            json={"deterministic": True, "async": True})
+            self.assertEqual(r.status_code, 200)
+            body = r.get_json()
+            self.assertEqual(body["status"], "running")
+            job_id = body["job_id"]
+            status_url = body["status_url"]
+
+            # Wait for the background (deterministic) generation to finish.
+            deadline = _time.time() + 5.0
+            done = None
+            while _time.time() < deadline:
+                jr = wm._ti_job_read(job_id)
+                if jr and jr.get("status") == "done":
+                    done = jr
+                    break
+                _time.sleep(0.05)
+            self.assertIsNotNone(done, "job never completed on disk")
+
+            # Simulate the poll landing on the *other* worker: that worker
+            # has nothing in its in-memory cache for this job_id.
+            wm._turn_into_jobs.pop(job_id, None)
+            self.assertNotIn(job_id, wm._turn_into_jobs)
+
+            r2 = client.get(status_url)
+            self.assertEqual(r2.status_code, 200,
+                             "cross-worker status poll must not 404")
+            data = r2.get_json()
+            self.assertEqual(data["status"], "done")
+            self.assertTrue(data.get("pack_url"))
+
+    def test_status_rejects_mismatched_run(self):
+        """A job_id created under one run must not resolve via another
+        run's status URL — defensive guard on the shared disk record."""
+        import mediahub.web.web as wm
+        with tempfile.TemporaryDirectory() as tmp:
+            app = self._make_app(tmp)
+            for rid in ("run-a", "run-b"):
+                Path(tmp + f"/runs_v4/{rid}.json").write_text(json.dumps({
+                    **_run_data(), "run_id": rid,
+                }))
+            client = app.test_client()
+            r = client.post("/api/runs/run-a/turn-into",
+                            json={"deterministic": True, "async": True})
+            job_id = r.get_json()["job_id"]
+            # Force the disk path (the record carries run_id="run-a").
+            wm._turn_into_jobs.pop(job_id, None)
+            r2 = client.get(f"/api/runs/run-b/turn-into-status/{job_id}")
+            self.assertEqual(r2.status_code, 404)
+
+
+class TestArtefactsAreAIMade(unittest.TestCase):
+    """Regression: every artefact must be written by the LLM, not silently
+    dropped to the heuristic fallback. Before the fix, aggregate artefacts
+    (recap, thread intro/LinkedIn, newsletter, sponsor, coach quote,
+    next-meet) passed payloads that narrate_achievement couldn't read, so
+    generate_caption_for_tone raised and _gen_caption returned the
+    hardcoded template — i.e. the pack was a template shop, not AI-made."""
+
+    def test_all_artefacts_reach_the_llm(self):
+        from unittest import mock
+        os.environ["MEDIAHUB_TURNINTO_PARALLEL"] = "0"
+        try:
+            captured: list[str] = []
+
+            def fake_call(system, user, max_tokens=400, **kw):
+                captured.append(user)
+                return "AI-WRITTEN :: " + user.splitlines()[0][:40]
+
+            with mock.patch("mediahub.web.ai_caption.call_claude",
+                            side_effect=fake_call):
+                from mediahub.turn_into import turn_meet_into_pack
+                pack = turn_meet_into_pack(
+                    _run_data(),
+                    _profile(sponsor="Acme Sports",
+                             notes="Next meet: Nationals — 2026-06-10"),
+                    deterministic=False,
+                )
+        finally:
+            os.environ.pop("MEDIAHUB_TURNINTO_PARALLEL", None)
+
+        by = {a["type"]: a for a in pack["artefacts"]}
+        self.assertEqual(len(pack["artefacts"]), 7)
+
+        # Aggregate artefacts that previously fell back to heuristics.
+        self.assertTrue(by["meet_recap"]["captions"]["default"].startswith("AI-WRITTEN"))
+        self.assertTrue(by["meet_recap"]["captions"]["instagram"].startswith("AI-WRITTEN"))
+        self.assertTrue(by["parent_newsletter"]["captions"]["default"].startswith("AI-WRITTEN"))
+        self.assertTrue(by["sponsor_thank_you"]["captions"]["default"].startswith("AI-WRITTEN"))
+        self.assertTrue(by["next_meet_preview"]["captions"]["default"].startswith("AI-WRITTEN"))
+        # coach_quote prepends the DRAFT flag, so check the raw quote.
+        self.assertTrue(by["coach_quote"]["captions"]["quote_only"].startswith("AI-WRITTEN"))
+        # data_thread: intro + every numbered post + LinkedIn variant.
+        self.assertTrue(all("AI-WRITTEN" in p for p in by["data_thread"]["captions"]["x_thread"]))
+        self.assertTrue(by["data_thread"]["captions"]["linkedin"].startswith("AI-WRITTEN"))
+        # Per-swimmer spotlight captions (these always worked, but assert
+        # they still do).
+        self.assertTrue(all(v.startswith("AI-WRITTEN")
+                            for v in by["swimmer_spotlight"]["captions"].values()))
+
+        # The model actually received real meet context for the aggregate
+        # briefs (not the empty prose that used to trigger the fallback).
+        joined = "\n".join(captured)
+        self.assertIn("Write a feed recap of", joined)
+        self.assertIn("parent-and-supporter newsletter", joined)
+        self.assertIn("Thank the sponsor Acme Sports", joined)
+
+    def test_aggregate_briefs_are_non_empty(self):
+        from mediahub.turn_into.templates import _narrate_brief
+        cases = [
+            ("meet_recap", {"meet": "M"}),
+            ("thread_intro", {"meet": "M", "n_top": 3}),
+            ("thread_linkedin", {"meet": "M"}),
+            ("newsletter", {"meet": "M"}),
+            ("sponsor_thank_you", {"meet": "M", "sponsor": "S"}),
+            ("coach_quote", {"meet": "M"}),
+            ("next_meet_preview", {"next_meet": {"name": "N"}}),
+        ]
+        for kind, extra in cases:
+            prose = _narrate_brief({"kind": kind, **extra})
+            self.assertTrue(prose.strip(), f"empty brief for {kind}")
+        # Unknown kind returns "" so the caller keeps the single-swim path.
+        self.assertEqual(_narrate_brief({"kind": "totally_unknown"}), "")
+
 
 if __name__ == "__main__":
     unittest.main()
