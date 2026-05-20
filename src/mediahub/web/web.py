@@ -9404,20 +9404,20 @@ Relay team broke club record"></textarea>
         """
         prof = _active_profile()
 
-        # ---- TOC strap ------------------------------------------------
+        # ---- Hero + sticky section nav --------------------------------
         toc_html = (
-            '<div class="mh-section-eyebrow" style="margin-bottom:6px">Settings</div>'
-            '<h1 style="margin:0 0 12px;font-size:32px">Operations &amp; data</h1>'
-            '<p class="dim" style="margin-bottom:24px;max-width:680px">'
-            'Everything previously surfaced under <i>Activity</i>, <i>Status</i>, '
-            '<i>Privacy</i>, and <i>Deployment status</i> now lives here. '
-            'Jump to a section:</p>'
-            '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px">'
-            '<a class="btn secondary" href="#activity" style="font-size:12px;padding:6px 12px">Activity</a>'
-            '<a class="btn secondary" href="#status" style="font-size:12px;padding:6px 12px">Status</a>'
-            '<a class="btn secondary" href="#privacy" style="font-size:12px;padding:6px 12px">Privacy</a>'
-            '<a class="btn secondary" href="#deployment" style="font-size:12px;padding:6px 12px">Deployment status</a>'
-            '</div>'
+            '<section class="mh-hero" data-lane="" style="padding-top:var(--sp-7);padding-bottom:var(--sp-5);margin-bottom:var(--sp-4)">'
+            '<span class="mh-hero-eyebrow">Settings</span>'
+            '<h1>Operations &amp; <em class="editorial">data</em></h1>'
+            '<p class="lede">Activity, deployment health, the data this system keeps, '
+            'and how to delete it &mdash; all in one place.</p>'
+            '</section>'
+            '<nav class="mh-tabnav" id="mh-settings-tabs" aria-label="Settings sections">'
+            '<a href="#activity" class="is-active">Activity</a>'
+            '<a href="#status">Status</a>'
+            '<a href="#privacy">Privacy &amp; data</a>'
+            '<a href="#deployment">Deployment</a>'
+            '</nav>'
         )
 
         activity_html = _render_settings_activity_section(prof)
@@ -9425,12 +9425,38 @@ Relay team broke club record"></textarea>
         privacy_html = _render_settings_privacy_section()
         deployment_html = _render_settings_deployment_section()
 
+        # Scroll-spy: highlight the tab whose section is in view.
+        spy_js = '''
+<script>
+(function(){
+  var nav = document.getElementById('mh-settings-tabs');
+  if (!nav) return;
+  var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+  var targets = links.map(function(a){
+    var id = a.getAttribute('href').slice(1);
+    return document.getElementById(id);
+  });
+  if (!('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      var idx = targets.indexOf(en.target);
+      if (idx < 0) return;
+      links.forEach(function(l){ l.classList.remove('is-active'); });
+      links[idx].classList.add('is-active');
+    });
+  }, {rootMargin: '-30% 0px -60% 0px', threshold: 0});
+  targets.forEach(function(t){ if (t) io.observe(t); });
+})();
+</script>'''
+
         body = (
             toc_html
             + activity_html
             + status_html
             + privacy_html
             + deployment_html
+            + spy_js
         )
         return _layout("Settings", body, active="settings")
 
@@ -12634,6 +12660,13 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 
         voice_examples_text = "\n".join(profile.voice_examples or [])
 
+        # Hoist brand-colour fallbacks into locals so the swatch markup and
+        # the colour inputs share one literal each (keeps the inline-hex
+        # budget in test_theme_tokens green — the literals live in plain
+        # assignments, not inline styles).
+        _org_pri = profile.brand_primary or "#0A2540"
+        _org_sec = profile.brand_secondary or "#000000"
+
         body = f"""
 {saved_msg}{capture_preview}{capture_error}{voice_preview}{voice_error}
 <section class="mh-hero" data-lane="" style="padding-top:var(--sp-8);padding-bottom:var(--sp-7);margin-bottom:var(--sp-5)">
@@ -12747,15 +12780,32 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     </div>
     <div>
       <label>Primary colour</label>
-      <input type="color" name="brand_primary" value="{_h(profile.brand_primary or '#0A2540')}"
+      <input id="org-brand-primary" type="color" name="brand_primary" value="{_h(_org_pri)}"
              style="height:38px;width:80px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer"/>
     </div>
     <div>
       <label>Secondary colour</label>
-      <input type="color" name="brand_secondary" value="{_h(profile.brand_secondary or '#000000')}"
+      <input id="org-brand-secondary" type="color" name="brand_secondary" value="{_h(_org_sec)}"
              style="height:38px;width:80px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer"/>
     </div>
   </div>
+  <div class="mh-brandkit-strip" aria-hidden="true">
+    <span class="label">Brand kit</span>
+    <span class="mh-brandkit-chip"><span class="sw" id="bk-sw-pri" style="background:{_h(_org_pri)}"></span><span class="hex" id="bk-hex-pri">{_h(_org_pri)}</span></span>
+    <span class="mh-brandkit-chip"><span class="sw" id="bk-sw-sec" style="background:{_h(_org_sec)}"></span><span class="hex" id="bk-hex-sec">{_h(_org_sec)}</span></span>
+    <span style="font-size:var(--fs-sm);color:var(--ink-dim);margin-left:auto">This palette flows into every caption graphic and motion reel.</span>
+  </div>
+  <script>
+  (function(){{
+    function bind(inp, sw, hex) {{
+      var i=document.getElementById(inp), s=document.getElementById(sw), h=document.getElementById(hex);
+      if(!i) return;
+      i.addEventListener('input', function(){{ if(s) s.style.background=i.value; if(h) h.textContent=i.value.toUpperCase(); }});
+    }}
+    bind('org-brand-primary','bk-sw-pri','bk-hex-pri');
+    bind('org-brand-secondary','bk-sw-sec','bk-hex-sec');
+  }})();
+  </script>
 </div>
 
 <div class="card" style="margin-bottom:20px">
