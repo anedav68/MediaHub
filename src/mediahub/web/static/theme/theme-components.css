@@ -989,6 +989,222 @@ time.mh-rel[title] { cursor: help; border-bottom: 1px dotted var(--hairline); }
   color: var(--ink-muted);
 }
 
+/* =====================================================================
+   PHASE 2 — MARKETING SURFACE
+   ===================================================================== */
+
+/* "MADE FOR" — three audience cards. Each card has an icon block,
+   a role label, and a one-sentence value statement. */
+.mh-audience-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.mh-audience {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  transition: transform var(--dur-med) var(--ease-out-quick),
+              border-color var(--dur-med) var(--ease-out-quick);
+}
+.mh-audience:hover { transform: translateY(-2px); border-color: var(--rule); }
+.mh-audience::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--lane) 0%, var(--medal) 100%);
+  opacity: 0.55;
+}
+.mh-audience-icon {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 242, 232, 0.04);
+  color: var(--lane);
+  margin-bottom: var(--sp-2);
+}
+.mh-audience-icon svg { width: 22px; height: 22px; }
+.mh-audience-role {
+  font-family: var(--font-mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.mh-audience-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+}
+.mh-audience-body {
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--ink-dim);
+  margin: 0;
+}
+
+/* "WHAT WE DON'T DO" — trust panel. Pit-wall-deep background, lane-yellow
+   left-edge stripe, paired ✓/✗ rows. Reads as a written promise. */
+.mh-promise {
+  background: var(--bg-deep);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--lane);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6) var(--sp-6);
+  margin: var(--sp-6) 0 var(--sp-7);
+  position: relative;
+  overflow: hidden;
+}
+.mh-promise::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 220px; height: 100%;
+  background: radial-gradient(60% 80% at 100% 0%, var(--lane-glow), transparent 70%);
+  opacity: 0.18;
+  pointer-events: none;
+}
+.mh-promise-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin: 0 0 var(--sp-2);
+}
+.mh-promise-title em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-variation-settings: 'opsz' 72;
+  color: var(--medal);
+  text-transform: none;
+}
+.mh-promise-lede {
+  font-family: var(--font-serif);
+  font-variation-settings: 'opsz' 72;
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+  color: var(--ink-dim);
+  margin: 0 0 var(--sp-5);
+  max-width: 56ch;
+}
+.mh-promise-list {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-3);
+}
+.mh-promise-list li {
+  display: flex; align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  color: var(--ink);
+}
+.mh-promise-list li svg {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  margin-top: 2px;
+  color: var(--good);
+}
+.mh-promise-list li.deny svg { color: var(--bad); }
+.mh-promise-list li b {
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+}
+.mh-promise-list li span {
+  display: block;
+  color: var(--ink-dim);
+  font-size: var(--fs-sm);
+  margin-top: 2px;
+}
+
+/* FINAL-CTA STRIP — sits just before the footer. Picks up the masthead's
+   lane-stripe accent so the page resolves with the same chrome it opened
+   with. */
+.mh-final-cta {
+  margin: var(--sp-8) 0 var(--sp-7);
+  padding: var(--sp-7) var(--sp-6);
+  background:
+    radial-gradient(60% 80% at 0% 100%, var(--lane-glow), transparent 70%),
+    var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--sp-6);
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.mh-final-cta::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, transparent, var(--lane), transparent);
+  opacity: 0.5;
+}
+.mh-final-cta-headline {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0;
+}
+.mh-final-cta-headline em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-variation-settings: 'opsz' 144;
+  color: var(--lane);
+  text-transform: none;
+}
+.mh-final-cta-sub {
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  color: var(--ink-dim);
+  margin: var(--sp-2) 0 0;
+  max-width: 48ch;
+}
+.mh-final-cta-actions {
+  display: flex; gap: var(--sp-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+  .mh-final-cta {
+    grid-template-columns: 1fr;
+    padding: var(--sp-5) var(--sp-5);
+  }
+  .mh-final-cta-actions { justify-content: stretch; }
+  .mh-final-cta-actions .btn { flex: 1; justify-content: center; }
+}
+
 /* SAMPLE-DATA / DEMO CTA — small tertiary line under the main CTAs
    so first-time visitors can explore without uploading real data. */
 .mh-demo-line {

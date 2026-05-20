@@ -5000,9 +5000,110 @@ def create_app() -> Flask:
             '</section>'
         )
 
+        # --- Made for — three audience cards. Shown to everyone since the
+        # product story doesn't change between fresh visitors and pinned
+        # tenants; this is the "who it's for" reassurance block.
+        audience_html = (
+            '<section class="mh-section">'
+            '<div class="mh-section-eyebrow-strip"><span class="label">Made for</span></div>'
+            '<h2 class="mh-section-title">Built for the people who already <em class="editorial">post the results</em>.</h2>'
+            '<div class="mh-audience-row">'
+            '<div class="mh-audience">'
+            '<span class="mh-audience-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>'
+            '<span class="mh-audience-role">Committee · Volunteer · Comms</span>'
+            '<h3 class="mh-audience-title">Club committees</h3>'
+            '<p class="mh-audience-body">Whoever runs the socials gets back two evenings every meet week. The engine writes the captions; the committee approves.</p>'
+            '</div>'
+            '<div class="mh-audience">'
+            '<span class="mh-audience-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></span>'
+            '<span class="mh-audience-role">Coach · Performance · Selection</span>'
+            '<h3 class="mh-audience-title">Coaches</h3>'
+            '<p class="mh-audience-body">Personal bests, qualifying-time misses, ranked swims and standout debuts — surfaced before you finish your coffee.</p>'
+            '</div>'
+            '<div class="mh-audience">'
+            '<span class="mh-audience-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span>'
+            '<span class="mh-audience-role">Society · University · Team</span>'
+            '<h3 class="mh-audience-title">University teams</h3>'
+            '<p class="mh-audience-body">BUCS results, varsity wins, intra-society fixtures — all in your colours, with the right tone for an Instagram feed.</p>'
+            '</div>'
+            '</div>'
+            '</section>'
+        )
+
+        # --- Promise / what we don't do. Lane-yellow left-stripe trust
+        # panel. Particularly important because the AI is doing the
+        # generation; the panel makes it explicit that you keep approval.
+        promise_html = (
+            '<section class="mh-section">'
+            '<div class="mh-promise">'
+            '<h2 class="mh-promise-title">Human in the loop, <em>by design</em>.</h2>'
+            '<p class="mh-promise-lede">'
+            'MediaHub is an intelligence layer, not an auto-poster. Every '
+            'piece of content stops at a review queue you control.'
+            '</p>'
+            '<ul class="mh-promise-list">'
+            '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+            '<div><b>Approval gate, every time</b><span>No card publishes without an explicit click. Even bulk approvals are a deliberate action.</span></div></li>'
+            '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+            '<div><b>Source-grounded captions</b><span>Every claim links back to the parsed result. No invented times, no invented places.</span></div></li>'
+            '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+            '<div><b>Your brand, your tone</b><span>Palette, fonts, voice and example posts feed the model. Nothing gets re-trained on your data.</span></div></li>'
+            '<li class="deny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+            '<div><b>We don\'t auto-post</b><span>No scheduled feed pushes without you saying so. The Buffer connection is opt-in per-card.</span></div></li>'
+            '<li class="deny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+            '<div><b>We don\'t invent results</b><span>If the file doesn\'t contain a time, the caption doesn\'t claim one. Heuristic fills are forbidden.</span></div></li>'
+            '<li class="deny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+            '<div><b>We don\'t sell your roster</b><span>Athlete and result data stays on the deployment you control. Inventory you can audit on the privacy page.</span></div></li>'
+            '</ul>'
+            '</div>'
+            '</section>'
+        )
+
+        # --- Final CTA strip before the footer. Two variants based on
+        # whether the user has a pinned org. Picks up the masthead lane-
+        # stripe accent so the page resolves with the same chrome.
+        if prof and prof.is_ready():
+            final_cta_html = (
+                '<section class="mh-final-cta">'
+                '<div>'
+                f'<h2 class="mh-final-cta-headline">Next weekend\'s meet, '
+                '<em>ready</em> in a sitting.</h2>'
+                '<p class="mh-final-cta-sub">Drop the results file. We\'ll '
+                'rank the moments and write the captions; you spend the '
+                'evening approving instead of opening Photoshop.</p>'
+                '</div>'
+                '<div class="mh-final-cta-actions">'
+                f'<a class="btn large" href="{url_for("make_page")}">Start a content pack &rarr;</a>'
+                f'<a class="btn secondary" href="{url_for("activity_page")}">All recent runs</a>'
+                '</div>'
+                '</section>'
+            )
+        else:
+            final_cta_html = (
+                '<section class="mh-final-cta">'
+                '<div>'
+                '<h2 class="mh-final-cta-headline">A minute to set up. '
+                '<em>Then</em> every week is easier.</h2>'
+                '<p class="mh-final-cta-sub">Tell us your club\'s name and '
+                'website. We\'ll read your brand, palette and voice, and have '
+                'on-brand drafts ready the next time you upload a results file.</p>'
+                '</div>'
+                '<div class="mh-final-cta-actions">'
+                f'<a class="btn large" href="{url_for("organisation_setup")}">Create your organisation &rarr;</a>'
+                f'<a class="btn secondary" href="{url_for("sign_in_page")}">Sign in</a>'
+                '</div>'
+                '</section>'
+            )
+
         return _layout(
             "Home",
-            hero_html + trust_html + sample_html + steps_html,
+            hero_html
+            + trust_html
+            + sample_html
+            + steps_html
+            + audience_html
+            + promise_html
+            + final_cta_html,
             active="home",
         )
 
