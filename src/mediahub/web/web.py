@@ -4884,33 +4884,127 @@ def create_app() -> Flask:
             sep = '<span class="dot">/</span>'
             meta_html = '<div class="mh-hero-meta">' + sep.join(meta_parts) + '</div>'
 
+        # Demo line for first-time visitors — small tertiary CTA below the
+        # primary buttons. Links to /upload which the org gate will steer
+        # them through cleanly if they don't have an org yet.
+        demo_line_html = ""
+        if not (prof and prof.is_ready()):
+            demo_line_html = (
+                '<p class="mh-demo-line">Just looking? '
+                f'<a href="{url_for("research_page")}">See what the engine does</a> '
+                'or <a href="' + url_for('sign_in_page') + '">browse pinned organisations</a>.'
+                '</p>'
+            )
+
         hero_html = (
             f'<section class="mh-hero" data-lane="{lane_no}">'
             f'<span class="mh-hero-eyebrow">{_h(eyebrow)}</span>'
             f'<h1>{hero_h1}</h1>'
             f'<p class="lede">{_h(hero_lede)}</p>'
             f'<div class="mh-hero-actions">{hero_actions}</div>'
+            f'{demo_line_html}'
             f'{meta_html}'
             '</section>'
         )
 
-        # --- Four-step explainer — sport newsroom workflow ---
-        steps_html = (
-            '<div class="mh-section-eyebrow">The workflow</div>'
-            '<h2 class="mh-section-title">From the results sheet to <em class="editorial">posting-ready</em></h2>'
-            '<div class="mh-steps">'
-            '<div class="mh-step"><div class="mh-step-num">01</div><h3>Add an input</h3>'
-            '<p>Upload a Hytek results file, paste a sponsor brief, or describe a moment in your own words. Any sport. Any club.</p></div>'
-            '<div class="mh-step"><div class="mh-step-num">02</div><h3>We find the moments</h3>'
-            '<p>The engine spots PBs, medals, first-times, comebacks and standout swims, then ranks them by content-worthiness.</p></div>'
-            '<div class="mh-step"><div class="mh-step-num">03</div><h3>On-brand drafts appear</h3>'
-            "<p>Captions are written in your club&rsquo;s voice, using your tone, sponsor rules, and example posts you&rsquo;ve shared.</p></div>"
-            '<div class="mh-step"><div class="mh-step-num">04</div><h3>Approve. Then post.</h3>'
-            '<p>You review, edit, approve. Nothing goes out without you. Export as text, copy to Stories, or download a pack.</p></div>'
+        # --- Trust strip — "what we read / what we make" pipeline glance.
+        # Communicates the inputs and outputs without leaning on logos we
+        # don't yet own. Numbers come from the seeded run counts.
+        trust_html = (
+            '<div class="mh-trust-strip">'
+            '<div class="mh-trust-cell">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+            '<div><span class="label">We read</span><span class="value">Hytek .hy3, .zip, PDF</span></div>'
+            '</div>'
+            '<div class="mh-trust-cell">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
+            '<div><span class="label">We crawl</span><span class="value">Club site &amp; socials</span></div>'
+            '</div>'
+            '<div class="mh-trust-cell">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>'
+            '<div><span class="label">We rank</span><span class="value">PBs, medals, first-times</span></div>'
+            '</div>'
+            '<div class="mh-trust-cell">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>'
+            '<div><span class="label">We render</span><span class="value">Captions, graphics, reels</span></div>'
+            '</div>'
             '</div>'
         )
 
-        return _layout("Home", hero_html + steps_html, active="home")
+        # --- Four-step explainer — sport newsroom workflow ---
+        # Each step now carries an SVG icon and a "time-to" footnote so the
+        # block reads as a real product walkthrough, not a paragraph wall.
+        step_specs = [
+            ('01', 'Add an input',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+             'Upload a Hytek results file, paste a sponsor brief, or describe a moment in your own words. Any sport. Any club.',
+             '~ 30s'),
+            ('02', 'We find the moments',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3M11 14v.01"/></svg>',
+             'The engine spots PBs, medals, first-times, comebacks and standout swims, then ranks them by content-worthiness.',
+             '~ 45s'),
+            ('03', 'On-brand drafts appear',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7-3-3-7 7v3z"/><path d="M14 6l3 3"/><path d="M5 21h14"/></svg>',
+             "Captions are written in your club&rsquo;s voice, using your tone, sponsor rules, and example posts you&rsquo;ve shared.",
+             '~ 60s'),
+            ('04', 'Approve. Then post.',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+             'You review, edit, approve. Nothing goes out without you. Export as text, copy to Stories, or download a pack.',
+             'Human in the loop'),
+        ]
+        steps_html = (
+            '<section class="mh-section">'
+            '<div class="mh-section-eyebrow-strip"><span class="label">The workflow</span></div>'
+            '<h2 class="mh-section-title">From the results sheet to <em class="editorial">posting-ready</em></h2>'
+            '<div class="mh-steps">'
+            + ''.join(
+                f'<div class="mh-step">{icon}'
+                f'<div class="mh-step-num">{num}</div>'
+                f'<h3>{title}</h3><p>{body}</p>'
+                f'<div class="mh-step-foot">{foot}</div></div>'
+                for num, title, icon, body, foot in step_specs
+            )
+            + '</div></section>'
+        )
+
+        # --- Sample output preview — three mock cards showing the three
+        # default output formats. Pure visual; non-interactive. Helps a
+        # first-time visitor see what they're getting before they upload.
+        sample_html = (
+            '<section class="mh-section">'
+            '<div class="mh-section-eyebrow-strip"><span class="label">What lands in your queue</span></div>'
+            '<h2 class="mh-section-title">A weekend reads like <em class="editorial">three drafts</em>, ready to approve.</h2>'
+            '<div class="mh-sample-row">'
+            '<div class="mh-sample story">'
+            '<span class="mh-sample-eyebrow">Story card · 1080×1920</span>'
+            '<div class="mh-sample-title">Tom Davies — <em>PB</em> 100m free.</div>'
+            '<div class="mh-sample-time">52.41<span class="mh-sample-delta">−0.74s</span></div>'
+            '<p style="margin:0;color:var(--ink-dim);font-size:14px;line-height:1.45">A clean, vertical story graphic with the swimmer’s name, event and split — branded with your club’s palette.</p>'
+            '<div class="mh-sample-meta">Caption <span class="sep">/</span> Graphic <span class="sep">/</span> Story</div>'
+            '</div>'
+            '<div class="mh-sample feed">'
+            '<span class="mh-sample-eyebrow">Feed graphic · 1080×1350</span>'
+            '<div class="mh-sample-title">Top three <em>finals</em></div>'
+            '<div class="mh-sample-bars"><span class="bronze" style="height:55%"></span><span class="gold" style="height:100%"></span><span class="silver" style="height:78%"></span></div>'
+            '<p style="margin:0;color:var(--ink-dim);font-size:14px;line-height:1.45">Podium-bar chart of the night’s finals — names, times and lanes from your meet file, dropped into your colour palette.</p>'
+            '<div class="mh-sample-meta">Caption <span class="sep">/</span> Graphic <span class="sep">/</span> Feed</div>'
+            '</div>'
+            '<div class="mh-sample reel">'
+            '<span class="mh-sample-eyebrow">Motion reel · 15s MP4</span>'
+            '<div class="mh-sample-title">Aquatica <em>highlights</em></div>'
+            '<div class="mh-sample-timeline"><span class="lit"></span><span class="lit"></span><span class="lit"></span><span></span><span></span></div>'
+            '<p style="margin:0;color:var(--ink-dim);font-size:14px;line-height:1.45">Top three cards stitched together with crossfades, your wordmark, and the day’s headline — rendered server-side.</p>'
+            '<div class="mh-sample-meta">Reel <span class="sep">/</span> Motion <span class="sep">/</span> 1080×1920</div>'
+            '</div>'
+            '</div>'
+            '</section>'
+        )
+
+        return _layout(
+            "Home",
+            hero_html + trust_html + sample_html + steps_html,
+            active="home",
+        )
 
     # ---- ACTIVITY &mdash; recent runs scoped to the active organisation ----
     @app.route("/activity")
