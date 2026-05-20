@@ -926,6 +926,66 @@ def _maybe_evict_turn_into_jobs() -> None:
         _turn_into_jobs.pop(jid, None)
 
 
+# ---- Cross-worker Turn-Into job state --------------------------------
+#
+# gunicorn runs --workers 2, so the worker that creates an async
+# Turn-Into job (and holds it in the in-memory _turn_into_jobs cache) is
+# usually NOT the worker a later status poll round-robins to. Without a
+# shared store the poll on the other worker sees nothing and the UI shows
+# "Failed: job not found". Runs already dodge this by falling back to the
+# SQLite row; Turn-Into jobs get the same treatment via a tiny JSON file
+# per job on the shared DATA_DIR disk. Records are small (status +
+# pack_url + a few counts) and short-lived, so a flat directory of
+# <job_id>.json files is enough — no schema, no migration.
+
+def _ti_jobs_dir() -> Path:
+    d = DATA_DIR / "turn_into_jobs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _ti_job_write(job_id: str, record: dict) -> None:
+    """Persist a job record so any gunicorn worker can read it. Atomic
+    (temp file + os.replace) so a concurrent poll never reads a half-
+    written file. Best-effort — a disk hiccup must not break generation,
+    since the in-memory cache still serves same-worker polls."""
+    try:
+        path = _ti_jobs_dir() / f"{job_id}.json"
+        tmp = path.with_name(f"{job_id}.json.{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(record, default=str))
+        os.replace(tmp, path)
+    except Exception:
+        pass
+
+
+def _ti_job_read(job_id: str) -> Optional[dict]:
+    """Read a persisted job record, or None if absent/unreadable."""
+    try:
+        path = _ti_jobs_dir() / f"{job_id}.json"
+        if not path.exists():
+            return None
+        return json.loads(path.read_text())
+    except Exception:
+        return None
+
+
+def _prune_ti_job_files(max_age_secs: int = 21_600) -> None:
+    """Delete job-status files older than max_age_secs (default 6h). Jobs
+    finish in well under two minutes, so anything older is long done and
+    its pack (if any) is already persisted separately under
+    turn_into_packs/."""
+    try:
+        now = time.time()
+        for f in _ti_jobs_dir().glob("*.json"):
+            try:
+                if now - f.stat().st_mtime > max_age_secs:
+                    f.unlink()
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+
 def _db():
     # timeout + busy_timeout: with two gunicorn workers writing the same
     # SQLite file (run-status updates, workflow state, progress streaming)
@@ -16947,12 +17007,13 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                     save_pack(pack, run_id, base_dir=DATA_DIR / "turn_into_packs")
                     pack_url = url_for("turn_into_pack_view",
                                         run_id=run_id, pack_id=pack["pack_id"])
-                _turn_into_jobs[job_id] = {
+                record = {
                     "status": "done",
+                    "run_id": run_id,
                     # Pack is persisted to disk by save_pack() above; storing
-                    # it here too just bloats RAM. The response builders at
-                    # lines 9167 and 9182 already strip "pack", so dropping
-                    # it from the dict is a no-op for callers.
+                    # it here too just bloats RAM. The response builders
+                    # already strip "pack", so dropping it from the dict is a
+                    # no-op for callers.
                     "pack_id": pack["pack_id"],
                     "n_artefacts": len(pack.get("artefacts", [])),
                     "skipped": [s.get("type") for s in pack.get("skipped", [])],
@@ -16960,23 +17021,37 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 }
             except Exception as e:
                 import traceback as _tb
-                _turn_into_jobs[job_id] = {
+                record = {
                     "status": "error",
+                    "run_id": run_id,
                     "error": str(e),
                     "trace": _tb.format_exc()[-500:],
                 }
+            # Write to both the in-memory cache (fast same-worker reads) and
+            # the shared disk record (so a poll on the other gunicorn worker
+            # still resolves the job).
+            _turn_into_jobs[job_id] = record
+            _ti_job_write(job_id, record)
 
         import uuid as _uuid
         job_id = _uuid.uuid4().hex
 
         # Evict any old finished jobs before inserting a new one so the
-        # dict can't grow unbounded over a long-running deploy.
+        # dict can't grow unbounded over a long-running deploy. Also prune
+        # stale on-disk job records on the same cadence.
         with _active_lock:
             _maybe_evict_turn_into_jobs()
+            _prune_ti_job_files()
+
+        running = {"status": "running", "run_id": run_id}
 
         if async_mode:
-            # Async: kick off background thread, return job_id immediately
-            _turn_into_jobs[job_id] = {"status": "running"}
+            # Async: kick off background thread, return job_id immediately.
+            # Persist the "running" record up front so a poll that lands on
+            # the other gunicorn worker (before the thread finishes) still
+            # finds the job instead of reporting "job not found".
+            _turn_into_jobs[job_id] = running
+            _ti_job_write(job_id, running)
             t = threading.Thread(target=_do_generate, args=(job_id,), daemon=True)
             t.start()
             return jsonify({
@@ -16987,7 +17062,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             })
 
         # Synchronous (default): block until pack is generated, return final payload
-        _turn_into_jobs[job_id] = {"status": "running"}
+        _turn_into_jobs[job_id] = running
         _do_generate(job_id)
         job = _turn_into_jobs[job_id]
         if job["status"] == "error":
@@ -16999,8 +17074,16 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         """Poll Turn-Into job status. Returns { status: running|done|error, ... }."""
         if not _can_access_run(run_id, _load_run(run_id), _active_profile_id()):
             return jsonify({"status": "not_found", "error": "job not found"}), 404
-        job = _turn_into_jobs.get(job_id)
+        # In-memory first (fast, same-worker), then the shared disk record:
+        # with --workers 2 the poll often lands on a different worker than
+        # the one that created the job, so the on-disk copy is what keeps
+        # the UI from reporting a spurious "job not found".
+        job = _turn_into_jobs.get(job_id) or _ti_job_read(job_id)
         if job is None:
+            return jsonify({"status": "not_found", "error": "job not found"}), 404
+        # A job belongs to exactly one run. Don't let one run's URL read
+        # another run's job even if the (unguessable) job_id leaked.
+        if job.get("run_id") and job.get("run_id") != run_id:
             return jsonify({"status": "not_found", "error": "job not found"}), 404
         if job["status"] == "running":
             return jsonify({"status": "running"})
