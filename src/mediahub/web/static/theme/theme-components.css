@@ -990,6 +990,120 @@ time.mh-rel[title] { cursor: help; border-bottom: 1px dotted var(--hairline); }
 }
 
 /* =====================================================================
+   PHASE 6 — REVIEW PAGE
+   ===================================================================== */
+
+/* Keyboard-shortcut hint strip in the workflow toolbar. */
+.mh-kbd-hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-9);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+kbd {
+  font-family: var(--font-mono);
+  font-size: var(--fs-9);
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: var(--surface-2, rgba(245,242,232,0.05));
+  border: 1px solid var(--hairline);
+  border-bottom-width: 2px;
+  color: var(--ink-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
+@media (max-width: 720px) { .mh-kbd-hint { display: none; } }
+
+/* Focused-card ring for J/K keyboard navigation. */
+.ach-row.mh-kbd-focus {
+  position: relative;
+}
+.ach-row.mh-kbd-focus::before {
+  content: '';
+  position: absolute;
+  inset: -4px -10px;
+  border-left: 3px solid var(--lane);
+  border-radius: var(--radius-sm);
+  background: rgba(212, 255, 58, 0.03);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Keyboard-shortcut help overlay (toggled by '?'). */
+.mh-kbd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 7, 12, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: mh-fade-in var(--dur-med) var(--ease-out-quick);
+}
+.mh-kbd-overlay.is-open { display: flex; }
+.mh-kbd-overlay-panel {
+  background: var(--surface);
+  border: 1px solid var(--chrome);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3);
+  padding: var(--sp-6);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  animation: mh-modal-in var(--dur-med) var(--ease-out-quick);
+}
+.mh-kbd-overlay-panel h3 {
+  margin: 0 0 var(--sp-4);
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+.mh-kbd-table {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-3) var(--sp-4);
+  align-items: center;
+}
+.mh-kbd-table .keys { display: inline-flex; gap: 4px; }
+.mh-kbd-table .desc {
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  color: var(--ink-dim);
+}
+
+/* Confidence meter — small inline bar shown next to confidence labels. */
+.mh-conf-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.mh-conf-meter .track {
+  width: 48px; height: 5px;
+  border-radius: 999px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+.mh-conf-meter .track > span {
+  display: block; height: 100%;
+  border-radius: inherit;
+}
+.mh-conf-meter.high .track > span   { width: 100%; background: var(--good); }
+.mh-conf-meter.medium .track > span { width: 60%;  background: var(--warn); }
+.mh-conf-meter.low .track > span    { width: 30%;  background: var(--bad); }
+
+/* =====================================================================
    PHASE 5 — ACTIVITY PAGE
    ===================================================================== */
 

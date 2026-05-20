@@ -6775,7 +6775,18 @@ function turnMeetIntoPack() {{
 }}
 </script>"""
 
+            # Progress maths — how much of the queue has the user actioned?
+            _wf_decided = (_wf_n_approved or 0) + (_wf_n_rejected or 0) + (_wf_n_posted or 0)
+            _wf_grand_total = (_wf_n_total or len(ranked_achs) or 0)
+            _wf_pct = int(round(100 * _wf_decided / _wf_grand_total)) if _wf_grand_total else 0
+
             workflow_summary_card = turn_into_card + f"""
+<div class="mh-progress-strip" role="group" aria-label="Review progress">
+  <span class="mh-progress-strip-label">Reviewed</span>
+  <span class="mh-progress-strip-value">{_wf_decided}<span class="total">/ {_wf_grand_total}</span></span>
+  <span class="mh-progress-strip-bar"><span style="width:{_wf_pct}%"></span></span>
+  <span class="mh-progress-strip-label">{_wf_pct}%</span>
+</div>
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
     <div>
@@ -6788,6 +6799,10 @@ function turnMeetIntoPack() {{
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <button type="button" class="btn secondary" id="mh-bulk-approve"
+              title="Approve every card currently shown in the queue">
+        Approve all in queue
+      </button>
       <a class="btn" href="{_pack_url}" style="align-self:flex-end">View content pack &rarr;</a>
     </div>
   </div>
@@ -6796,6 +6811,9 @@ function turnMeetIntoPack() {{
     <nav class="mh-segmented" role="tablist" aria-label="Filter cards by workflow status">
       {_wf_filter_buttons}
     </nav>
+    <span class="mh-kbd-hint" aria-hidden="true">
+      <kbd>J</kbd><kbd>K</kbd> move · <kbd>A</kbd> approve · <kbd>R</kbd> reject · <kbd>?</kbd> help
+    </span>
   </div>
 </div>"""
         else:
@@ -7801,6 +7819,105 @@ function addGraphicToPack(btn, visualId) {{
   }}
   _tick();
   setInterval(_tick, 30000);
+}})();
+</script>
+
+<!-- Phase 6 — keyboard navigation + bulk approve + help overlay -->
+<div class="mh-kbd-overlay" id="mh-kbd-overlay" role="dialog" aria-modal="true" aria-labelledby="mh-kbd-title" aria-hidden="true">
+  <div class="mh-kbd-overlay-panel">
+    <h3 id="mh-kbd-title">Keyboard shortcuts</h3>
+    <div class="mh-kbd-table">
+      <span class="keys"><kbd>J</kbd></span><span class="desc">Focus next card</span>
+      <span class="keys"><kbd>K</kbd></span><span class="desc">Focus previous card</span>
+      <span class="keys"><kbd>A</kbd></span><span class="desc">Approve the focused card</span>
+      <span class="keys"><kbd>R</kbd></span><span class="desc">Reject the focused card</span>
+      <span class="keys"><kbd>U</kbd></span><span class="desc">Send focused card back to queue</span>
+      <span class="keys"><kbd>?</kbd></span><span class="desc">Toggle this help</span>
+      <span class="keys"><kbd>Esc</kbd></span><span class="desc">Close help</span>
+    </div>
+    <div style="margin-top:var(--sp-5);text-align:right">
+      <button type="button" class="btn secondary" data-mh-kbd-close>Got it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){{
+  // ----- Keyboard navigation across .ach-row cards -----
+  function cards() {{
+    return Array.prototype.slice.call(document.querySelectorAll('.ach-row'))
+      .filter(function(el){{ return el.offsetParent !== null; }});
+  }}
+  var focusIdx = -1;
+  function setFocus(idx) {{
+    var list = cards();
+    if (!list.length) return;
+    if (idx < 0) idx = 0;
+    if (idx >= list.length) idx = list.length - 1;
+    list.forEach(function(c){{ c.classList.remove('mh-kbd-focus'); }});
+    var el = list[idx];
+    el.classList.add('mh-kbd-focus');
+    el.scrollIntoView({{block: 'center', behavior: 'smooth'}});
+    focusIdx = idx;
+  }}
+  function clickWf(state) {{
+    var list = cards();
+    if (focusIdx < 0 || focusIdx >= list.length) return;
+    var btn = list[focusIdx].querySelector('[data-mh-wf="' + state + '"]');
+    if (btn) btn.click();
+  }}
+  function isTyping(e) {{
+    var t = e.target;
+    if (!t) return false;
+    var tag = (t.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
+  }}
+  var overlay = document.getElementById('mh-kbd-overlay');
+  function toggleHelp(force) {{
+    if (!overlay) return;
+    var open = force !== undefined ? force : !overlay.classList.contains('is-open');
+    overlay.classList.toggle('is-open', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }}
+  if (overlay) {{
+    overlay.addEventListener('click', function(e){{ if (e.target === overlay) toggleHelp(false); }});
+    overlay.querySelectorAll('[data-mh-kbd-close]').forEach(function(b){{
+      b.addEventListener('click', function(){{ toggleHelp(false); }});
+    }});
+  }}
+  document.addEventListener('keydown', function(e){{
+    if (isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key) {{
+      case 'j': case 'J': e.preventDefault(); setFocus(focusIdx + 1); break;
+      case 'k': case 'K': e.preventDefault(); setFocus(focusIdx - 1); break;
+      case 'a': case 'A': if (focusIdx >= 0) {{ e.preventDefault(); clickWf('approved'); }} break;
+      case 'r': case 'R': if (focusIdx >= 0) {{ e.preventDefault(); clickWf('rejected'); }} break;
+      case 'u': case 'U': if (focusIdx >= 0) {{ e.preventDefault(); clickWf('queue'); }} break;
+      case '?': e.preventDefault(); toggleHelp(); break;
+      case 'Escape': toggleHelp(false); break;
+    }}
+  }});
+
+  // ----- Bulk approve -----
+  var bulkBtn = document.getElementById('mh-bulk-approve');
+  if (bulkBtn) {{
+    bulkBtn.addEventListener('click', function(){{
+      var queued = Array.prototype.slice.call(
+        document.querySelectorAll('.ach-row[data-status="queue"]')
+      ).filter(function(el){{ return el.offsetParent !== null; }});
+      if (!queued.length) {{
+        if (window.MH) MH.toast('No cards in the queue to approve.', 'info');
+        return;
+      }}
+      if (!window.confirm('Approve all ' + queued.length + ' queued card' + (queued.length === 1 ? '' : 's') + '?')) return;
+      var n = 0;
+      queued.forEach(function(row){{
+        var btn = row.querySelector('[data-mh-wf="approved"]');
+        if (btn) {{ btn.click(); n++; }}
+      }});
+      if (window.MH) MH.toast('Approving ' + n + ' card' + (n === 1 ? '' : 's') + '…', 'success');
+    }});
+  }}
 }})();
 </script>
 """
