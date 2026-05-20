@@ -13756,10 +13756,14 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             req_fmt = _req.args.get("format")
         formats_kw = [req_fmt] if req_fmt else None
 
-        # Fresh palette / typography variety per click, but PIN the layout to
-        # the text-led family — a photo-needing family would render empty for a
-        # caption-only card. palette roles are restricted to the dark-primary-
-        # safe set so white headline text never disappears.
+        # The AI Director chooses the full visual treatment (palette role,
+        # background, accent, typography, composition, hook, mood) — same as
+        # meet-recap graphics — but is HARD-CONSTRAINED to the text-led layout
+        # because a caption-only card has no athlete photo for a photo-led
+        # family to use. The random text-led profile below is only the
+        # fallback for when no AI provider is configured; palette roles are
+        # restricted to the dark-primary-safe set so white headline text never
+        # disappears.
         variation_profile = None
         try:
             import dataclasses as _dc
@@ -13781,7 +13785,8 @@ function copySpotlightCaption(btn, cardIdSafe) {{
                 media_assets=[],
                 formats=formats_kw,
                 variation_profile=variation_profile,
-                use_ai_director=False,
+                use_ai_director=True,
+                allowed_families=["text_led_recap"],
             )
         except Exception as e:
             return jsonify({"error": f"render_failed: {e}"}), 500

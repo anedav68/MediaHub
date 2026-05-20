@@ -135,6 +135,7 @@ def create_visual_for_item(
     use_ai_director: bool = False,
     recent_signatures: Optional[list[str]] = None,
     recent_hooks: Optional[list[str]] = None,
+    allowed_families: Optional[list[str]] = None,
 ) -> dict:
     """Full pipeline for one content item. Returns a dict of:
         { brief, evaluation, visuals (list of dicts with file_path), errors }
@@ -188,6 +189,7 @@ def create_visual_for_item(
             use_ai_director=use_ai_director,
             recent_signatures=recent_signatures,
             recent_hooks=recent_hooks,
+            allowed_families=allowed_families,
         )
         out["brief"] = brief.to_dict()
     except Exception as e:

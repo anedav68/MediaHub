@@ -123,9 +123,17 @@ _LAYOUT_FAMILIES = (
 )
 
 
-def _system_prompt() -> str:
+def _system_prompt(allowed_families: Optional[list[str]] = None) -> str:
     """The art-director prompt — kept terse and option-bounded so the
-    model returns ONE JSON object whose keys we can trust."""
+    model returns ONE JSON object whose keys we can trust.
+
+    ``allowed_families`` restricts the layout vocabulary. Caption-only
+    content (no athlete photo) constrains this to text-led layouts so the AI
+    still directs every other axis (palette, background, typography, hook,
+    mood) without ever picking a photo-dependent layout that would render
+    empty.
+    """
+    families = allowed_families or list(_LAYOUT_FAMILIES)
     return (
         "You are the art director for a sports content studio. Your job "
         "is to choose a fresh visual direction for ONE swim achievement "
@@ -136,7 +144,7 @@ def _system_prompt() -> str:
         "Output schema (every field required, exact keys, exact "
         "vocabulary from the lists below):\n"
         "{\n"
-        '  "layout_family":         one of ' + json.dumps(list(_LAYOUT_FAMILIES)) + ",\n"
+        '  "layout_family":         one of ' + json.dumps(list(families)) + ",\n"
         '  "palette_role_index":    integer 0-5 (which colour-role permutation),\n'
         '  "background_style":      one of ' + json.dumps(list(_BACKGROUND_STYLES)) + ",\n"
         '  "accent_style":          one of ' + json.dumps(list(_ACCENT_STYLES)) + ",\n"
@@ -232,6 +240,7 @@ def ai_creative_direction(
     default_family: str = "individual_hero",
     recent_signatures: Optional[list[str]] = None,
     recent_hooks: Optional[list[str]] = None,
+    allowed_families: Optional[list[str]] = None,
 ) -> Optional[dict]:
     """Ask the configured AI provider for a creative direction.
 
@@ -251,7 +260,7 @@ def ai_creative_direction(
 
     summary = _achievement_summary(content_item)
     brand_ctx = _brand_context(brand_kit)
-    sys = _system_prompt()
+    sys = _system_prompt(allowed_families)
     user = _user_prompt(
         summary=summary,
         brand_ctx=brand_ctx,
@@ -299,6 +308,10 @@ def ai_creative_direction(
             len(out or ""), (out or "")[:500],
         )
     else:
+        # Hard-constrain the layout to the allowed set even if the model
+        # ignored the prompt — caption-only graphics must stay text-led.
+        if allowed_families and str(obj.get("layout_family", "")).strip().lower() not in allowed_families:
+            obj["layout_family"] = allowed_families[0]
         log.debug(
             "ai_director: parsed direction layout=%s hook=%s mood=%s",
             obj.get("layout_family"), obj.get("hook_phrase"), obj.get("mood"),

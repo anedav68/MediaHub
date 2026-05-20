@@ -200,7 +200,8 @@ def generate(content_item: dict, evaluation, brand_kit, *,
              variation_profile: Optional[VariationProfile] = None,
              use_ai_director: bool = False,
              recent_signatures: Optional[list[str]] = None,
-             recent_hooks: Optional[list[str]] = None) -> CreativeBrief:
+             recent_hooks: Optional[list[str]] = None,
+             allowed_families: Optional[list[str]] = None) -> CreativeBrief:
     """Build a CreativeBrief. Pure function — never reaches network unless
     LLM is available; falls back to deterministic defaults otherwise.
 
@@ -254,6 +255,7 @@ def generate(content_item: dict, evaluation, brand_kit, *,
                 default_family=pattern["family"],
                 recent_signatures=recent_signatures or [],
                 recent_hooks=recent_hooks or [],
+                allowed_families=allowed_families,
             )
         except Exception:
             ai_direction = None
@@ -261,7 +263,8 @@ def generate(content_item: dict, evaluation, brand_kit, *,
             # Promote the AI direction into a VariationProfile so the rest
             # of the function only has one code path to follow.
             variation_profile = _profile_from_ai_direction(
-                ai_direction, default_family=pattern["family"]
+                ai_direction, default_family=pattern["family"],
+                allowed_families=allowed_families,
             )
 
     # ---- Apply variation profile when provided ----
@@ -991,13 +994,21 @@ def _legacy_axes_from_seed(seed: int) -> tuple[str, str, str, str, str, float]:
     )
 
 
-def _profile_from_ai_direction(direction: dict, *, default_family: str) -> VariationProfile:
+def _profile_from_ai_direction(
+    direction: dict, *, default_family: str,
+    allowed_families: Optional[list[str]] = None,
+) -> VariationProfile:
     """Convert the AI director's structured output into a VariationProfile.
 
     The director returns a JSON object describing the creative
     direction; this maps it into the in-memory profile, normalising
     unknown values to safe defaults so a hallucinated key never
     breaks the renderer.
+
+    ``allowed_families`` hard-constrains the layout (caption-only graphics
+    must stay text-led); when the chosen family is text-led the photo
+    treatment is forced to no-photo so the render never expects a cutout
+    that doesn't exist.
     """
     def _norm(key: str, allowed: tuple[str, ...], default: str) -> str:
         v = str(direction.get(key, "") or "").strip().lower()
@@ -1006,6 +1017,9 @@ def _profile_from_ai_direction(direction: dict, *, default_family: str) -> Varia
     family = str(direction.get("layout_family", "") or default_family).strip().lower()
     if not family or family not in {p["family"] for p in PATTERNS}:
         family = default_family
+    if allowed_families and family not in allowed_families:
+        family = allowed_families[0]
+    photo_override = "no-photo" if family in {"text_led_recap", "weekend_numbers"} else None
 
     try:
         deco = float(direction.get("decoration_strength", 0.5))
@@ -1026,7 +1040,7 @@ def _profile_from_ai_direction(direction: dict, *, default_family: str) -> Varia
         accent_style=_norm("accent_style", ACCENT_STYLES, "brackets"),
         typography_pair=_norm("typography_pair", TYPOGRAPHY_PAIRS, "anton-inter"),
         composition=_norm("composition", COMPOSITIONS, "right"),
-        photo_treatment=_norm("photo_treatment", PHOTO_TREATMENTS, "cutout"),
+        photo_treatment=photo_override or _norm("photo_treatment", PHOTO_TREATMENTS, "cutout"),
         decoration_strength=deco,
         hook_phrase=str(direction.get("hook_phrase", "") or "").strip()[:80],
         mood=str(direction.get("mood", "") or "").strip()[:40],
