@@ -4696,6 +4696,44 @@ def _layout(title: str, body: str, active: str = "home") -> str:
                theme_seed_style=_theme_seed_style_block())
 
 
+# Inline line-art for empty states (24×24 stroked SVGs, currentColor).
+_EMPTY_ART = {
+    "inbox": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+    "search": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    "trophy": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>',
+    "alert": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+}
+
+
+def _empty_state(
+    art: str = "inbox",
+    headline: str = "Nothing here yet",
+    sub: str = "",
+    *,
+    actions: str = "",
+    kind: str = "",
+) -> str:
+    """Render a polished empty / zero-data state with line-art, a display
+    headline, a sentence of guidance, and optional CTA buttons HTML.
+
+    ``art`` is a key into _EMPTY_ART; ``kind="error"`` tints the art red.
+    ``headline`` may contain an <em> for an editorial-italic accent.
+    """
+    art_svg = _EMPTY_ART.get(art, _EMPTY_ART["inbox"])
+    kind_cls = " error" if kind == "error" else ""
+    sub_html = f'<p class="mh-emptystate-sub">{sub}</p>' if sub else ""
+    actions_html = (
+        f'<div class="mh-emptystate-actions">{actions}</div>' if actions else ""
+    )
+    return (
+        f'<div class="mh-emptystate{kind_cls}">'
+        f'<div class="mh-emptystate-art" aria-hidden="true">{art_svg}</div>'
+        f'<h3 class="mh-emptystate-title">{headline}</h3>'
+        f'{sub_html}{actions_html}'
+        '</div>'
+    )
+
+
 def _recovery_page(
     headline: str = "Not found",
     detail: str = "The thing you were looking for isn't here. It may have been deleted, or the URL might be out of date.",
@@ -7202,13 +7240,41 @@ function turnMeetIntoPack() {{
 
         if not ach_rows_html_wf:
             if _wf_filter:
-                ach_rows_html_wf = f'<div class="empty">No cards with status "{_h(_wf_filter)}".</div>'
+                _all_url = url_for("review", run_id=run_id)
+                ach_rows_html_wf = _empty_state(
+                    "search",
+                    f'No <em>{_h(_wf_filter)}</em> cards',
+                    f'Nothing is in the &ldquo;{_h(_wf_filter)}&rdquo; state right now. '
+                    'Switch the filter to see the rest of the queue.',
+                    actions=f'<a class="btn secondary" href="{_all_url}">Show all cards</a>',
+                )
             elif recognition_error:
-                ach_rows_html_wf = f'<div class="empty">Recognition engine error: {_h(recognition_error)}</div>'
+                ach_rows_html_wf = _empty_state(
+                    "alert",
+                    "Recognition hit a snag",
+                    f'The engine returned an error while ranking this run: '
+                    f'<code style="font-size:12px">{_h(recognition_error)}</code>. '
+                    'Re-uploading the file usually clears a transient parse error.',
+                    actions=f'<a class="btn" href="{url_for("upload")}">Try another file &rarr;</a>',
+                    kind="error",
+                )
             elif not rr:
-                ach_rows_html_wf = '<div class="empty">No recognition report available. Re-upload the file to generate achievements.</div>'
+                ach_rows_html_wf = _empty_state(
+                    "inbox",
+                    "No report <em>yet</em>",
+                    'We don&rsquo;t have a recognition report for this run. '
+                    'Re-upload the results file and the engine will rank the moments.',
+                    actions=f'<a class="btn" href="{url_for("upload")}">Upload results &rarr;</a>',
+                )
             else:
-                ach_rows_html_wf = '<div class="empty">No achievements detected.</div>'
+                ach_rows_html_wf = _empty_state(
+                    "trophy",
+                    "No standout swims",
+                    'The engine read the file but didn&rsquo;t find PBs, medals, or '
+                    'first-times worth a card. That can happen for heats-only sheets '
+                    'or entry lists.',
+                    actions=f'<a class="btn secondary" href="{url_for("activity_page")}">Back to runs</a>',
+                )
 
         # Single global AI-availability banner — replaces the 177 per-card
         # "AI UNAVAILABLE" alerts the previous implementation emitted.
