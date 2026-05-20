@@ -145,6 +145,32 @@ def update_card_status(pack_id: str, card_idx: int, status: str) -> Optional[dic
     return rec
 
 
+def replace_cards(pack_id: str, new_cards: list[dict]) -> Optional[dict]:
+    """Swap a pack's cards for a freshly-regenerated set.
+
+    The prior cards are archived into a capped ``card_history`` list so the
+    next regenerate can feed them to the content engine as an avoid-set —
+    that's what keeps every regenerate genuinely different. Returns the
+    updated record, or None if the pack is missing.
+    """
+    rec = load_pack(pack_id)
+    if not rec:
+        return None
+    prior = rec.get("cards") or []
+    history = list(rec.get("card_history") or [])
+    for c in prior:
+        if isinstance(c, dict) and (c.get("caption") or "").strip():
+            history.append({
+                "platform": c.get("platform", ""),
+                "caption":  c.get("caption", ""),
+            })
+    rec["card_history"] = history[-24:]
+    rec["cards"] = list(new_cards or [])
+    path = _packs_dir() / f"{pack_id}.json"
+    path.write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
+    return rec
+
+
 def delete_pack(pack_id: str) -> bool:
     if not pack_id or not pack_id.replace("-", "").isalnum():
         return False

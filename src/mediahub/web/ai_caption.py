@@ -185,6 +185,10 @@ def generate_caption_for_tone(
     voice_profile: Optional[dict] = None,
     club_profile=None,
     recent_captions: Optional[list[str]] = None,
+    *,
+    brief_prose: Optional[str] = None,
+    direction: Optional[dict] = None,
+    requirements: str = "",
 ) -> str:
     """Generate one caption in plain English. Raises ClaudeUnavailableError
     if no provider can answer. NO heuristic fallback — that's intentional;
@@ -194,6 +198,15 @@ def generate_caption_for_tone(
     user has seen for this card; when provided the system prompt tells
     the AI to write something distinct so clicking "regenerate" never
     returns the same wording twice.
+
+    This is the single caption-writing primitive shared by meet recap and the
+    unified ``content_engine``. Achievement-led callers (meet recap, athlete
+    spotlight, sponsor variants, turn-into) pass an ``achievement_dict`` and
+    the prose is built via ``narrate_achievement``. Brief-led callers (the
+    content engine) pass ready-made ``brief_prose`` instead. ``direction`` is
+    the AI Director's per-card plan (``{lens, hook, platform}``) and
+    ``requirements`` is a one-line description of what the brief is — both are
+    folded into the system prompt when present.
     """
     from mediahub.ai_core import narrate_achievement, narrate_brand
 
@@ -262,6 +275,28 @@ def generate_caption_for_tone(
                 system_parts.append(fmt)
         except Exception:
             pass
+    # Content-engine grounding: what kind of brief this is, plus the AI
+    # Director's per-card plan (platform / angle / hook). Present only when
+    # the engine calls this primitive; the meet-recap path leaves them blank.
+    if requirements:
+        system_parts.append("This brief is: " + requirements)
+    if isinstance(direction, dict):
+        dbits = []
+        platform = (direction.get("platform") or "").strip()
+        lens = (direction.get("lens") or "").strip()
+        hook = (direction.get("hook") or "").strip()
+        if platform:
+            dbits.append(f"target platform {platform}")
+        if lens:
+            dbits.append(f"angle/lens: {lens}")
+        if hook:
+            dbits.append(f"opening hook idea: {hook}")
+        if dbits:
+            system_parts.append(
+                "Creative direction for THIS card (honour the platform + "
+                "angle, but write the caption in your own fresh words): "
+                + "; ".join(dbits) + "."
+            )
     # Any caller-supplied extra instructions get appended last so they
     # take precedence over generic guidance. Used by the sponsor-variant
     # generator to inject "acknowledge sponsor X" requirements.
@@ -270,9 +305,13 @@ def generate_caption_for_tone(
         system_parts.append("Additional requirement for this caption: " + extra)
     system = "\n\n".join(system_parts)
 
-    # User message is a single English paragraph describing the swim — no
-    # JSON envelope, no field names. The model writes from this prose.
-    user_prose = narrate_achievement(achievement_dict, profile=club_profile)
+    # User message is a single English paragraph describing the source — no
+    # JSON envelope, no field names. Brief-led callers (the content engine)
+    # hand us ready-made prose; achievement-led callers narrate the swim.
+    if brief_prose and brief_prose.strip():
+        user_prose = brief_prose.strip()
+    else:
+        user_prose = narrate_achievement(achievement_dict, profile=club_profile)
     if not user_prose.strip():
         raise ClaudeUnavailableError("not enough detail to generate a caption")
     # Tiny random suffix breaks identical-output caching at the provider's

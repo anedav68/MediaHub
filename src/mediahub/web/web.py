@@ -4438,6 +4438,32 @@ _VISUAL_PANEL_JS = """<script>
 </script>"""
 
 
+# "Regenerate (fresh angles)" handler for the saved-draft pages. POSTs to the
+# content-engine regenerate route and reloads to the freshly-written set.
+_DRAFT_REGEN_JS = """<script>
+function mhRegenerateDraft(btn, url){
+  var orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '\\u21BA Regenerating\\u2026';
+  fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', credentials:'same-origin'})
+    .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+    .then(function(res){
+      if(res.ok && res.body && res.body.ok){
+        if(window.MH && MH.toast){ MH.toast('Fresh draft generated', 'success'); }
+        location.href = (res.body && res.body.redirect) || location.href;
+      } else {
+        btn.disabled = false; btn.innerHTML = orig;
+        var msg = (res.body && (res.body.message || res.body.error)) || 'Could not regenerate';
+        if(window.MH && MH.toast){ MH.toast(msg, 'error'); } else { alert(msg); }
+      }
+    })
+    .catch(function(){
+      btn.disabled = false; btn.innerHTML = orig;
+      if(window.MH && MH.toast){ MH.toast('Network error', 'error'); } else { alert('Network error'); }
+    });
+}
+</script>"""
+
+
 def _wrap_two_lines(text: str, limit: int = 18) -> tuple[str, str]:
     """Split a short headline across two lines near a word boundary.
 
@@ -9297,8 +9323,11 @@ function addGraphicToPack(btn, visualId) {{
         explanation = _build_card_explanation(matched_ra or {"achievement": achievement})
 
         from mediahub.media_ai.llm import is_available as _llm_available
+        # Route the meet-recap caption through the unified content engine's
+        # single-caption front door (it delegates to the shared
+        # ai_caption.generate_caption_for_tone writer, preserving behaviour).
+        from mediahub.content_engine import generate_caption as _gen_tone
         from mediahub.web.ai_caption import (
-            generate_caption_for_tone as _gen_tone,
             KNOWN_AI_TONES as _AI_TONES,
             ClaudeUnavailableError as _ClaudeUE,  # type: ignore[attr-defined]
         )
@@ -13516,9 +13545,13 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             "sponsor_post":    "stub_sponsor_post",
             "session_update":  "stub_session_update",
         }.get(stub_type, "free_text_chat_page"))
+        regen_api = url_for("api_stub_pack_regenerate", pack_id=pack_id)
         footer = (
             f'<div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap">'
-            f'<a class="btn" href="{export_url}">Export as text</a>'
+            f'<button type="button" class="btn" onclick="mhRegenerateDraft(this, {repr(regen_api)})" '
+            f'title="Re-run the content engine — the AI Director plans fresh angles, avoiding what you already have">'
+            f'&#x21BA; Regenerate (fresh angles)</button>'
+            f'<a class="btn secondary" href="{export_url}">Export as text</a>'
             f'<a class="btn secondary" href="{regenerate_url}">Generate new draft</a>'
             f'<a class="btn secondary" href="{back_url}">&larr; All drafts</a>'
             f'</div>'
@@ -13547,7 +13580,7 @@ function copySpotlightCaption(btn, cardIdSafe) {{
             footer,
             1,
         )
-        body = header + attached_html + cards_html + _VISUAL_PANEL_JS
+        body = header + attached_html + cards_html + _VISUAL_PANEL_JS + _DRAFT_REGEN_JS
         return _layout(rec.get("title") or "Draft", body, active="create")
 
     def _render_pack_attached_media(rec: dict) -> str:
@@ -13753,6 +13786,53 @@ function copySpotlightCaption(btn, cardIdSafe) {{
         except Exception as e:
             return jsonify({"error": f"render_failed: {e}"}), 500
         return jsonify({"ok": True, **res})
+
+    @app.route("/api/drafts/<pack_id>/regenerate", methods=["POST"])
+    def api_stub_pack_regenerate(pack_id):
+        """Regenerate a saved draft's cards through the content engine.
+
+        The pack's current cards (plus any archived history) are fed back to
+        the engine as the avoid-set, so the AI Director plans fresh angles and
+        the writer produces genuinely different captions every click. The new
+        cards replace the pack's cards; prior cards roll into ``card_history``.
+        """
+        from mediahub.club_platform.stub_pack_store import load_pack, replace_cards
+        from mediahub.club_platform import stubs as _stubs_mod
+        from mediahub.content_engine import generate_content
+        from mediahub.ai_core import ProviderNotConfigured, ProviderError
+
+        rec = load_pack(pack_id)
+        if not _can_access_pack(rec, _active_profile_id()):
+            return jsonify({"ok": False, "error": "pack_not_found"}), 404
+        stub_type = rec.get("stub_type", "")
+        stub = _stubs_mod.stub_for_type(stub_type)
+        if stub is None:
+            return jsonify({"ok": False, "error": "unsupported_type"}), 400
+        form_data = rec.get("form_data") or {}
+        brief = stub.generate_brief(form_data)
+        requirements = _stubs_mod.requirements_for(stub_type)
+        prior = rec.get("cards") or []
+        recent = list(rec.get("card_history") or []) + list(prior)
+        n_cards = max(1, min(len(prior) or 3, 6))
+        try:
+            res = generate_content(
+                content_type=stub_type, brief=brief, requirements=requirements,
+                recent_cards=recent, n_cards=n_cards,
+            )
+        except ProviderNotConfigured as e:
+            return jsonify({"ok": False, "error": "no_provider", "message": str(e)}), 503
+        except ProviderError as e:
+            return jsonify({"ok": False, "error": "provider_error", "message": str(e)}), 502
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"generate_failed: {e}"}), 500
+        new_cards = res.get("cards") or []
+        if not new_cards:
+            return jsonify({"ok": False, "error": "empty"}), 502
+        replace_cards(pack_id, new_cards)
+        # The draft view is a GET page that re-renders from the saved pack, so
+        # the client just reloads to show the fresh set.
+        return jsonify({"ok": True, "n_cards": len(new_cards),
+                        "redirect": url_for("stub_pack_view", pack_id=pack_id)})
 
     @app.route("/add-input")
     def add_input_page():
