@@ -990,6 +990,77 @@ time.mh-rel[title] { cursor: help; border-bottom: 1px dotted var(--hairline); }
 }
 
 /* =====================================================================
+   PHASE 11 — MOBILE
+   =====================================================================
+   Bottom-tab nav for the primary destinations (only < 720px), touch-
+   target floor, and a body padding so the fixed bar never covers
+   content / footer.
+   ===================================================================== */
+
+.mh-bottomnav { display: none; }
+
+@media (max-width: 720px) {
+  .mh-bottomnav {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 95;
+    background: color-mix(in oklab, var(--bg-deep) 92%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--chrome);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mh-bottomnav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 4px 8px;
+    min-height: 56px;
+    text-decoration: none;
+    color: var(--ink-muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: color var(--dur-fast) var(--ease-out-quick);
+    position: relative;
+  }
+  .mh-bottomnav a svg { width: 20px; height: 20px; }
+  .mh-bottomnav a:active { color: var(--ink); }
+  .mh-bottomnav a.is-active { color: var(--lane); }
+  .mh-bottomnav a.is-active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 28px; height: 2px;
+    background: var(--lane);
+    box-shadow: 0 0 10px var(--lane-glow);
+  }
+  /* Keep page content + footer clear of the fixed bar. */
+  body { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+  /* The footer already has its own spacing; nudge it above the bar. */
+  .mh-footer { margin-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Touch-target floor (WCAG 2.5.8 / EAA): on coarse pointers, give the
+   small mono nav + footer links and tag-sized buttons a 44px hit area
+   without changing their visual size (padding via min-height + inline
+   flex centering already present on most). */
+@media (pointer: coarse) {
+  .btn, .mh-segmented a, .mh-tabnav a, .mh-bottomnav a,
+  header.topnav nav a {
+    min-height: 44px;
+  }
+  .btn { display: inline-flex; align-items: center; }
+}
+
+/* =====================================================================
    PHASE 10 — MOTION SYSTEM
    =====================================================================
    Scroll-triggered reveals + number counters. Opt-in via .mh-reveal /
