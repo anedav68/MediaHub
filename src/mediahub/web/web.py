@@ -4251,6 +4251,12 @@ def _layout(title: str, body: str, active: str = "home") -> str:
 <style>{{ css | safe }}</style>
 {{ theme_seed_style | safe }}
 <script>
+  // Mark the document as JS-capable so progressive-enhancement styles
+  // (e.g. .mh-reveal initial-hidden state) only apply when JS can undo
+  // them. No-JS users never get permanently-hidden content.
+  document.documentElement.classList.add('mh-js');
+</script>
+<script>
   // Detect deployed prefix (e.g. "/port/5000") so XHRs from inline JS use the right base.
   (function(){
     var path = window.location.pathname || '/';
@@ -4268,7 +4274,7 @@ def _layout(title: str, body: str, active: str = "home") -> str:
     <div class="mh-loader-sub">This usually takes a few seconds</div>
   </div>
 </div>
-<div id="mh-toast-container"></div>
+<div id="mh-toast-container" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="false"></div>
 <header class="topnav">
   <a href="{{ url_for('home') }}" class="brand" aria-label="MediaHub — home">
     <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -4359,6 +4365,24 @@ def _layout(title: str, body: str, active: str = "home") -> str:
     </div>
   </div>
 </footer>
+<nav class="mh-bottomnav" aria-label="Primary (mobile)">
+  <a href="{{ url_for('home') }}" class="{{ 'is-active' if active=='home' else '' }}" aria-label="Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10"/></svg>
+    Home
+  </a>
+  <a href="{{ url_for('make_page') }}" class="{{ 'is-active' if active=='create' else '' }}" aria-label="Create">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Create
+  </a>
+  <a href="{{ url_for('activity_page') }}" class="{{ 'is-active' if active=='activity' else '' }}" aria-label="Activity">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2 7 4-16 2 9h6"/></svg>
+    Activity
+  </a>
+  <a href="{{ url_for('settings_page') }}" class="{{ 'is-active' if active=='settings' else '' }}" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </a>
+</nav>
 <script>
 (function(){
   var HEALTH_URL = {{ health_url|tojson }};
@@ -4778,6 +4802,150 @@ def _layout(title: str, body: str, active: str = "home") -> str:
   if (document.readyState !== 'loading') bindRelTimes();
   else document.addEventListener('DOMContentLoaded', bindRelTimes);
   MH.bindRelTimes = bindRelTimes;
+
+  // === Drawer (right-side slide-in panel) ===
+  // MH.openDrawer(title, bodyHTML) builds a scrim + panel, slides it in,
+  // and wires Esc + scrim-click + close-button to dismiss. Returns the
+  // close function so callers can dismiss programmatically.
+  MH.openDrawer = function(title, bodyHTML, opts) {
+    opts = opts || {};
+    var prevFocus = document.activeElement;
+    var scrim = document.createElement('div');
+    scrim.className = 'mh-drawer-scrim';
+    var drawer = document.createElement('aside');
+    drawer.className = 'mh-drawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-modal', 'true');
+    drawer.setAttribute('aria-label', title || 'Panel');
+    drawer.innerHTML =
+      '<div class="mh-drawer-head"><h3></h3>' +
+      '<button class="mh-modal-close" aria-label="Close panel" data-mh-drawer-close>' +
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>' +
+      '</button></div>' +
+      '<div class="mh-drawer-body"></div>';
+    drawer.querySelector('h3').textContent = title || '';
+    var bodyEl = drawer.querySelector('.mh-drawer-body');
+    if (typeof bodyHTML === 'string') bodyEl.innerHTML = bodyHTML;
+    else if (bodyHTML instanceof Node) bodyEl.appendChild(bodyHTML);
+    document.body.appendChild(scrim);
+    document.body.appendChild(drawer);
+    // next frame → trigger transition
+    requestAnimationFrame(function(){ scrim.classList.add('is-open'); drawer.classList.add('is-open'); });
+    function onKey(e){ if (e.key === 'Escape') close(); }
+    function close(){
+      scrim.classList.remove('is-open');
+      drawer.classList.remove('is-open');
+      document.removeEventListener('keydown', onKey, true);
+      setTimeout(function(){ scrim.remove(); drawer.remove(); }, 340);
+      if (prevFocus && prevFocus.focus) prevFocus.focus();
+      if (opts.onClose) opts.onClose();
+    }
+    scrim.addEventListener('click', close);
+    drawer.querySelectorAll('[data-mh-drawer-close]').forEach(function(b){ b.addEventListener('click', close); });
+    document.addEventListener('keydown', onKey, true);
+    var firstFocusable = drawer.querySelector('a[href],button:not([disabled]),input,select,textarea');
+    if (firstFocusable) firstFocusable.focus();
+    return close;
+  };
+
+  // === Popover toggling ===
+  // Any [data-mh-popover-trigger="<id>"] toggles the .mh-popover #<id>,
+  // positioning it just below the trigger. Click-outside + Esc close it.
+  function bindPopovers() {
+    document.querySelectorAll('[data-mh-popover-trigger]').forEach(function(trig){
+      if (trig.dataset.mhBound === '1') return;
+      trig.dataset.mhBound = '1';
+      var id = trig.getAttribute('data-mh-popover-trigger');
+      var pop = document.getElementById(id);
+      if (!pop) return;
+      function place(){
+        var r = trig.getBoundingClientRect();
+        pop.style.top = (window.scrollY + r.bottom + 8) + 'px';
+        pop.style.left = (window.scrollX + r.left) + 'px';
+      }
+      function open(){ place(); pop.classList.add('is-open'); document.addEventListener('click', outside, true); }
+      function closeP(){ pop.classList.remove('is-open'); document.removeEventListener('click', outside, true); }
+      function outside(e){ if (!pop.contains(e.target) && e.target !== trig && !trig.contains(e.target)) closeP(); }
+      trig.addEventListener('click', function(e){
+        e.preventDefault();
+        if (pop.classList.contains('is-open')) closeP(); else open();
+      });
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeP(); });
+    });
+  }
+  if (document.readyState !== 'loading') bindPopovers();
+  else document.addEventListener('DOMContentLoaded', bindPopovers);
+  MH.bindPopovers = bindPopovers;
+
+  // === Scroll reveals + number counters (Phase 10) ===
+  var prefersReduced = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function animateCount(el) {
+    var target = parseFloat(el.getAttribute('data-mh-count'));
+    if (isNaN(target)) return;
+    var dur = parseInt(el.getAttribute('data-mh-count-dur') || '900', 10);
+    var dp = parseInt(el.getAttribute('data-mh-count-dp') || '0', 10);
+    var prefix = el.getAttribute('data-mh-count-prefix') || '';
+    var suffix = el.getAttribute('data-mh-count-suffix') || '';
+    if (prefersReduced) {
+      el.textContent = prefix + target.toFixed(dp) + suffix;
+      return;
+    }
+    var start = null;
+    function tick(ts) {
+      if (start === null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      // ease-out cubic
+      var eased = 1 - Math.pow(1 - p, 3);
+      var val = target * eased;
+      el.textContent = prefix + val.toFixed(dp) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = prefix + target.toFixed(dp) + suffix;
+    }
+    requestAnimationFrame(tick);
+  }
+  function bindReveals() {
+    var reveals = document.querySelectorAll('.mh-reveal, .mh-reveal-group');
+    var counters = document.querySelectorAll('[data-mh-count]');
+    function revealEl(el) {
+      el.classList.add('is-in');
+      if (el.querySelectorAll) el.querySelectorAll('[data-mh-count]').forEach(animateCount);
+      if (el.hasAttribute && el.hasAttribute('data-mh-count')) animateCount(el);
+    }
+    if (prefersReduced || !('IntersectionObserver' in window)) {
+      reveals.forEach(revealEl);
+      counters.forEach(animateCount);
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (!en.isIntersecting) return;
+        revealEl(en.target);
+        io.unobserve(en.target);
+      });
+    }, {rootMargin: '0px 0px -8% 0px', threshold: 0.08});
+    reveals.forEach(function(el){
+      // Anything already in or above the viewport on load reveals
+      // immediately — never wait for a scroll that may not come.
+      var r = el.getBoundingClientRect();
+      if (r.top < (window.innerHeight || 0) * 0.95) { revealEl(el); return; }
+      io.observe(el);
+    });
+    counters.forEach(function(el){
+      if (!el.closest('.mh-reveal, .mh-reveal-group')) {
+        var r = el.getBoundingClientRect();
+        if (r.top < (window.innerHeight || 0) * 0.95) animateCount(el);
+        else io.observe(el);
+      }
+    });
+    // Safety net: whatever the observer hasn't caught within 1.5s gets
+    // revealed unconditionally so content can never be stuck hidden,
+    // even if a scroll never happens or the observer misfires.
+    setTimeout(function(){ reveals.forEach(revealEl); }, 1500);
+  }
+  if (document.readyState !== 'loading') bindReveals();
+  else document.addEventListener('DOMContentLoaded', bindReveals);
+  MH.bindReveals = bindReveals;
 })();
 </script>
 <script>
@@ -4830,6 +4998,44 @@ def _layout(title: str, body: str, active: str = "home") -> str:
                signed_in_primary=signed_in_primary,
                signed_in_secondary=signed_in_secondary,
                theme_seed_style=_theme_seed_style_block())
+
+
+# Inline line-art for empty states (24×24 stroked SVGs, currentColor).
+_EMPTY_ART = {
+    "inbox": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+    "search": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    "trophy": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>',
+    "alert": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+}
+
+
+def _empty_state(
+    art: str = "inbox",
+    headline: str = "Nothing here yet",
+    sub: str = "",
+    *,
+    actions: str = "",
+    kind: str = "",
+) -> str:
+    """Render a polished empty / zero-data state with line-art, a display
+    headline, a sentence of guidance, and optional CTA buttons HTML.
+
+    ``art`` is a key into _EMPTY_ART; ``kind="error"`` tints the art red.
+    ``headline`` may contain an <em> for an editorial-italic accent.
+    """
+    art_svg = _EMPTY_ART.get(art, _EMPTY_ART["inbox"])
+    kind_cls = " error" if kind == "error" else ""
+    sub_html = f'<p class="mh-emptystate-sub">{sub}</p>' if sub else ""
+    actions_html = (
+        f'<div class="mh-emptystate-actions">{actions}</div>' if actions else ""
+    )
+    return (
+        f'<div class="mh-emptystate{kind_cls}">'
+        f'<div class="mh-emptystate-art" aria-hidden="true">{art_svg}</div>'
+        f'<h3 class="mh-emptystate-title">{headline}</h3>'
+        f'{sub_html}{actions_html}'
+        '</div>'
+    )
 
 
 def _recovery_page(
@@ -5203,33 +5409,228 @@ def create_app() -> Flask:
             sep = '<span class="dot">/</span>'
             meta_html = '<div class="mh-hero-meta">' + sep.join(meta_parts) + '</div>'
 
+        # Demo line for first-time visitors — small tertiary CTA below the
+        # primary buttons. Links to /upload which the org gate will steer
+        # them through cleanly if they don't have an org yet.
+        demo_line_html = ""
+        if not (prof and prof.is_ready()):
+            demo_line_html = (
+                '<p class="mh-demo-line">Just looking? '
+                f'<a href="{url_for("research_page")}">See what the engine does</a> '
+                'or <a href="' + url_for('sign_in_page') + '">browse pinned organisations</a>.'
+                '</p>'
+            )
+
         hero_html = (
             f'<section class="mh-hero" data-lane="{lane_no}">'
             f'<span class="mh-hero-eyebrow">{_h(eyebrow)}</span>'
             f'<h1>{hero_h1}</h1>'
             f'<p class="lede">{_h(hero_lede)}</p>'
             f'<div class="mh-hero-actions">{hero_actions}</div>'
+            f'{demo_line_html}'
             f'{meta_html}'
             '</section>'
         )
 
-        # --- Four-step explainer — sport newsroom workflow ---
-        steps_html = (
-            '<div class="mh-section-eyebrow">The workflow</div>'
-            '<h2 class="mh-section-title">From the results sheet to <em class="editorial">posting-ready</em></h2>'
-            '<div class="mh-steps">'
-            '<div class="mh-step"><div class="mh-step-num">01</div><h3>Add an input</h3>'
-            '<p>Upload a Hytek results file, paste a sponsor brief, or describe a moment in your own words. Any sport. Any club.</p></div>'
-            '<div class="mh-step"><div class="mh-step-num">02</div><h3>We find the moments</h3>'
-            '<p>The engine spots PBs, medals, first-times, comebacks and standout swims, then ranks them by content-worthiness.</p></div>'
-            '<div class="mh-step"><div class="mh-step-num">03</div><h3>On-brand drafts appear</h3>'
-            "<p>Captions are written in your club&rsquo;s voice, using your tone, sponsor rules, and example posts you&rsquo;ve shared.</p></div>"
-            '<div class="mh-step"><div class="mh-step-num">04</div><h3>Approve. Then post.</h3>'
-            '<p>You review, edit, approve. Nothing goes out without you. Export as text, copy to Stories, or download a pack.</p></div>'
+        # --- Trust strip — "what we read / what we make" pipeline glance.
+        # Communicates the inputs and outputs without leaning on logos we
+        # don't yet own. Numbers come from the seeded run counts.
+        trust_html = (
+            '<div class="mh-trust-strip">'
+            '<div class="mh-trust-cell" tabindex="0" data-mh-tip="HY3, SD3, Sportsystems PDF — parsed deterministically, never guessed." data-mh-tip-pos="bottom">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+            '<div><span class="label">We read</span><span class="value">Hytek .hy3, .zip, PDF</span></div>'
+            '</div>'
+            '<div class="mh-trust-cell" tabindex="0" data-mh-tip="Your site and socials feed brand voice, palette, and tone." data-mh-tip-pos="bottom">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
+            '<div><span class="label">We crawl</span><span class="value">Club site &amp; socials</span></div>'
+            '</div>'
+            '<div class="mh-trust-cell" tabindex="0" data-mh-tip="A deterministic ranker scores content-worthiness with confidence." data-mh-tip-pos="bottom">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/></svg>'
+            '<div><span class="label">We rank</span><span class="value">PBs, medals, first-times</span></div>'
+            '</div>'
+            '<div class="mh-trust-cell" tabindex="0" data-mh-tip="Captions via Gemini; graphics + reels rendered server-side." data-mh-tip-pos="bottom">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>'
+            '<div><span class="label">We render</span><span class="value">Captions, graphics, reels</span></div>'
+            '</div>'
             '</div>'
         )
 
-        return _layout("Home", hero_html + steps_html, active="home")
+        # --- Four-step explainer — sport newsroom workflow ---
+        # Each step now carries an SVG icon and a "time-to" footnote so the
+        # block reads as a real product walkthrough, not a paragraph wall.
+        step_specs = [
+            ('01', 'Add an input',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+             'Upload a Hytek results file, paste a sponsor brief, or describe a moment in your own words. Any sport. Any club.',
+             '~ 30s'),
+            ('02', 'We find the moments',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3M11 14v.01"/></svg>',
+             'The engine spots PBs, medals, first-times, comebacks and standout swims, then ranks them by content-worthiness.',
+             '~ 45s'),
+            ('03', 'On-brand drafts appear',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7-3-3-7 7v3z"/><path d="M14 6l3 3"/><path d="M5 21h14"/></svg>',
+             "Captions are written in your club&rsquo;s voice, using your tone, sponsor rules, and example posts you&rsquo;ve shared.",
+             '~ 60s'),
+            ('04', 'Approve. Then post.',
+             '<svg class="mh-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+             'You review, edit, approve. Nothing goes out without you. Export as text, copy to Stories, or download a pack.',
+             'Human in the loop'),
+        ]
+        steps_html = (
+            '<section class="mh-section">'
+            '<div class="mh-section-eyebrow-strip"><span class="label">The workflow</span></div>'
+            '<h2 class="mh-section-title">From the results sheet to <em class="editorial">posting-ready</em></h2>'
+            '<div class="mh-steps mh-reveal-group">'
+            + ''.join(
+                f'<div class="mh-step">{icon}'
+                f'<div class="mh-step-num">{num}</div>'
+                f'<h3>{title}</h3><p>{body}</p>'
+                f'<div class="mh-step-foot">{foot}</div></div>'
+                for num, title, icon, body, foot in step_specs
+            )
+            + '</div></section>'
+        )
+
+        # --- Sample output preview — three mock cards showing the three
+        # default output formats. Pure visual; non-interactive. Helps a
+        # first-time visitor see what they're getting before they upload.
+        sample_html = (
+            '<section class="mh-section">'
+            '<div class="mh-section-eyebrow-strip"><span class="label">What lands in your queue</span></div>'
+            '<h2 class="mh-section-title">A weekend reads like <em class="editorial">three drafts</em>, ready to approve.</h2>'
+            '<div class="mh-sample-row mh-reveal-group">'
+            '<div class="mh-sample story">'
+            '<span class="mh-sample-eyebrow">Story card · 1080×1920</span>'
+            '<div class="mh-sample-title">Tom Davies — <em>PB</em> 100m free.</div>'
+            '<div class="mh-sample-time">52.41<span class="mh-sample-delta">−0.74s</span></div>'
+            '<p style="margin:0;color:var(--ink-dim);font-size:14px;line-height:1.45">A clean, vertical story graphic with the swimmer’s name, event and split — branded with your club’s palette.</p>'
+            '<div class="mh-sample-meta">Caption <span class="sep">/</span> Graphic <span class="sep">/</span> Story</div>'
+            '</div>'
+            '<div class="mh-sample feed">'
+            '<span class="mh-sample-eyebrow">Feed graphic · 1080×1350</span>'
+            '<div class="mh-sample-title">Top three <em>finals</em></div>'
+            '<div class="mh-sample-bars"><span class="bronze" style="height:55%"></span><span class="gold" style="height:100%"></span><span class="silver" style="height:78%"></span></div>'
+            '<p style="margin:0;color:var(--ink-dim);font-size:14px;line-height:1.45">Podium-bar chart of the night’s finals — names, times and lanes from your meet file, dropped into your colour palette.</p>'
+            '<div class="mh-sample-meta">Caption <span class="sep">/</span> Graphic <span class="sep">/</span> Feed</div>'
+            '</div>'
+            '<div class="mh-sample reel">'
+            '<span class="mh-sample-eyebrow">Motion reel · 15s MP4</span>'
+            '<div class="mh-sample-title">Aquatica <em>highlights</em></div>'
+            '<div class="mh-sample-timeline"><span class="lit"></span><span class="lit"></span><span class="lit"></span><span></span><span></span></div>'
+            '<p style="margin:0;color:var(--ink-dim);font-size:14px;line-height:1.45">Top three cards stitched together with crossfades, your wordmark, and the day’s headline — rendered server-side.</p>'
+            '<div class="mh-sample-meta">Reel <span class="sep">/</span> Motion <span class="sep">/</span> 1080×1920</div>'
+            '</div>'
+            '</div>'
+            '</section>'
+        )
+
+        # --- Made for — three audience cards. Shown to everyone since the
+        # product story doesn't change between fresh visitors and pinned
+        # tenants; this is the "who it's for" reassurance block.
+        audience_html = (
+            '<section class="mh-section">'
+            '<div class="mh-section-eyebrow-strip"><span class="label">Made for</span></div>'
+            '<h2 class="mh-section-title">Built for the people who already <em class="editorial">post the results</em>.</h2>'
+            '<div class="mh-audience-row mh-reveal-group">'
+            '<div class="mh-audience">'
+            '<span class="mh-audience-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>'
+            '<span class="mh-audience-role">Committee · Volunteer · Comms</span>'
+            '<h3 class="mh-audience-title">Club committees</h3>'
+            '<p class="mh-audience-body">Whoever runs the socials gets back two evenings every meet week. The engine writes the captions; the committee approves.</p>'
+            '</div>'
+            '<div class="mh-audience">'
+            '<span class="mh-audience-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></span>'
+            '<span class="mh-audience-role">Coach · Performance · Selection</span>'
+            '<h3 class="mh-audience-title">Coaches</h3>'
+            '<p class="mh-audience-body">Personal bests, qualifying-time misses, ranked swims and standout debuts — surfaced before you finish your coffee.</p>'
+            '</div>'
+            '<div class="mh-audience">'
+            '<span class="mh-audience-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span>'
+            '<span class="mh-audience-role">Society · University · Team</span>'
+            '<h3 class="mh-audience-title">University teams</h3>'
+            '<p class="mh-audience-body">BUCS results, varsity wins, intra-society fixtures — all in your colours, with the right tone for an Instagram feed.</p>'
+            '</div>'
+            '</div>'
+            '</section>'
+        )
+
+        # --- Promise / what we don't do. Lane-yellow left-stripe trust
+        # panel. Particularly important because the AI is doing the
+        # generation; the panel makes it explicit that you keep approval.
+        promise_html = (
+            '<section class="mh-section mh-reveal">'
+            '<div class="mh-promise">'
+            '<h2 class="mh-promise-title">Human in the loop, <em>by design</em>.</h2>'
+            '<p class="mh-promise-lede">'
+            'MediaHub is an intelligence layer, not an auto-poster. Every '
+            'piece of content stops at a review queue you control.'
+            '</p>'
+            '<ul class="mh-promise-list">'
+            '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+            '<div><b>Approval gate, every time</b><span>No card publishes without an explicit click. Even bulk approvals are a deliberate action.</span></div></li>'
+            '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+            '<div><b>Source-grounded captions</b><span>Every claim links back to the parsed result. No invented times, no invented places.</span></div></li>'
+            '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+            '<div><b>Your brand, your tone</b><span>Palette, fonts, voice and example posts feed the model. Nothing gets re-trained on your data.</span></div></li>'
+            '<li class="deny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+            '<div><b>We don\'t auto-post</b><span>No scheduled feed pushes without you saying so. The Buffer connection is opt-in per-card.</span></div></li>'
+            '<li class="deny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+            '<div><b>We don\'t invent results</b><span>If the file doesn\'t contain a time, the caption doesn\'t claim one. Heuristic fills are forbidden.</span></div></li>'
+            '<li class="deny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
+            '<div><b>We don\'t sell your roster</b><span>Athlete and result data stays on the deployment you control. Inventory you can audit on the privacy page.</span></div></li>'
+            '</ul>'
+            '</div>'
+            '</section>'
+        )
+
+        # --- Final CTA strip before the footer. Two variants based on
+        # whether the user has a pinned org. Picks up the masthead lane-
+        # stripe accent so the page resolves with the same chrome.
+        if prof and prof.is_ready():
+            final_cta_html = (
+                '<section class="mh-final-cta">'
+                '<div>'
+                f'<h2 class="mh-final-cta-headline">Next weekend\'s meet, '
+                '<em>ready</em> in a sitting.</h2>'
+                '<p class="mh-final-cta-sub">Drop the results file. We\'ll '
+                'rank the moments and write the captions; you spend the '
+                'evening approving instead of opening Photoshop.</p>'
+                '</div>'
+                '<div class="mh-final-cta-actions">'
+                f'<a class="btn large" href="{url_for("make_page")}">Start a content pack &rarr;</a>'
+                f'<a class="btn secondary" href="{url_for("activity_page")}">All recent runs</a>'
+                '</div>'
+                '</section>'
+            )
+        else:
+            final_cta_html = (
+                '<section class="mh-final-cta">'
+                '<div>'
+                '<h2 class="mh-final-cta-headline">A minute to set up. '
+                '<em>Then</em> every week is easier.</h2>'
+                '<p class="mh-final-cta-sub">Tell us your club\'s name and '
+                'website. We\'ll read your brand, palette and voice, and have '
+                'on-brand drafts ready the next time you upload a results file.</p>'
+                '</div>'
+                '<div class="mh-final-cta-actions">'
+                f'<a class="btn large" href="{url_for("organisation_setup")}">Create your organisation &rarr;</a>'
+                f'<a class="btn secondary" href="{url_for("sign_in_page")}">Sign in</a>'
+                '</div>'
+                '</section>'
+            )
+
+        return _layout(
+            "Home",
+            hero_html
+            + trust_html
+            + sample_html
+            + steps_html
+            + audience_html
+            + promise_html
+            + final_cta_html,
+            active="home",
+        )
 
     # ---- ACTIVITY &mdash; recent runs scoped to the active organisation ----
     @app.route("/activity")
@@ -5240,22 +5641,58 @@ def create_app() -> Flask:
         if prof is None:
             return redirect(url_for("organisation_setup"))
 
+        # Phase 5 — optional ?status= filter. Whitelist the values to
+        # avoid arbitrary SQL.
+        status_q = (request.args.get("status") or "").strip()
+        if status_q not in ("done", "running", "queued", "error"):
+            status_q = ""
+
         # DB-read is fail-soft: a corrupted/missing data.db or a partial
         # schema would otherwise 500 the entire Activity page. Treat the
         # failure as "no runs visible" and surface a recovery hero so the
         # user knows the page loaded but the store wasn't reachable.
         rows = []
+        unfiltered_counts: dict[str, int] = {}
+        total_unfiltered = 0
+        cards_unfiltered = 0
         db_failed = False
         try:
             conn = _db()
             try:
-                rows = conn.execute(
-                    "SELECT id, created_at, finished_at, status, profile_id, "
-                    "meet_name, our_swims, n_cards, n_queue, error, file_name "
-                    "FROM runs WHERE profile_id = ? "
-                    "ORDER BY created_at DESC LIMIT 100",
-                    (prof.profile_id,),
-                ).fetchall()
+                if status_q:
+                    rows = conn.execute(
+                        "SELECT id, created_at, finished_at, status, profile_id, "
+                        "meet_name, our_swims, n_cards, n_queue, error, file_name "
+                        "FROM runs WHERE profile_id = ? AND status = ? "
+                        "ORDER BY created_at DESC LIMIT 100",
+                        (prof.profile_id, status_q),
+                    ).fetchall()
+                    # Also pull totals for the stat strip + chip counts so the
+                    # filtered view still shows the full picture at the top.
+                    counts_row = conn.execute(
+                        "SELECT status, COUNT(*) AS n FROM runs WHERE profile_id = ? "
+                        "GROUP BY status",
+                        (prof.profile_id,),
+                    ).fetchall()
+                    unfiltered_counts = {r["status"]: r["n"] for r in counts_row}
+                    total_unfiltered = sum(unfiltered_counts.values())
+                    _cards_row = conn.execute(
+                        "SELECT COALESCE(SUM(n_cards), 0) AS s FROM runs WHERE profile_id = ?",
+                        (prof.profile_id,),
+                    ).fetchone()
+                    cards_unfiltered = int(_cards_row["s"] if _cards_row else 0)
+                else:
+                    rows = conn.execute(
+                        "SELECT id, created_at, finished_at, status, profile_id, "
+                        "meet_name, our_swims, n_cards, n_queue, error, file_name "
+                        "FROM runs WHERE profile_id = ? "
+                        "ORDER BY created_at DESC LIMIT 100",
+                        (prof.profile_id,),
+                    ).fetchall()
+                    for r in rows:
+                        unfiltered_counts[r["status"]] = unfiltered_counts.get(r["status"], 0) + 1
+                    total_unfiltered = len(rows)
+                    cards_unfiltered = sum(int(r["n_cards"] or 0) for r in rows)
             finally:
                 conn.close()
         except Exception as e:
@@ -5356,51 +5793,102 @@ def create_app() -> Flask:
                              f'{s["failed"]} failed</span>')
             return " ".join(parts)
 
-        rows_html = ""
+        # Phase 5 — group rows by date bucket so the table reads as a
+        # newsroom log instead of an undifferentiated 100-row dump.
+        from datetime import datetime as _dt
+        import datetime as _dtmod
+        def _bucket(iso_str: str) -> str:
+            if not iso_str:
+                return "earlier"
+            try:
+                t = _dt.fromisoformat(iso_str.replace("Z", "").replace("T", " ")[:19])
+            except Exception:
+                return "earlier"
+            now = _dt.now()
+            delta = now - t
+            if delta.total_seconds() < 0:
+                return "today"
+            days = delta.days
+            if days == 0:
+                return "today"
+            if days == 1:
+                return "yesterday"
+            if days < 7:
+                return "this_week"
+            if days < 30:
+                return "this_month"
+            return "earlier"
+        bucket_labels = {
+            "today":      "Today",
+            "yesterday":  "Yesterday",
+            "this_week":  "Earlier this week",
+            "this_month": "Earlier this month",
+            "earlier":    "Earlier",
+        }
+        bucket_order = ["today", "yesterday", "this_week", "this_month", "earlier"]
+        grouped: dict[str, list] = {b: [] for b in bucket_order}
+        # Also keep a flat count of total cards / failures for the top stats.
+        n_cards_total = 0
+        n_done = 0
+        n_running = 0
         n_errored = 0
         for r in rows:
-            badge = {"done": "good", "running": "info", "queued": "info",
-                     "error": "bad"}.get(r["status"], "")
-            review_href = url_for('review', run_id=r['id'])
-            delete_href = url_for('privacy_delete_run', run_id=r['id'])
-            started = (r["created_at"] or "")[:19]
-            started_iso = started.replace(" ", "T") + "Z" if started else ""
+            n_cards_total += int(r["n_cards"] or 0)
+            if r["status"] == "done":     n_done += 1
+            if r["status"] == "running":  n_running += 1
+            if r["status"] == "error":    n_errored += 1
+            grouped[_bucket((r["created_at"] or "")[:19])].append(r)
+
+        rows_html = ""
+        for bucket in bucket_order:
+            bucket_rows = grouped[bucket]
+            if not bucket_rows:
+                continue
             rows_html += (
-                f'<tr><td data-label="Input"><a href="{review_href}">{_h(r["meet_name"] or r["file_name"] or r["id"])}</a></td>'
-                f'<td data-label="Status"><span class="tag {badge}">{_h(r["status"])}</span></td>'
-                f'<td data-label="Matched">{_h(r["our_swims"] or 0)}</td>'
-                f'<td data-label="Queue / Total">{_h(r["n_queue"] or 0)} / {_h(r["n_cards"] or 0)}</td>'
-                f'<td data-label="Schedule">{_schedule_summary_html(r["id"])}</td>'
-                f'<td data-label="Started"><time class="mh-rel" datetime="{_h(started_iso)}">{_h(started)}</time></td>'
-                f'<td><form method="post" action="{delete_href}" '
-                f'style="display:inline" data-no-loader="1" onsubmit="return confirm(\'Delete this run? This cannot be undone.\')">'
-                f'<button class="btn danger" type="submit" '
-                f'style="font-size:11px;padding:4px 10px">Delete</button>'
-                f'</form></td></tr>'
+                '<tr class="mh-date-group-row">'
+                f'<td colspan="7"><span class="label">{bucket_labels[bucket]} '
+                f'<span style="color:var(--ink-faint)">&middot; {len(bucket_rows):02d}</span></span></td>'
+                '</tr>'
             )
-            # Phase 1.5 — "Why did this run fail?" surfacing. Errored runs
-            # get a second row with the persisted error message so an
-            # operator (or pilot club) can see what went wrong without
-            # clicking through to the broken review page.
-            if r["status"] == "error" and r["error"]:
-                n_errored += 1
-                err_text = str(r["error"])
-                # Trim absurdly long stack traces — keep the first ~600 chars.
-                truncated = err_text[:600] + ("…" if len(err_text) > 600 else "")
+            for r in bucket_rows:
+                badge = {"done": "good", "running": "info", "queued": "info",
+                         "error": "bad"}.get(r["status"], "")
+                review_href = url_for('review', run_id=r['id'])
+                delete_href = url_for('privacy_delete_run', run_id=r['id'])
+                started = (r["created_at"] or "")[:19]
+                started_iso = started.replace(" ", "T") + "Z" if started else ""
+                search_haystack = (r["meet_name"] or r["file_name"] or r["id"] or "").lower()
                 rows_html += (
-                    '<tr class="run-error-row">'
-                    '<td colspan="7" style="padding:6px 14px 14px 14px;'
-                    'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
-                    '<details>'
-                    '<summary style="cursor:pointer;font-size:13px;font-weight:600;'
-                    'color:var(--mh-prim-error-300)">Why did this run fail?</summary>'
-                    '<pre style="margin:8px 0 0;padding:10px 12px;'
-                    'background:rgba(0,0,0,0.25);border-radius:6px;'
-                    'font-size:12px;white-space:pre-wrap;word-break:break-word">'
-                    f'{_h(truncated)}</pre>'
-                    '</details>'
-                    '</td></tr>'
+                    f'<tr data-status="{_h(r["status"])}" data-q="{_h(search_haystack)}">'
+                    f'<td data-label="Input"><a href="{review_href}">{_h(r["meet_name"] or r["file_name"] or r["id"])}</a></td>'
+                    f'<td data-label="Status"><span class="tag {badge}">{_h(r["status"])}</span></td>'
+                    f'<td data-label="Matched">{_h(r["our_swims"] or 0)}</td>'
+                    f'<td data-label="Queue / Total">{_h(r["n_queue"] or 0)} / {_h(r["n_cards"] or 0)}</td>'
+                    f'<td data-label="Schedule">{_schedule_summary_html(r["id"])}</td>'
+                    f'<td data-label="Started"><time class="mh-rel" datetime="{_h(started_iso)}">{_h(started)}</time></td>'
+                    f'<td><form method="post" action="{delete_href}" '
+                    f'style="display:inline" data-no-loader="1" onsubmit="return confirm(\'Delete this run? This cannot be undone.\')">'
+                    f'<button class="btn danger" type="submit" '
+                    f'style="font-size:11px;padding:4px 10px">Delete</button>'
+                    f'</form></td></tr>'
                 )
+                if r["status"] == "error" and r["error"]:
+                    err_text = str(r["error"])
+                    truncated = err_text[:600] + ("…" if len(err_text) > 600 else "")
+                    rows_html += (
+                        '<tr class="run-error-row">'
+                        '<td colspan="7" style="padding:6px 14px 14px 14px;'
+                        'background:rgba(255,93,108,0.06);border-left:3px solid var(--mh-prim-error-500)">'
+                        '<details>'
+                        '<summary style="cursor:pointer;font-size:13px;font-weight:600;'
+                        'color:var(--mh-prim-error-300)">Why did this run fail?</summary>'
+                        '<pre style="margin:8px 0 0;padding:10px 12px;'
+                        'background:rgba(0,0,0,0.25);border-radius:6px;'
+                        'font-size:12px;white-space:pre-wrap;word-break:break-word">'
+                        f'{_h(truncated)}</pre>'
+                        '</details>'
+                        '</td></tr>'
+                    )
 
         # Recent posting activity panel — bottom-of-page, collapsed by
         # default when empty; expanded when there's something to see so
@@ -5456,6 +5944,94 @@ def create_app() -> Flask:
                 'see the pipeline error.</div>'
             )
 
+        # Top stat strip — always shows the UNFILTERED picture so it's a
+        # stable org-level summary regardless of the active ?status= chip.
+        # Values count up on scroll-in via the Phase 10 motion system.
+        summary_html = (
+            '<div class="mh-activity-summary mh-reveal">'
+            f'<div class="stat live"><div class="l">Total runs</div><div class="v" data-mh-count="{total_unfiltered}">{total_unfiltered:02d}</div></div>'
+            f'<div class="stat medal"><div class="l">Cards generated</div><div class="v" data-mh-count="{cards_unfiltered}">{cards_unfiltered:,}</div></div>'
+            f'<div class="stat good"><div class="l">Completed</div><div class="v" data-mh-count="{unfiltered_counts.get("done", 0)}">{unfiltered_counts.get("done", 0):02d}</div></div>'
+        )
+        if unfiltered_counts.get("error", 0):
+            summary_html += (
+                f'<div class="stat bad"><div class="l">Failed</div><div class="v" data-mh-count="{unfiltered_counts.get("error", 0)}">{unfiltered_counts.get("error", 0):02d}</div></div>'
+            )
+        summary_html += '</div>'
+
+        # Toolbar — search input + status segment filter.
+        # Filter buttons use ?status= for server-side filtering plus the
+        # client-side text search filters in-place. Counts are unfiltered
+        # so the chips always show the full picture.
+        seg_buttons = ""
+        seg_specs = [
+            ("",        "All",       total_unfiltered),
+            ("done",    "Completed", unfiltered_counts.get("done", 0)),
+            ("running", "Running",   unfiltered_counts.get("running", 0) + unfiltered_counts.get("queued", 0)),
+            ("error",   "Failed",    unfiltered_counts.get("error", 0)),
+        ]
+        for val, label, count in seg_specs:
+            active_cls = " is-active" if status_q == val else ""
+            url_arg = f"?status={val}" if val else ""
+            seg_buttons += (
+                f'<a class="{active_cls.strip()}" href="{url_for("activity_page")}{url_arg}">'
+                f'{label}<span class="count">{count}</span></a>'
+            )
+        toolbar_html = (
+            '<div class="mh-toolbar">'
+            '<div class="grow mh-search">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+            '<input id="mh-activity-search" type="search" placeholder="Search meet name, file or run id…" autocomplete="off" />'
+            '</div>'
+            '<nav class="mh-segmented" role="tablist" aria-label="Filter by run status">'
+            f'{seg_buttons}'
+            '</nav>'
+            '</div>'
+            '<div id="mh-activity-empty" class="mh-empty-inline" style="display:none">'
+            '<b>Nothing matches.</b><br>Try clearing the search box or picking a different status.'
+            '</div>'
+        )
+
+        # Inline JS — client-side filter on the table rows.
+        filter_js = '''
+<script>
+(function(){
+  var search = document.getElementById('mh-activity-search');
+  var tbody  = document.querySelector('table.mh-table-stack tbody');
+  var empty  = document.getElementById('mh-activity-empty');
+  if (!search || !tbody) return;
+  function apply() {
+    var q = (search.value || '').toLowerCase().trim();
+    var rows = tbody.querySelectorAll('tr[data-q]');
+    var visible = 0;
+    rows.forEach(function(r){
+      var hay = r.getAttribute('data-q') || '';
+      var ok = !q || hay.indexOf(q) !== -1;
+      r.style.display = ok ? '' : 'none';
+      // Hide the matching error-detail row (immediately following).
+      var next = r.nextElementSibling;
+      if (next && next.classList.contains('run-error-row')) {
+        next.style.display = ok ? '' : 'none';
+      }
+      if (ok) visible++;
+    });
+    // Hide group-header rows whose group has no visible siblings.
+    tbody.querySelectorAll('tr.mh-date-group-row').forEach(function(g){
+      var sib = g.nextElementSibling, any = false;
+      while (sib && !sib.classList.contains('mh-date-group-row')) {
+        if (sib.style.display !== 'none' && sib.hasAttribute('data-q')) {
+          any = true; break;
+        }
+        sib = sib.nextElementSibling;
+      }
+      g.style.display = any ? '' : 'none';
+    });
+    if (empty) empty.style.display = visible === 0 ? '' : 'none';
+  }
+  search.addEventListener('input', apply);
+})();
+</script>'''
+
         body = (
             '<section class="mh-hero" data-lane="" style="padding-top:var(--sp-7);padding-bottom:var(--sp-6);margin-bottom:var(--sp-5)">'
             '<span class="mh-hero-eyebrow">Activity</span>'
@@ -5465,7 +6041,9 @@ def create_app() -> Flask:
             f'<span>{len(rows):02d} {"run" if len(rows) == 1 else "runs"}</span>'
             '</div>'
             '</section>'
+            f'{summary_html}'
             f'{failure_callout}'
+            f'{toolbar_html}'
             '<div class="card"><table class="mh-table-stack">'
             '<thead><tr><th>Input</th><th>Status</th>'
             '<th>Matched</th><th>Queue / Total</th><th>Schedule</th>'
@@ -5473,6 +6051,7 @@ def create_app() -> Flask:
             f'<tbody>{rows_html}</tbody>'
             '</table></div>'
             f'{posting_panel_html}'
+            f'{filter_js}'
         )
         return _layout("Activity", body, active="activity")
 
@@ -5528,13 +6107,77 @@ def create_app() -> Flask:
             )
             return redirect(url_for("upload_configure", run_id=temp_run_id))
 
+        # Recent files for this profile — lets the user re-run an already-
+        # uploaded meet without re-uploading. Pulls the last 5 runs we
+        # still have on disk (RUNS_DIR/<id>/input.bin must exist).
+        recent_html = ""
+        try:
+            prof_for_recent = _active_profile()
+            if prof_for_recent is not None:
+                conn = _db()
+                rows = conn.execute(
+                    "SELECT id, meet_name, file_name, created_at, our_swims "
+                    "FROM runs WHERE profile_id = ? AND status = 'done' "
+                    "ORDER BY created_at DESC LIMIT 5",
+                    (prof_for_recent.profile_id,),
+                ).fetchall()
+                conn.close()
+                # Filter to runs whose input.bin still exists on disk.
+                recent_rows = []
+                for r in rows:
+                    if (RUNS_DIR / r["id"] / "input.bin").exists():
+                        recent_rows.append(r)
+                if recent_rows:
+                    items_html = ""
+                    for r in recent_rows[:3]:
+                        name = r["meet_name"] or r["file_name"] or r["id"]
+                        when = (r["created_at"] or "")[:19]
+                        when_iso = when.replace(" ", "T") + "Z" if when else ""
+                        configure_href = url_for("upload_configure", run_id=r["id"])
+                        n_swims = r["our_swims"] or 0
+                        items_html += (
+                            '<li>'
+                            '<span class="ico">'
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+                            '</span>'
+                            f'<div class="body"><span class="name">{_h(name)}</span>'
+                            f'<span class="meta">{n_swims} swim{"" if n_swims == 1 else "s"} · '
+                            f'<time class="mh-rel" datetime="{_h(when_iso)}">{_h(when)}</time></span>'
+                            '</div>'
+                            f'<a class="go" href="{configure_href}">Re-configure &rarr;</a>'
+                            '</li>'
+                        )
+                    recent_html = (
+                        '<div class="card mh-recent-card">'
+                        '<h3 style="margin-top:0;font-family:var(--font-mono);'
+                        'font-size:var(--fs-10);letter-spacing:0.18em;'
+                        'text-transform:uppercase;color:var(--ink-muted);'
+                        'margin-bottom:var(--sp-3)">Re-run a recent meet</h3>'
+                        f'<ul class="mh-recent-list">{items_html}</ul>'
+                        '</div>'
+                    )
+        except Exception:
+            recent_html = ""
+
         body = f"""
-<section class="mh-hero" data-lane="01" style="padding-top:var(--sp-8);padding-bottom:var(--sp-7);margin-bottom:var(--sp-5)">
+<section class="mh-hero" data-lane="01" style="padding-top:var(--sp-8);padding-bottom:var(--sp-6);margin-bottom:var(--sp-4)">
   <span class="mh-hero-eyebrow">Upload meet file</span>
   <h1>Drop the results.<br><em class="editorial">We'll do the rest.</em></h1>
   <p class="lede">Hytek Meet Manager <code>.hy3</code> or <code>.zip</code> export, or a Sportsystems PDF. You'll pick your club, upload your logo, and add photos on the next step.</p>
 </section>
+
+<nav class="mh-stepper" aria-label="Upload progress">
+  <span class="mh-stepper-item is-active"><span class="num">1</span>Upload</span>
+  <span class="mh-stepper-arrow"></span>
+  <span class="mh-stepper-item"><span class="num">2</span>Configure</span>
+  <span class="mh-stepper-arrow"></span>
+  <span class="mh-stepper-item"><span class="num">3</span>Run</span>
+  <span class="mh-stepper-arrow"></span>
+  <span class="mh-stepper-item"><span class="num">4</span>Review</span>
+</nav>
+
 {_llm_unavailable_banner()}
+{recent_html}
 <div class="card">
   <form id="mh-upload-form" method="post" enctype="multipart/form-data" data-loader-text="Reading your meet file">
     <label class="req" for="upload-file">Meet results file</label>
@@ -5550,23 +6193,56 @@ def create_app() -> Flask:
       <div class="mh-dropzone-fineprint">Hytek .hy3 / .zip · Sportsystems PDF</div>
       <div class="mh-dropzone-preview" aria-live="polite"></div>
     </label>
+    <div id="mh-parse-preview" class="mh-parse-preview" role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="label"><b>—</b><span></span></div>
+    </div>
     <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3);flex-wrap:wrap">
       <button id="mh-upload-submit" class="btn" type="submit" disabled aria-disabled="true">Continue &rarr;</button>
       <a class="btn ghost" href="{url_for('home')}">Cancel</a>
     </div>
   </form>
 </div>
+
+<div class="mh-next-strip" aria-label="What happens next">
+  <div class="cell"><span class="num">2</span><span class="text"><b>Configure</b><br>Pick your club from the parsed list, upload your logo, choose tone, and drop in photos.</span></div>
+  <div class="cell"><span class="num">3</span><span class="text"><b>Pipeline runs</b><br>The engine spots PBs, medals, first-times and comebacks. About 30 to 60 seconds.</span></div>
+  <div class="cell"><span class="num">4</span><span class="text"><b>Review &amp; approve</b><br>Approve, edit, or reject each card. Nothing leaves the deployment without you.</span></div>
+</div>
+
 <script>
 (function(){{
   var form = document.getElementById('mh-upload-form');
   if (!form) return;
   var input = form.querySelector('input[type=file]');
   var btn = document.getElementById('mh-upload-submit');
+  var preview = document.getElementById('mh-parse-preview');
   if (!input || !btn) return;
+  function fmtBytes(n) {{
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+    return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }}
+  function inferFormat(name) {{
+    var n = (name || '').toLowerCase();
+    if (n.endsWith('.hy3')) return {{kind: 'good', label: 'Hytek Meet Manager (.hy3)', note: 'looks good'}};
+    if (n.endsWith('.zip')) return {{kind: 'good', label: 'Hytek .zip export',          note: 'we\\u2019ll unpack and read it'}};
+    if (n.endsWith('.pdf')) return {{kind: 'good', label: 'PDF results file',           note: 'we\\u2019ll run the OCR / table extractor'}};
+    return {{kind: 'warn', label: 'Unknown extension', note: 'we\\u2019ll try every adapter; results may be partial'}};
+  }}
   function refresh() {{
-    var has = input.files && input.files.length > 0;
+    var f = input.files && input.files[0];
+    var has = !!f;
     btn.disabled = !has;
     btn.setAttribute('aria-disabled', has ? 'false' : 'true');
+    if (!has) {{ if (preview) preview.removeAttribute('data-shown'); return; }}
+    if (!preview) return;
+    var info = inferFormat(f.name);
+    preview.className = 'mh-parse-preview' + (info.kind === 'warn' ? ' warn' : '');
+    var labelEl = preview.querySelector('.label');
+    labelEl.querySelector('b').textContent = info.label + ' \\u00b7 ' + fmtBytes(f.size);
+    labelEl.querySelector('span').textContent = info.note;
   }}
   input.addEventListener('change', refresh);
   refresh();
@@ -5685,42 +6361,136 @@ def create_app() -> Flask:
                 )
 
         body = f"""
-<h1>Configure this run</h1>
-<div class="card">
-  <p class="dim">{_h(meet_name) or 'Meet uploaded.'} \u2014 {len(clubs)} clubs detected in this file.</p>
-  {err_html}
-  <form method="post" enctype="multipart/form-data" data-loader-text="Setting up your run" data-loader-sub="Saving config and starting the pipeline\u2026">
+<section class="mh-hero" data-lane="02" style="padding-top:var(--sp-7);padding-bottom:var(--sp-5);margin-bottom:var(--sp-4)">
+  <span class="mh-hero-eyebrow">Configure this run</span>
+  <h1>One more look,<br><em class="editorial">then we run it.</em></h1>
+  <p class="lede">{_h(meet_name) or 'Meet uploaded.'} &mdash; {len(clubs)} club{'s' if len(clubs) != 1 else ''} detected. Pick yours, tune the palette for this one-off, and drop in any photos you want graphics to prefer.</p>
+</section>
+
+<nav class="mh-stepper" aria-label="Upload progress">
+  <span class="mh-stepper-item is-done"><span class="num">1</span>Upload</span>
+  <span class="mh-stepper-arrow"></span>
+  <span class="mh-stepper-item is-active"><span class="num">2</span>Configure</span>
+  <span class="mh-stepper-arrow"></span>
+  <span class="mh-stepper-item"><span class="num">3</span>Run</span>
+  <span class="mh-stepper-arrow"></span>
+  <span class="mh-stepper-item"><span class="num">4</span>Review</span>
+</nav>
+
+<div class="mh-form-grid">
+<div>
+{err_html}
+<div class="card" style="margin-bottom:0">
+  <form id="mh-cfg-form" method="post" enctype="multipart/form-data" data-loader-text="Setting up your run" data-loader-sub="Saving config and starting the pipeline\u2026">
     <input type="hidden" name="run_id" value="{_h(run_id)}" />
 
     <label for="run-config-club">Club to feature</label>
     <select name="club_filter" id="run-config-club" required>{opts}</select>
-    <p class="dim" style="margin-top:4px;font-size:12px">Only clubs that actually appear in this meet are listed.</p>
+    <p class="dim" style="margin-top:4px;font-size:var(--fs-sm)">Only clubs that actually appear in this meet are listed.</p>
 
-    <fieldset style="margin-top:18px;border:1px solid var(--border);border-radius:8px;padding:14px 18px">
-      <legend style="padding:0 8px;font-size:12px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.5px">Brand &mdash; loaded from your organisation</legend>
-      <p class="dim" style="margin:0 0 10px;font-size:12px">
-        These come from your <a href="{url_for("organisation_page")}" style="text-decoration:underline">organisation profile</a>.
-        Change colours below for a one-off override, or update them once on your profile to apply everywhere.
+    <fieldset class="mh-fieldset">
+      <legend>Brand &mdash; loaded from your organisation</legend>
+      <p class="mh-fieldset-lede">
+        Defaults come from your <a href="{url_for("organisation_page")}" style="text-decoration:underline">organisation profile</a>.
+        Tweak below for a one-off override; the preview on the right updates as you move the picker.
       </p>
       {prof_logo_html}
 
       <div style="display:flex;gap:14px;align-items:flex-end;margin-top:12px;flex-wrap:wrap">
-        <div><label for="run-config-primary">Primary</label><input id="run-config-primary" type="color" name="primary_colour" value="{_h(prof_primary)}" /></div>
-        <div><label for="run-config-secondary">Secondary</label><input id="run-config-secondary" type="color" name="secondary_colour" value="{_h(prof_secondary)}" /></div>
-        <div><label for="run-config-accent">Accent</label><input id="run-config-accent" type="color" name="accent_colour" value="{_h(prof_accent)}" /></div>
+        <div style="flex:1;min-width:120px"><label for="run-config-primary">Primary</label><input id="run-config-primary" type="color" name="primary_colour" value="{_h(prof_primary)}" /></div>
+        <div style="flex:1;min-width:120px"><label for="run-config-secondary">Secondary</label><input id="run-config-secondary" type="color" name="secondary_colour" value="{_h(prof_secondary)}" /></div>
+        <div style="flex:1;min-width:120px"><label for="run-config-accent">Accent</label><input id="run-config-accent" type="color" name="accent_colour" value="{_h(prof_accent)}" /></div>
       </div>
     </fieldset>
 
-    <fieldset style="margin-top:18px;border:1px solid var(--border);border-radius:8px;padding:14px 18px">
-      <legend style="padding:0 8px;font-size:12px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.5px">Photos (optional)</legend>
-      <label for="run-config-photos">Athlete portraits, action shots, venue images (multi-select)</label>
+    <fieldset class="mh-fieldset">
+      <legend>Photos (optional)</legend>
+      <p class="mh-fieldset-lede">Athlete portraits, action shots, venue images. The selector will show thumbnails the moment you pick.</p>
       <input id="run-config-photos" type="file" name="club_photos" multiple accept="image/*" />
-      <p class="dim" style="margin-top:4px;font-size:12px">Uploaded photos will be preferred for graphic generation in this run and saved to your media library.</p>
+      <div id="mh-photo-grid" class="mh-photo-grid" aria-live="polite"></div>
+      <p class="dim" style="margin-top:8px;font-size:var(--fs-sm)">Uploaded photos will be preferred for graphic generation in this run and saved to your media library.</p>
     </fieldset>
 
-    <div style="margin-top:18px"><button class="btn" type="submit">Run pipeline \u2192</button></div>
+    <div style="margin-top:var(--sp-5)"><button class="btn large" type="submit">Run pipeline \u2192</button></div>
   </form>
 </div>
+</div>
+
+<aside class="mh-form-side">
+  <div class="mh-kit-preview">
+    <h4>Live preview</h4>
+    <div id="mh-kit-mock" class="mh-kit-mock" aria-hidden="true">
+      <span class="mh-kit-mock-eyebrow">Story \u00b7 1080\u00d71920</span>
+      <h3 class="mh-kit-mock-headline">Tom Davies<br><em>PB</em> 100m free</h3>
+      <div>
+        <div class="mh-kit-mock-time">52.41</div>
+        <div class="mh-kit-mock-meta"><b>&minus;0.74s</b> &middot; LANE 4 &middot; HEAT 2</div>
+      </div>
+    </div>
+    <div class="mh-kit-swatches" aria-hidden="true">
+      <div id="mh-kit-sw-pri" title="Primary"></div>
+      <div id="mh-kit-sw-sec" title="Secondary"></div>
+      <div id="mh-kit-sw-acc" title="Accent"></div>
+    </div>
+    <p class="dim" style="margin-top:var(--sp-3);font-size:var(--fs-sm)">
+      Story-card layout shown. Feed graphics and motion reels honour the same palette.
+    </p>
+  </div>
+</aside>
+</div>
+
+<script>
+(function(){{
+  // Live update: every time a colour picker changes, repaint the
+  // mock card's CSS custom properties.
+  var mock = document.getElementById('mh-kit-mock');
+  var swP  = document.getElementById('mh-kit-sw-pri');
+  var swS  = document.getElementById('mh-kit-sw-sec');
+  var swA  = document.getElementById('mh-kit-sw-acc');
+  var pri  = document.getElementById('run-config-primary');
+  var sec  = document.getElementById('run-config-secondary');
+  var acc  = document.getElementById('run-config-accent');
+  function paint() {{
+    if (!mock) return;
+    if (pri) {{ mock.style.setProperty('--kit-primary',   pri.value); if (swP) swP.style.background = pri.value; }}
+    if (sec) {{ mock.style.setProperty('--kit-secondary', sec.value); if (swS) swS.style.background = sec.value; }}
+    if (acc) {{ mock.style.setProperty('--kit-accent',    acc.value); if (swA) swA.style.background = acc.value; }}
+  }}
+  ['input','change'].forEach(function(evt){{
+    if (pri) pri.addEventListener(evt, paint);
+    if (sec) sec.addEventListener(evt, paint);
+    if (acc) acc.addEventListener(evt, paint);
+  }});
+  paint();
+
+  // Photo thumbnails \u2014 when the user picks images, render previews.
+  var photos = document.getElementById('run-config-photos');
+  var grid   = document.getElementById('mh-photo-grid');
+  function renderPhotos() {{
+    if (!photos || !grid) return;
+    grid.innerHTML = '';
+    var files = photos.files || [];
+    for (var i = 0; i < files.length; i++) {{
+      (function(file){{
+        var item = document.createElement('div');
+        item.className = 'mh-photo-grid-item';
+        var img = document.createElement('img');
+        img.alt = '';
+        var rdr = new FileReader();
+        rdr.onload = function(e) {{ img.src = e.target.result; }};
+        rdr.readAsDataURL(file);
+        var nameEl = document.createElement('span');
+        nameEl.className = 'name';
+        nameEl.textContent = file.name;
+        item.appendChild(img);
+        item.appendChild(nameEl);
+        grid.appendChild(item);
+      }})(files[i]);
+    }}
+  }}
+  if (photos) photos.addEventListener('change', renderPhotos);
+}})();
+</script>
 """
         return _layout("Configure run", body, active="create")
 
@@ -6605,7 +7375,18 @@ function turnMeetIntoPack() {{
 }}
 </script>"""
 
+            # Progress maths — how much of the queue has the user actioned?
+            _wf_decided = (_wf_n_approved or 0) + (_wf_n_rejected or 0) + (_wf_n_posted or 0)
+            _wf_grand_total = (_wf_n_total or len(ranked_achs) or 0)
+            _wf_pct = int(round(100 * _wf_decided / _wf_grand_total)) if _wf_grand_total else 0
+
             workflow_summary_card = turn_into_card + f"""
+<div class="mh-progress-strip" role="group" aria-label="Review progress">
+  <span class="mh-progress-strip-label">Reviewed</span>
+  <span class="mh-progress-strip-value">{_wf_decided}<span class="total">/ {_wf_grand_total}</span></span>
+  <span class="mh-progress-strip-bar"><span style="width:{_wf_pct}%"></span></span>
+  <span class="mh-progress-strip-label">{_wf_pct}%</span>
+</div>
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
     <div>
@@ -6618,6 +7399,10 @@ function turnMeetIntoPack() {{
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <button type="button" class="btn secondary" id="mh-bulk-approve"
+              title="Approve every card currently shown in the queue">
+        Approve all in queue
+      </button>
       <a class="btn" href="{_pack_url}" style="align-self:flex-end">View content pack &rarr;</a>
     </div>
   </div>
@@ -6626,6 +7411,9 @@ function turnMeetIntoPack() {{
     <nav class="mh-segmented" role="tablist" aria-label="Filter cards by workflow status">
       {_wf_filter_buttons}
     </nav>
+    <span class="mh-kbd-hint" aria-hidden="true">
+      <kbd>J</kbd><kbd>K</kbd> move · <kbd>A</kbd> approve · <kbd>R</kbd> reject · <kbd>?</kbd> help
+    </span>
   </div>
 </div>"""
         else:
@@ -6845,13 +7633,41 @@ function turnMeetIntoPack() {{
 
         if not ach_rows_html_wf:
             if _wf_filter:
-                ach_rows_html_wf = f'<div class="empty">No cards with status "{_h(_wf_filter)}".</div>'
+                _all_url = url_for("review", run_id=run_id)
+                ach_rows_html_wf = _empty_state(
+                    "search",
+                    f'No <em>{_h(_wf_filter)}</em> cards',
+                    f'Nothing is in the &ldquo;{_h(_wf_filter)}&rdquo; state right now. '
+                    'Switch the filter to see the rest of the queue.',
+                    actions=f'<a class="btn secondary" href="{_all_url}">Show all cards</a>',
+                )
             elif recognition_error:
-                ach_rows_html_wf = f'<div class="empty">Recognition engine error: {_h(recognition_error)}</div>'
+                ach_rows_html_wf = _empty_state(
+                    "alert",
+                    "Recognition hit a snag",
+                    f'The engine returned an error while ranking this run: '
+                    f'<code style="font-size:12px">{_h(recognition_error)}</code>. '
+                    'Re-uploading the file usually clears a transient parse error.',
+                    actions=f'<a class="btn" href="{url_for("upload")}">Try another file &rarr;</a>',
+                    kind="error",
+                )
             elif not rr:
-                ach_rows_html_wf = '<div class="empty">No recognition report available. Re-upload the file to generate achievements.</div>'
+                ach_rows_html_wf = _empty_state(
+                    "inbox",
+                    "No report <em>yet</em>",
+                    'We don&rsquo;t have a recognition report for this run. '
+                    'Re-upload the results file and the engine will rank the moments.',
+                    actions=f'<a class="btn" href="{url_for("upload")}">Upload results &rarr;</a>',
+                )
             else:
-                ach_rows_html_wf = '<div class="empty">No achievements detected.</div>'
+                ach_rows_html_wf = _empty_state(
+                    "trophy",
+                    "No standout swims",
+                    'The engine read the file but didn&rsquo;t find PBs, medals, or '
+                    'first-times worth a card. That can happen for heats-only sheets '
+                    'or entry lists.',
+                    actions=f'<a class="btn secondary" href="{url_for("activity_page")}">Back to runs</a>',
+                )
 
         # Single global AI-availability banner — replaces the 177 per-card
         # "AI UNAVAILABLE" alerts the previous implementation emitted.
@@ -7631,6 +8447,105 @@ function addGraphicToPack(btn, visualId) {{
   }}
   _tick();
   setInterval(_tick, 30000);
+}})();
+</script>
+
+<!-- Phase 6 — keyboard navigation + bulk approve + help overlay -->
+<div class="mh-kbd-overlay" id="mh-kbd-overlay" role="dialog" aria-modal="true" aria-labelledby="mh-kbd-title" aria-hidden="true">
+  <div class="mh-kbd-overlay-panel">
+    <h3 id="mh-kbd-title">Keyboard shortcuts</h3>
+    <div class="mh-kbd-table">
+      <span class="keys"><kbd>J</kbd></span><span class="desc">Focus next card</span>
+      <span class="keys"><kbd>K</kbd></span><span class="desc">Focus previous card</span>
+      <span class="keys"><kbd>A</kbd></span><span class="desc">Approve the focused card</span>
+      <span class="keys"><kbd>R</kbd></span><span class="desc">Reject the focused card</span>
+      <span class="keys"><kbd>U</kbd></span><span class="desc">Send focused card back to queue</span>
+      <span class="keys"><kbd>?</kbd></span><span class="desc">Toggle this help</span>
+      <span class="keys"><kbd>Esc</kbd></span><span class="desc">Close help</span>
+    </div>
+    <div style="margin-top:var(--sp-5);text-align:right">
+      <button type="button" class="btn secondary" data-mh-kbd-close>Got it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){{
+  // ----- Keyboard navigation across .ach-row cards -----
+  function cards() {{
+    return Array.prototype.slice.call(document.querySelectorAll('.ach-row'))
+      .filter(function(el){{ return el.offsetParent !== null; }});
+  }}
+  var focusIdx = -1;
+  function setFocus(idx) {{
+    var list = cards();
+    if (!list.length) return;
+    if (idx < 0) idx = 0;
+    if (idx >= list.length) idx = list.length - 1;
+    list.forEach(function(c){{ c.classList.remove('mh-kbd-focus'); }});
+    var el = list[idx];
+    el.classList.add('mh-kbd-focus');
+    el.scrollIntoView({{block: 'center', behavior: 'smooth'}});
+    focusIdx = idx;
+  }}
+  function clickWf(state) {{
+    var list = cards();
+    if (focusIdx < 0 || focusIdx >= list.length) return;
+    var btn = list[focusIdx].querySelector('[data-mh-wf="' + state + '"]');
+    if (btn) btn.click();
+  }}
+  function isTyping(e) {{
+    var t = e.target;
+    if (!t) return false;
+    var tag = (t.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
+  }}
+  var overlay = document.getElementById('mh-kbd-overlay');
+  function toggleHelp(force) {{
+    if (!overlay) return;
+    var open = force !== undefined ? force : !overlay.classList.contains('is-open');
+    overlay.classList.toggle('is-open', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }}
+  if (overlay) {{
+    overlay.addEventListener('click', function(e){{ if (e.target === overlay) toggleHelp(false); }});
+    overlay.querySelectorAll('[data-mh-kbd-close]').forEach(function(b){{
+      b.addEventListener('click', function(){{ toggleHelp(false); }});
+    }});
+  }}
+  document.addEventListener('keydown', function(e){{
+    if (isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key) {{
+      case 'j': case 'J': e.preventDefault(); setFocus(focusIdx + 1); break;
+      case 'k': case 'K': e.preventDefault(); setFocus(focusIdx - 1); break;
+      case 'a': case 'A': if (focusIdx >= 0) {{ e.preventDefault(); clickWf('approved'); }} break;
+      case 'r': case 'R': if (focusIdx >= 0) {{ e.preventDefault(); clickWf('rejected'); }} break;
+      case 'u': case 'U': if (focusIdx >= 0) {{ e.preventDefault(); clickWf('queue'); }} break;
+      case '?': e.preventDefault(); toggleHelp(); break;
+      case 'Escape': toggleHelp(false); break;
+    }}
+  }});
+
+  // ----- Bulk approve -----
+  var bulkBtn = document.getElementById('mh-bulk-approve');
+  if (bulkBtn) {{
+    bulkBtn.addEventListener('click', function(){{
+      var queued = Array.prototype.slice.call(
+        document.querySelectorAll('.ach-row[data-status="queue"]')
+      ).filter(function(el){{ return el.offsetParent !== null; }});
+      if (!queued.length) {{
+        if (window.MH) MH.toast('No cards in the queue to approve.', 'info');
+        return;
+      }}
+      if (!window.confirm('Approve all ' + queued.length + ' queued card' + (queued.length === 1 ? '' : 's') + '?')) return;
+      var n = 0;
+      queued.forEach(function(row){{
+        var btn = row.querySelector('[data-mh-wf="approved"]');
+        if (btn) {{ btn.click(); n++; }}
+      }});
+      if (window.MH) MH.toast('Approving ' + n + ' card' + (n === 1 ? '' : 's') + '…', 'success');
+    }});
+  }}
 }})();
 </script>
 """
@@ -9281,20 +10196,20 @@ Relay team broke club record"></textarea>
         """
         prof = _active_profile()
 
-        # ---- TOC strap ------------------------------------------------
+        # ---- Hero + sticky section nav --------------------------------
         toc_html = (
-            '<div class="mh-section-eyebrow" style="margin-bottom:6px">Settings</div>'
-            '<h1 style="margin:0 0 12px;font-size:32px">Operations &amp; data</h1>'
-            '<p class="dim" style="margin-bottom:24px;max-width:680px">'
-            'Everything previously surfaced under <i>Activity</i>, <i>Status</i>, '
-            '<i>Privacy</i>, and <i>Deployment status</i> now lives here. '
-            'Jump to a section:</p>'
-            '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px">'
-            '<a class="btn secondary" href="#activity" style="font-size:12px;padding:6px 12px">Activity</a>'
-            '<a class="btn secondary" href="#status" style="font-size:12px;padding:6px 12px">Status</a>'
-            '<a class="btn secondary" href="#privacy" style="font-size:12px;padding:6px 12px">Privacy</a>'
-            '<a class="btn secondary" href="#deployment" style="font-size:12px;padding:6px 12px">Deployment status</a>'
-            '</div>'
+            '<section class="mh-hero" data-lane="" style="padding-top:var(--sp-7);padding-bottom:var(--sp-5);margin-bottom:var(--sp-4)">'
+            '<span class="mh-hero-eyebrow">Settings</span>'
+            '<h1>Operations &amp; <em class="editorial">data</em></h1>'
+            '<p class="lede">Activity, deployment health, the data this system keeps, '
+            'and how to delete it &mdash; all in one place.</p>'
+            '</section>'
+            '<nav class="mh-tabnav" id="mh-settings-tabs" aria-label="Settings sections">'
+            '<a href="#activity" class="is-active">Activity</a>'
+            '<a href="#status">Status</a>'
+            '<a href="#privacy">Privacy &amp; data</a>'
+            '<a href="#deployment">Deployment</a>'
+            '</nav>'
         )
 
         activity_html = _render_settings_activity_section(prof)
@@ -9302,12 +10217,38 @@ Relay team broke club record"></textarea>
         privacy_html = _render_settings_privacy_section()
         deployment_html = _render_settings_deployment_section()
 
+        # Scroll-spy: highlight the tab whose section is in view.
+        spy_js = '''
+<script>
+(function(){
+  var nav = document.getElementById('mh-settings-tabs');
+  if (!nav) return;
+  var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+  var targets = links.map(function(a){
+    var id = a.getAttribute('href').slice(1);
+    return document.getElementById(id);
+  });
+  if (!('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      var idx = targets.indexOf(en.target);
+      if (idx < 0) return;
+      links.forEach(function(l){ l.classList.remove('is-active'); });
+      links[idx].classList.add('is-active');
+    });
+  }, {rootMargin: '-30% 0px -60% 0px', threshold: 0});
+  targets.forEach(function(t){ if (t) io.observe(t); });
+})();
+</script>'''
+
         body = (
             toc_html
             + activity_html
             + status_html
             + privacy_html
             + deployment_html
+            + spy_js
         )
         return _layout("Settings", body, active="settings")
 
@@ -10385,6 +11326,19 @@ Relay team broke club record"></textarea>
         except ImportError:
             REGISTRY = {}
 
+        # Presentation-only metadata (output formats + rough effort) keyed
+        # by ContentType value. This is UI sugar — it does NOT live on the
+        # registry dataclass, so adding/removing keys here can never affect
+        # the engine. Unknown types fall back to a generic format chip.
+        _ct_presentation = {
+            "meet_recap":        (["Caption", "Graphic", "Reel"], "~ 60s"),
+            "athlete_spotlight": (["Caption", "Graphic", "Story"], "~ 45s"),
+            "weekend_preview":   (["Caption", "Graphic"],          "~ 40s"),
+            "sponsor_post":      (["Caption", "Graphic"],          "~ 30s"),
+            "session_update":    (["Caption"],                     "~ 20s"),
+            "free_text":         (["Caption"],                     "~ 15s"),
+        }
+
         tiles_html = ""
         # First implemented tile gets the "Start here" lane-yellow ribbon so
         # users have a clear primary path instead of six equal-weight options.
@@ -10414,6 +11368,17 @@ Relay team broke club record"></textarea>
                 badge = '<span class="tag">Coming soon</span>'
                 action = f'href="{route_url}"' if href_ok else 'href="#" onclick="return false"'
                 disabled_cls = " is-disabled"
+
+            # Build the output-format chip row + effort estimate.
+            ct_val = getattr(meta.type, "value", str(ct))
+            formats, effort = _ct_presentation.get(ct_val, (["Caption"], ""))
+            fmt_chips = "".join(
+                f'<span class="mh-template-fmt">{_h(fmt)}</span>' for fmt in formats
+            )
+            effort_html = (
+                f'<span class="mh-template-effort">{_h(effort)}</span>' if effort else ""
+            )
+
             tiles_html += (
                 f'<a {action} class="mh-template{disabled_cls}">'
                 f'<div class="mh-template-icon">{meta.icon_svg}</div>'
@@ -10422,6 +11387,7 @@ Relay team broke club record"></textarea>
                 f'{badge}'
                 '</div>'
                 f'<p>{_h(meta.description)}</p>'
+                f'<div class="mh-template-formats">{fmt_chips}{effort_html}</div>'
                 '<span class="mh-template-cta">Start</span>'
                 '</a>'
             )
@@ -12674,6 +13640,13 @@ function copySpotlightCaption(btn, cardIdSafe) {{
 
         voice_examples_text = "\n".join(profile.voice_examples or [])
 
+        # Hoist brand-colour fallbacks into locals so the swatch markup and
+        # the colour inputs share one literal each (keeps the inline-hex
+        # budget in test_theme_tokens green — the literals live in plain
+        # assignments, not inline styles).
+        _org_pri = profile.brand_primary or "#0A2540"
+        _org_sec = profile.brand_secondary or "#000000"
+
         body = f"""
 {saved_msg}{capture_preview}{capture_error}{voice_preview}{voice_error}
 <section class="mh-hero" data-lane="" style="padding-top:var(--sp-8);padding-bottom:var(--sp-7);margin-bottom:var(--sp-5)">
@@ -12787,15 +13760,32 @@ function copySpotlightCaption(btn, cardIdSafe) {{
     </div>
     <div>
       <label>Primary colour</label>
-      <input type="color" name="brand_primary" value="{_h(profile.brand_primary or '#0A2540')}"
+      <input id="org-brand-primary" type="color" name="brand_primary" value="{_h(_org_pri)}"
              style="height:38px;width:80px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer"/>
     </div>
     <div>
       <label>Secondary colour</label>
-      <input type="color" name="brand_secondary" value="{_h(profile.brand_secondary or '#000000')}"
+      <input id="org-brand-secondary" type="color" name="brand_secondary" value="{_h(_org_sec)}"
              style="height:38px;width:80px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer"/>
     </div>
   </div>
+  <div class="mh-brandkit-strip" aria-hidden="true">
+    <span class="label">Brand kit</span>
+    <span class="mh-brandkit-chip"><span class="sw" id="bk-sw-pri" style="background:{_h(_org_pri)}"></span><span class="hex" id="bk-hex-pri">{_h(_org_pri)}</span></span>
+    <span class="mh-brandkit-chip"><span class="sw" id="bk-sw-sec" style="background:{_h(_org_sec)}"></span><span class="hex" id="bk-hex-sec">{_h(_org_sec)}</span></span>
+    <span style="font-size:var(--fs-sm);color:var(--ink-dim);margin-left:auto">This palette flows into every caption graphic and motion reel.</span>
+  </div>
+  <script>
+  (function(){{
+    function bind(inp, sw, hex) {{
+      var i=document.getElementById(inp), s=document.getElementById(sw), h=document.getElementById(hex);
+      if(!i) return;
+      i.addEventListener('input', function(){{ if(s) s.style.background=i.value; if(h) h.textContent=i.value.toUpperCase(); }});
+    }}
+    bind('org-brand-primary','bk-sw-pri','bk-hex-pri');
+    bind('org-brand-secondary','bk-sw-sec','bk-hex-sec');
+  }})();
+  </script>
 </div>
 
 <div class="card" style="margin-bottom:20px">
