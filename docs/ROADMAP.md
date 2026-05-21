@@ -31,7 +31,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-21 · `1ec90af6e` · Merge pull request #144 from elijahkendrick04/claude/add-roadmap-prompts-VIrwO
+**Last updated:** 2026-05-21 · `511c18e8f` · Merge pull request #143 from elijahkendrick04/claude/gen-par-6-brand-bootstrap
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -39,18 +39,18 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-21 | `57c7fecbf` | Add split_diagonal_hero v2 graphic archetype (PAR-7) |
 | 2026-05-21 | `4ef45ec71` | docs(roadmap): mark 1.6 shipped + add Appendix C verification prompts |
+| 2026-05-21 | `f846a99ca` | Add brand bootstrap extractor: URL -> draft DesignTokens |
+| 2026-05-21 | `f8b112a00` | Add deterministic saliency-aware cropping helpers |
+| 2026-05-21 | `465a115f2` | Add quality.variant_metrics: deterministic §8C distinctiveness metrics |
+| 2026-05-21 | `8598ce7df` | docs: add GENERATION.md and ADR-0001 for generation engine v2 |
+| 2026-05-21 | `7b28c46ab` | Add deterministic text auto-fit helper for the graphic renderer |
 | 2026-05-21 | `243c061b8` | Add roadmap auto-update on push to main |
 | 2026-05-21 | `c338ab4c5` | Consolidate all roadmap material into one forward-looking ROADMAP.md |
 | 2026-05-21 | `692e10e96` | Consolidate into one roadmap: fold generation prompts into ROADMAP.md Appendix A |
 | 2026-05-21 | `4770cc67f` | Add Generative Content Engine v2 roadmap with per-stage build prompts |
 | 2026-05-21 | `39bff2558` | Replace additive-only rule with gated removal process |
-| 2026-05-21 | `cc8e26729` | Trim CLAUDE.md to accurate, skill-free project guidance |
-| 2026-05-21 | `087c92c91` | Add generative-AI surgical thesis; fold verification corrections into evaluation |
-| 2026-05-20 | `30f6553c8` | Add generation-engine competitor evaluation (research) |
-| 2026-05-20 | `ae4fdbd33` | Fix derivative content pack: cross-worker job state + genuine AI copy |
-| 2026-05-20 | `c5a5742cf` | Let users add a photo to the caption-only graphics too |
-| 2026-05-20 | `0de4a6e3b` | Let users choose which photo goes on each graphic |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
