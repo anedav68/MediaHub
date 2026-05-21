@@ -310,6 +310,67 @@ the work can be parallelised across two engineers if needed.
 
 ---
 
+### 1.7 Generative Content Engine v2 · 🔵 **NEW — PLANNED (the "worth paying for" overhaul)**
+
+**The promise.** Make "click generate" produce content worth paying for:
+distinctive (not the same card every time), unmistakably on-brand, provably true,
+offered as a *ranked shortlist of options*, in every format. This is the direct
+response to the standing complaint that generation produces "a standard boring
+graphic every time that isn't unique."
+
+**The diagnosis (grounded in code).** Today's generation selects a tuple from a
+bounded, hand-authored option space dominated by ~6 layout skeletons
+(`creative_brief/generator.py`), with an LLM constrained to *menu-pick* from fixed
+enums (`creative_brief/ai_director.py`) and a renderer that repaints one DOM
+(`graphic_renderer/render.py`). It is parameterised reskinning, not generative
+design. Captions (`web/ai_caption.py`) are the one genuinely generative, already-good
+surface. Full analysis: `docs/research/mediahub-generative-ai-thesis.md` (the plan)
+and `docs/research/generation-engine-competitor-evaluation.md` (how the 2026 field
+generates content — researched by 16 agents, fact-checked by 10).
+
+**The architecture (thesis §5).** Keep the deterministic engine, captions,
+Remotion, and the renderer substrate; *replace the variation mechanism* with: a
+**brand-token contract** (extends §1.6's DTCG tokens with logo lockups, type
+pairing, voice profile, and semantic role descriptions an LLM can read) → an
+**archetype library + layout intelligence** (12–20 structurally distinct templates,
+auto-fit text, saliency crops, varied data-emphasis — Tier A, deterministic, fixes
+"samey" on its own) → an **LLM design-spec director** that emits a structured JSON
+spec a deterministic renderer executes (Tier B, "AI judges, maths renders") →
+**generate-a-pool, rank, and a deterministic brand-compliance check** → optional
+**generative backgrounds** under the deterministic text (Tier C). Video inherits the
+richer brief and gains data-driven scene structure. Generative *video B-roll* stays
+an opt-in premium (the one expensive item).
+
+**Relationship to §1.6.** This builds *on* the Adaptive Theming Engine, not beside
+it — §1.6 delivers the token plumbing and single-source-of-truth JSON; §1.7 extends
+that contract and consumes it in the generators. Sequence §1.6 Stage G before, or
+alongside, §1.7 SEQ-0.
+
+**Cost (thesis §6).** Marginal generation ≈ cents/pack (~$0.15–0.50), ~90% gross
+margin; build ≈ 2–3 focused months, with Tier A shippable in the first month;
+dominant cost is human (authoring archetypes), not compute.
+
+**Build breakdown & runnable prompts:** `docs/generation_engine_roadmap.md` — a
+**parallel bucket** (8 additive/inert items runnable now in concurrent sessions →
+PR to `main`) and a **sequential spine** (SEQ-0 tokens → SEQ-1 Tier A → SEQ-2 Tier B
+→ SEQ-3 cutover+gated-removal → SEQ-4 video), each with an implementation and a
+verification prompt. SEQ-3 follows CLAUDE.md's gated removal process (15-step
+breakage check + 15-step verification + dead-code sweep).
+
+| Track | Item | Status |
+|---|---|---|
+| Parallel (now) | PAR-1 caption quality pack · PAR-2 auto-fit · PAR-3 saliency crop · PAR-4 design-spec schema · PAR-5 variant metrics · PAR-6 brand bootstrap · PAR-7 archetype templates (×N) · PAR-8 docs/ADR | ❌ NOT STARTED |
+| Spine | SEQ-0 DesignTokens contract + `MEDIAHUB_GEN_V2` flag | ❌ NOT STARTED |
+| Spine | SEQ-1 Tier A (archetype library + layout intelligence) — *the immediate fix* | ❌ NOT STARTED |
+| Spine | SEQ-2 Tier B (design-spec director + pool/rank/compliance) | ❌ NOT STARTED |
+| Spine | SEQ-3 Cutover + gated removal of the enum/menu-picker engine | ❌ NOT STARTED |
+| Spine | SEQ-4 Video data-driven scene structure (+ optional Tier C) | ❌ NOT STARTED |
+
+**Fastest path to fixing "samey":** PAR-2 + PAR-3 + PAR-7 (parallel, now) → SEQ-0 →
+SEQ-1 (Tier A). No LLM-director work required to resolve the core complaint.
+
+---
+
 ## Phase 2 — Distinction (target: Aug 2026 → Feb 2027)
 
 **Goal:** convert MediaHub's vertical advantages into visible,
