@@ -47,7 +47,51 @@ data/                  — Runtime data (DB, runs, cache)
 - **Server-side rendering, not customer-side** — Remotion (video) and Playwright/Chromium (HTML → PNG) run inside the deployed container on the operator's server. They are not "local" in the customer-machine sense — the customer accesses a hosted URL. Gemini cannot replace these (Imagen and Veo are generative, not structured-data renderers).
 - **Cutout provider naming** — `MEDIAHUB_CUTOUT_PROVIDER=server` runs in-process rembg on the deployed server (default); `replicate` / `photoroom` are cloud-API alternatives. The legacy values `local` and `rembg` are accepted aliases for `server`. Never use the word "local" to describe the on-server backend in user-facing copy or docs; it's a deployment-side cutout backend.
 - **Feature flags** — `_club_platform_ok`, `_v73_ok`, `_v8_ok` guard optional features
-- **Additive changes** — do not remove existing routes or data structures; extend safely
+- **Removing routes or data structures is allowed, but gated** — you may remove or replace an existing route or data structure when an update genuinely needs it; don't just pile on additively. When you do, follow the process in *"Changing the engine: removing or replacing routes & data structures"* below — a 15-step breakage check **before** removal, a 15-step verification **after** removal and replacement, and a dead-code sweep at the end of every engine change.
+
+## Changing the engine: removing or replacing routes & data structures
+
+Removing or replacing existing routes and data structures is allowed when an update genuinely needs it — prefer a clean replacement over piling on additively. But because `web/web.py` is a large monolith with f-string templates, persisted `DATA_DIR` state, and feature-flagged surfaces, every removal/replacement MUST be gated by both checklists below. Do not skip steps to save time.
+
+### A. 15-step breakage check — run BEFORE removing or replacing
+
+1. **Pin the target.** Write down the exact route path / symbol / data structure (name, module path, signature, fields) being removed or replaced.
+2. **Define the replacement.** State what replaces it and its new shape/signature — or justify dropping it outright.
+3. **Whole-repo grep.** Search the entire repo for the name: imports, calls, attribute access, dict keys, string literals.
+4. **Routes & links.** Search `web/web.py` for the route and every `url_for()` that targets it.
+5. **Templates.** Search the f-string Jinja2 templates for the route, field names, and variables tied to the structure.
+6. **Frontend/JS callers.** Find `fetch`/XHR/form posts to the route, including the motion/reel API endpoints.
+7. **Persistence.** Check whether data stored under `DATA_DIR` (runs, DB rows, cached JSON, content packs) carries the field/shape.
+8. **Feature flags.** Check whether the target is guarded by, or guards, `_club_platform_ok` / `_v73_ok` / `_v8_ok`.
+9. **AI surfaces.** Check whether any `media_ai.llm` / `ai_core.llm` prompt or response parser produces or consumes the field/shape.
+10. **Deterministic engine.** Check parsers (`interpreter/`, `pb_discovery/`), detectors (`recognition/`, `recognition_swim/`), the ranker, and colour-science for dependencies.
+11. **Dynamic references.** Search for indirect access a literal grep misses: `getattr`, `**kwargs`, config keys, serialized status/enum strings.
+12. **Tests.** Find every test in `tests/` that imports, mocks, patches, or asserts on the target.
+13. **Back-compat data.** Identify old persisted runs/profiles still carrying the old shape; decide migrate-vs-tolerate.
+14. **Coverage map.** Map each caller found above to its replacement (1:1), or record explicitly why a caller is dropped.
+15. **Breakage list.** Write the explicit list of what would fail (import / route / template / parse / test) if the target were removed without the replacement in place.
+
+### B. 15-step safe-removal verification — run AFTER removing and replacing
+
+1. **Zero stray refs.** Re-grep the whole repo for the old name — confirm no leftover references remain.
+2. **No dangling links.** Confirm no `url_for()`, template link, or JS call still points at a removed route.
+3. **Callers migrated.** Confirm every caller from the breakage map now uses the replacement.
+4. **Imports resolve.** Import the app and affected modules — no `ImportError` / `NameError` / `AttributeError`.
+5. **Full test suite.** Run `python -m pytest tests/ -q` — expect ~253 passed / ~34 skipped, with no *new* failures.
+6. **No test cheating.** Confirm no test was deleted, skipped, or weakened just to go green.
+7. **Route works.** Exercise each affected route end-to-end (request → expected response/status).
+8. **Templates render.** Confirm affected pages render with no undefined-variable / missing-field errors.
+9. **Persistence loads.** Confirm old persisted runs/profiles still load (or are migrated) without error.
+10. **Flags still gate.** Confirm `_club_platform_ok` / `_v73_ok` / `_v8_ok` behaviour is unchanged with the code gone.
+11. **AI surfaces aligned.** Confirm prompts and parsers still produce/consume valid output for the new shape.
+12. **Engine accuracy held.** Confirm parsers/detectors/ranker give identical output for the same input — no regression in "is this a PB?" or ranking.
+13. **Primary flow.** Walk the core flow: upload → configure → process → review (cards, captions, confidence) → approve → export.
+14. **No new exposure.** Confirm the change exposed no debug/admin route, secret, or IDOR, and didn't leak `ANTHROPIC_API_KEY`.
+15. **Documented & clean diff.** Record the route/data-structure change and confirm the diff contains only intended edits.
+
+### C. Dead-code sweep — at the end of every engine change
+
+After any change to the engine (not only removals), remove the clutter and dead code it introduced or orphaned: unused imports, unreachable branches, orphaned helpers, commented-out blocks, now-unused data fields, and stale tests for behaviour that no longer exists. Do not leave back-compat shims, renamed `_unused` vars, or "removed"/"deleted" placeholder comments.
 
 ## Explicitly Excluded
 
