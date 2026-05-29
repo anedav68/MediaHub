@@ -1,6 +1,28 @@
 {
   "schema": 1,
-  "generated_at": null,
+  "generated_at": "2026-05-29T05:07:06+00:00",
   "bugs": {},
-  "skipped": {}
+  "skipped": {
+    "5fe1b78a67a5": {
+      "fingerprint": "5fe1b78a67a5",
+      "category": "semantic_skipped",
+      "severity": "info",
+      "title": "Semantic subagents skipped \u2014 no AI provider configured",
+      "route": "(semantic)",
+      "expected": "With GEMINI_API_KEY or ANTHROPIC_API_KEY set, the AI judges run",
+      "actual": "No LLM provider is configured in this environment",
+      "evidence": "Set GEMINI_API_KEY (or ANTHROPIC_API_KEY) so the semantic testers can evaluate output correctness and UX.",
+      "suspect": "",
+      "repro": [],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-05-29T05:07:06+00:00",
+      "last_seen": "2026-05-29T05:07:06+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260529T050607Z-5323",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null
+    }
+  }
 }
