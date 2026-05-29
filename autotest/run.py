@@ -350,6 +350,202 @@ class Tester:
                 shoot=False)
             return False
 
+    def ensure_signed_in_live(self) -> bool:
+        """Sign in on a LIVE deployment. Enumerate the orgs on /sign-in and
+        prefer a REAL, populated one (so the judges get real content) over our
+        own throwaway 'autotest-*' test orgs. AUTOTEST_PROFILE_ID forces one.
+        Records the chosen org + a run id in artifacts when content is found."""
+        try:
+            forced = os.environ.get("AUTOTEST_PROFILE_ID", "").strip()
+            self.page.goto(self.base + "/sign-in", wait_until="domcontentloaded", timeout=30000)
+            pids = self.page.evaluate(
+                "()=>Array.from(new Set(Array.from(document.querySelectorAll('[name=profile_id]'))"
+                ".map(e=>e.value).filter(Boolean)))")
+            if forced:
+                pids = [forced]
+            if not pids:
+                self._add(Finding(category="live_signin", severity="info", is_bug=False,
+                    title="Live sign-in: no organisation listed", route="/sign-in",
+                    expected="At least one org on the sign-in picker",
+                    actual="No profile_id control found", evidence=self.page.content()[:800]),
+                    shoot=False)
+                return False
+            # real orgs first, our own test orgs last
+            ordered = ([p for p in pids if not p.startswith("autotest")]
+                       + [p for p in pids if p.startswith("autotest")])
+            signed_any = False
+            for pid in ordered:
+                self.page.context.request.post(self.base + "/sign-in", form={"profile_id": pid})
+                self.page.goto(self.base + "/activity", wait_until="domcontentloaded", timeout=30000)
+                if "/sign-in" in self.page.url:
+                    continue
+                signed_any = True
+                runs = re.findall(r"/(?:review|runs)/([A-Za-z0-9_-]{6,})", self.page.content())
+                if runs:
+                    self.artifacts["live_org"] = pid
+                    self.artifacts["live_run_id"] = runs[0]
+                    return True
+            return signed_any
+        except Exception as exc:
+            self._add(Finding(category="live_signin", severity="medium",
+                title="Live sign-in raised", route="/sign-in",
+                expected="Sign-in pins an org", actual=str(exc)[:200], evidence=str(exc)),
+                shoot=False)
+            return False
+
+    def judge_existing_runs(self, max_runs: int = 6) -> int:
+        """Live: inspect existing runs in the signed-in org. Deterministically
+        flag concrete bugs — a run that produced 0 content cards, and a run
+        listed in /activity whose export 404s — and capture a representative
+        run's content for the AI judges. Returns the number inspected."""
+        try:
+            self.page.goto(self.base + "/activity", wait_until="domcontentloaded", timeout=30000)
+        except Exception:
+            return 0
+        runs = list(dict.fromkeys(
+            re.findall(r"/(?:review|runs)/([A-Za-z0-9_-]{6,})", self.page.content())))
+        inspected = zero_card = 0
+        captured = False
+        for rid in runs[:max_runs]:
+            inspected += 1
+            try:
+                r = self.page.context.request.get(self.base + f"/api/runs/{rid}/export")
+            except Exception:
+                continue
+            if r.status == 404:
+                self._add(Finding(category="broken_run_state", severity="medium",
+                    title=f"Run shown in /activity but its export 404s ({rid})",
+                    route="/api/runs/<id>/export",
+                    expected="A run listed in /activity has a fetchable export",
+                    actual=f"GET /api/runs/{rid}/export -> 404 (inconsistent run state)",
+                    evidence=f"run {rid} appears on /activity",
+                    repro=["Sign in", "Open /activity", f"GET /api/runs/{rid}/export"]))
+                continue
+            if not r.ok:
+                continue
+            try:
+                data = r.json()
+            except Exception:
+                continue
+            cards = data.get("cards") or []
+            if not cards:
+                zero_card += 1
+                self.artifacts.setdefault("export_json", data)
+            elif not captured:
+                self.artifacts["export_json"] = data
+                self.artifacts["live_run_id"] = rid
+                captured = True
+                try:
+                    self.probe(self.base + f"/review/{rid}", "live:review",
+                               route_template="/review/<run_id>")
+                    self.artifacts["review_text"] = self.page.inner_text("body")[:6000]
+                except Exception:
+                    pass
+        # Systemic, deterministic signal: real meets are producing no content.
+        if inspected and zero_card:
+            sev = "high" if zero_card >= max(2, inspected // 2) else "medium"
+            self._add(Finding(category="content_empty", severity=sev,
+                title=f"{zero_card}/{inspected} recent runs produced ZERO content cards",
+                route="/review/<run_id>",
+                expected="Real meet uploads should generate content cards",
+                actual=f"{zero_card} of {inspected} inspected runs have 0 cards — the content "
+                       "engine is generating nothing for real meets",
+                evidence="Inspected runs from /activity via /api/runs/<id>/export",
+                repro=["Sign in", "Open /activity", "Open a recent run — 0 cards"]))
+        return inspected
+
+    def run_signup_flow(self) -> str:
+        """Exercise the new-club SIGN-UP / onboarding journey
+        (/organisation/setup -> /organisation/setup/capture) — what a brand-new
+        club hits. On a live site this creates a clearly-labelled test org
+        (authorised). Captures the onboarding text for the user-brain judge and
+        flags crashes."""
+        self._flow_log_pos = self.server.log_size() if self.server else 0
+        st, html, _ = self.probe(self.base + "/organisation/setup", "signup:get",
+                                 route_template="/organisation/setup")
+        if st is not None and st >= 500:
+            return "failed:setup-page-5xx"
+        if 'name="display_name"' not in html:
+            return "skipped:no-setup-form"
+        name = f"Autotest Club {uuid.uuid4().hex[:6]}"
+        website = os.environ.get("AUTOTEST_SIGNUP_WEBSITE", "").strip()
+        try:
+            self.page.fill('input[name="display_name"]', name)
+            self.page.evaluate(
+                """()=>{const s=document.querySelector('select[name=org_type]');
+                   if(s){for(const o of s.options){if(o.value){s.value=o.value;
+                     s.dispatchEvent(new Event('change',{bubbles:true}));break;}}}}""")
+            if website:
+                try:
+                    self.page.fill('input[name="website_url"]', website)
+                except Exception:
+                    pass
+        except Exception as exc:
+            self._add(Finding(category="flow_failure", severity="high",
+                title="Sign-up form could not be filled", route="/organisation/setup",
+                expected="A fillable org-creation form", actual=str(exc)[:200],
+                evidence=str(exc), repro=["Open /organisation/setup"]))
+            return "failed:fill"
+        if not (self._submit('form[action="/organisation/setup/capture"]')
+                or self._submit('form')):
+            return "failed:submit"
+        self._settle()
+        try:
+            self.artifacts["signup_text"] = self.page.inner_text("body")[:5000]
+        except Exception:
+            pass
+        new_log = self.server.log_since(getattr(self, "_flow_log_pos", 0)) if self.server else ""
+        tb = _last_exception_block(new_log) if TRACEBACK_MARK in new_log else ""
+        content = self.page.content()
+        if tb or 'data-lane="500"' in content:
+            self._add(Finding(category="flow_failure", severity="critical",
+                title="Sign-up / onboarding crashed", route="/organisation/setup/capture",
+                expected="Onboarding proceeds without error after submitting org details",
+                actual=f"Crash during capture (landed {self.page.url})",
+                evidence=(tb or content[:1500]), suspect=_extract_suspect(tb) if tb else "",
+                repro=["Open /organisation/setup", "Fill org name + type", "Submit"]))
+            return "failed:capture-crash"
+        return f"completed (landed {urlparse(self.page.url).path})"
+
+    def _active_profile_id_live(self) -> str:
+        try:
+            r = self.page.context.request.get(self.base + "/api/organisation/active")
+            if r.ok:
+                return str((r.json() or {}).get("profile_id") or "").strip()
+        except Exception:
+            pass
+        return ""
+
+    def _delete_test_profile(self, pid: str) -> str:
+        """Delete a profile via /sign-in/delete. HARD-GUARDED: only ever deletes
+        a profile whose id starts with 'autotest' (a profile the tester itself
+        created). It will never delete a real org."""
+        if not pid or not pid.startswith("autotest"):
+            return f"refused — not a test profile ({pid!r})"
+        try:
+            r = self.page.context.request.post(self.base + "/sign-in/delete",
+                                               form={"profile_id": pid})
+            chk = self.page.context.request.get(self.base + "/sign-in")
+            gone = pid not in (chk.text() if chk.ok else pid)
+            return f"deleted (HTTP {r.status}, confirmed={gone})"
+        except Exception as exc:
+            return f"delete-error: {exc}"
+
+    def run_full_lifecycle(self, flow_timeout: float) -> str:
+        """The full new-club journey on a live site: CREATE a test profile
+        (sign-up) → UPLOAD a real meet file with real race results → configure
+        with a real club → process → judge → DELETE the test profile. Exercises
+        creation, upload, and deletion. Deletion is guarded to test profiles."""
+        signup = self.run_signup_flow()
+        self.artifacts["signup_result"] = signup
+        pid = self._active_profile_id_live()
+        self.artifacts["lifecycle_profile_id"] = pid
+        # Upload a REAL meet (real race results) and drive the content flow.
+        upload = self.run_primary_flow(flow_timeout)
+        # Clean up: delete the test profile we created (and verify the route).
+        deleted = self._delete_test_profile(pid)
+        return f"lifecycle: signup={signup} | upload={upload} | delete={deleted}"
+
     def probe(self, url: str, label: str, *, route_template: str | None = None,
               from_link: bool = False) -> tuple[int | None, str, list[str]]:
         """Navigate to `url`, run every detector, return (status, html, links)."""
@@ -738,6 +934,7 @@ def main() -> int:
 
     routes = discover_get_routes()
     base, server = _resolve_base()
+    live_mode = server is None  # external URL (e.g. the live/staging deployment)
     profile_id = os.environ.get("AUTOTEST_PROFILE_ID") or None
     if server is not None and not profile_id:
         profile_id = _seed_ready_profile(server.data_dir)
@@ -753,15 +950,17 @@ def main() -> int:
             col.attach(page)
             tester = Tester(server, base, page, col, max_pages)
 
-            # 0) sign in so the gated content routes are actually reachable,
-            #    then capture the signed-in home text for the user-brain judge.
-            if profile_id:
+            # 0) sign in so the gated content routes are reachable, then capture
+            #    the signed-in home text for the user-brain judge.
+            if live_mode:
+                tester.ensure_signed_in_live()
+            elif profile_id:
                 tester.ensure_signed_in(profile_id)
-                try:
-                    page.goto(base + "/", wait_until="domcontentloaded", timeout=20000)
-                    tester.artifacts["home_text"] = page.inner_text("body")[:6000]
-                except Exception:
-                    pass
+            try:
+                page.goto(base + "/", wait_until="domcontentloaded", timeout=20000)
+                tester.artifacts["home_text"] = page.inner_text("body")[:6000]
+            except Exception:
+                pass
 
             # 1) probe every registered no-arg GET route. Skip /api/* (fetch
             #    endpoints — exercised via XHR during real page loads) and any
@@ -773,8 +972,20 @@ def main() -> int:
                 tester.probe(base + rule, f"route:{rule}", route_template=rule)
                 tester.routes_probed += 1
 
-            # 2) the money flow: upload → configure → process → review → export
-            flow_result = tester.run_primary_flow(flow_timeout)
+            # 2) content journey.
+            if live_mode:
+                # always inspect existing real runs (read-only) and flag empties
+                n = tester.judge_existing_runs()
+                flow_result = (f"live:judged-{n}-runs" if tester.artifacts.get("export_json")
+                               else f"live:inspected-{n}-runs-no-content")
+                # full lifecycle: create test profile -> upload a REAL meet ->
+                # judge -> delete the test profile (guarded). Opt-in + authorised.
+                if os.environ.get("AUTOTEST_LIVE_FULL") == "1":
+                    flow_result = tester.run_full_lifecycle(flow_timeout)
+            else:
+                flow_result = tester.run_primary_flow(flow_timeout)
+                if os.environ.get("AUTOTEST_SIGNUP", "1") != "0":
+                    tester.artifacts["signup_result"] = tester.run_signup_flow()
             tester.artifacts["flow_result"] = flow_result
             tester.artifacts["pages"] = tester.visited
 
@@ -786,8 +997,13 @@ def main() -> int:
             #    functional intent), not just crashes. Then the LLM Council
             #    adjudicates their findings (anti-sycophancy: confirm real bugs,
             #    demote noise, surface blind spots). Both self-skip with no key.
-            if (os.environ.get("AUTOTEST_SEMANTIC", "1") != "0"
-                    and tester.artifacts.get("export_json")):
+            # Run the judges whenever there's ANY real surface to evaluate —
+            # a content pack, the home page, the sign-up text, or a review page —
+            # not only a full content pack. (Without this, a content-less live
+            # site left the AI brain off and found nothing.)
+            _judgeable = any(tester.artifacts.get(k) for k in
+                             ("export_json", "home_text", "signup_text", "review_text"))
+            if os.environ.get("AUTOTEST_SEMANTIC", "1") != "0" and _judgeable:
                 try:
                     from autotest import semantic
                     sem = semantic.evaluate(tester.artifacts)
