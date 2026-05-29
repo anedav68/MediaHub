@@ -31,7 +31,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `d89e4870d` · Merge pull request #150 from elijahkendrick04/claude/free-gemini-coder
+**Last updated:** 2026-05-29 · `32f0b192a` · Make the autonomous coder write code properly: ruflo skills + Claude coder + self-correcting gate lo
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -39,6 +39,8 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `32f0b192a` | Make the autonomous coder write code properly: ruflo skills + Claude coder + self-correcting gate lo |
+| 2026-05-29 | `e46185614` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `3d5521cbd` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `c88489386` | fix: add GET /healthz/ping ultra-light liveness route (#149) |
 | 2026-05-29 | `61d5e2d35` | autotest: free autonomous fixing — Gemini coder instead of Claude API |
@@ -47,9 +49,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-21 | `42838034f` | Add DesignSpec contract + strict normaliser for the LLM art-director |
 | 2026-05-21 | `57c7fecbf` | Add split_diagonal_hero v2 graphic archetype (PAR-7) |
 | 2026-05-21 | `4ef45ec71` | docs(roadmap): mark 1.6 shipped + add Appendix C verification prompts |
-| 2026-05-21 | `f846a99ca` | Add brand bootstrap extractor: URL -> draft DesignTokens |
-| 2026-05-21 | `f8b112a00` | Add deterministic saliency-aware cropping helpers |
-| 2026-05-21 | `465a115f2` | Add quality.variant_metrics: deterministic §8C distinctiveness metrics |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
