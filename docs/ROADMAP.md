@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `cc43eb2b3` · Merge pull request #161 from elijahkendrick04/claude/coder-subscription
+**Last updated:** 2026-05-29 · `035712ae5` · ci(autotest): keep the autonomous fix/build pass inside the job clock (#162)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,8 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `035712ae5` | ci(autotest): keep the autonomous fix/build pass inside the job clock (#162) |
+| 2026-05-29 | `896858a75` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `c6ccb7fec` | autotest: fix end-of-file newline on coder.py (pre-commit hygiene) |
 | 2026-05-29 | `dd804cf3c` | autotest: zero API keys — judges + council + coder all on the Claude CLI |
 | 2026-05-29 | `6b8593e4d` | autotest(ci): coder runs on a Claude subscription token, not the metered API |
@@ -73,8 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-29 | `dedf0488b` | autopilot: persist builder state [skip ci] |
 | 2026-05-29 | `25dc58896` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `c367a96b3` | autotest: live-site testing + new-club sign-up + create/delete lifecycle (#158) |
-| 2026-05-29 | `bd0b06821` | chore: remove unused Vercel config (we deploy on Render only) |
-| 2026-05-29 | `a51972df9` | chore: consolidate downloaded skill toolkits under vendor/ |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
