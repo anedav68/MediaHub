@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `32f0b192a` · Make the autonomous coder write code properly: ruflo skills + Claude coder + self-correcting gate lo
+**Last updated:** 2026-05-29 · `c83b20d22` · Merge pull request #152 from elijahkendrick04/claude/trusting-planck-LubQe
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,8 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `a799eef98` | ci(repo-hygiene): scope pre-commit to a PR's changed files |
+| 2026-05-29 | `bfc19a00b` | Add plain-English docs, repo-hygiene automation, and a repo-tidy skill |
 | 2026-05-29 | `32f0b192a` | Make the autonomous coder write code properly: ruflo skills + Claude coder + self-correcting gate lo |
 | 2026-05-29 | `e46185614` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `3d5521cbd` | autotest: refresh bug report [skip ci] |
@@ -71,8 +73,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-29 | `9101a606f` | Autopilot: autonomous tester + roadmap builder + self-healing fix loop (#147) |
 | 2026-05-29 | `8372f3972` | Add mediahub-engineering Claude Code skill |
 | 2026-05-21 | `42838034f` | Add DesignSpec contract + strict normaliser for the LLM art-director |
-| 2026-05-21 | `57c7fecbf` | Add split_diagonal_hero v2 graphic archetype (PAR-7) |
-| 2026-05-21 | `4ef45ec71` | docs(roadmap): mark 1.6 shipped + add Appendix C verification prompts |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
