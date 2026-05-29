@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `3c06cfaf1` · Merge pull request #156 from elijahkendrick04/claude/realistic-tester
+**Last updated:** 2026-05-29 · `c367a96b3` · autotest: live-site testing + new-club sign-up + create/delete lifecycle (#158)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `c367a96b3` | autotest: live-site testing + new-club sign-up + create/delete lifecycle (#158) |
 | 2026-05-29 | `d40290224` | autotest: stabilize the primary flow on a known-good meet + real club |
 | 2026-05-29 | `0287d1add` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `a799eef98` | ci(repo-hygiene): scope pre-commit to a PR's changed files |
@@ -73,7 +74,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-29 | `c88489386` | fix: add GET /healthz/ping ultra-light liveness route (#149) |
 | 2026-05-29 | `61d5e2d35` | autotest: free autonomous fixing — Gemini coder instead of Claude API |
 | 2026-05-29 | `9101a606f` | Autopilot: autonomous tester + roadmap builder + self-healing fix loop (#147) |
-| 2026-05-29 | `8372f3972` | Add mediahub-engineering Claude Code skill |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
