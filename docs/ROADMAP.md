@@ -31,7 +31,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `9101a606f` · Autopilot: autonomous tester + roadmap builder + self-healing fix loop (#147)
+**Last updated:** 2026-05-29 · `c88489386` · fix: add GET /healthz/ping ultra-light liveness route (#149)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -39,6 +39,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `c88489386` | fix: add GET /healthz/ping ultra-light liveness route (#149) |
 | 2026-05-29 | `9101a606f` | Autopilot: autonomous tester + roadmap builder + self-healing fix loop (#147) |
 | 2026-05-29 | `8372f3972` | Add mediahub-engineering Claude Code skill |
 | 2026-05-21 | `42838034f` | Add DesignSpec contract + strict normaliser for the LLM art-director |
@@ -49,8 +50,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-21 | `465a115f2` | Add quality.variant_metrics: deterministic §8C distinctiveness metrics |
 | 2026-05-21 | `8598ce7df` | docs: add GENERATION.md and ADR-0001 for generation engine v2 |
 | 2026-05-21 | `7b28c46ab` | Add deterministic text auto-fit helper for the graphic renderer |
-| 2026-05-21 | `243c061b8` | Add roadmap auto-update on push to main |
-| 2026-05-21 | `c338ab4c5` | Consolidate all roadmap material into one forward-looking ROADMAP.md |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
