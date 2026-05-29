@@ -106,6 +106,7 @@ change and production, and they are strict:
 | Protected paths | a build/fix touching the deterministic engine (parsers, detectors, ranker, colour-science) aborts before merge |
 | Scope cap | `AUTOTEST_BUILD_MAX_FILES` (25) / `AUTOTEST_BUILD_MAX_INSERTIONS` (2000) |
 | Test gate | the full suite must stay green or nothing merges |
+| Iterate-to-green | a gate failure is fed back to the coder to fix the ROOT CAUSE (repo skills), up to `AUTOTEST_GATE_MAX_ITERS`, then it carries on merging — it does not just abandon the change (and may not delete/weaken tests to pass) |
 | Auto-revert | the testing loop reverts a merged item on `main` if it regresses, and marks the roadmap `blocked` |
 
 | Flag | Default | Effect |
@@ -116,6 +117,7 @@ change and production, and they are strict:
 | `AUTOTEST_FIX_APPLY` | `1` | run the bug-fixer (`0` = list only) |
 | `AUTOTEST_CODER` | `claude` | coding agent: `claude` (best quality, no fallback) or `gemini` |
 | `AUTOTEST_FIX_MAX_ATTEMPTS` | `2` | give up + open a GitHub issue after N failed fix tries (credit guard) |
+| `AUTOTEST_GATE_MAX_ITERS` | `3` | when a change fails the test gate, feed the failure back to the coder to fix the root cause, up to N iterations, then give up (bounded) |
 | `AUTOTEST_SEMANTIC` / `AUTOTEST_COUNCIL` | `1` | enable the AI judges / the council |
 | `AUTOTEST_DISCOVER` | unset | let `claude` find more test files on the web |
 | `AUTOTEST_BUILD_ITEM` | — | force a specific roadmap id (e.g. `PAR-2`) |

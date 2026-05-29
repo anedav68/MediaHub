@@ -109,29 +109,20 @@ def fix_one(bug: dict) -> dict:
     if rc != 0:
         builder._git("checkout", "-B", branch)
 
-    ok, out = builder._run_coder(_fix_prompt(bug))
+    # Implement + iterate to green: a gate failure is fed back to the coder to
+    # fix the root cause (repo skills), not abandoned on the first miss.
+    ok, files, ins, info = builder.implement_until_green(
+        _fix_prompt(bug), complex=False, label=f"bug {fp}")
     if not ok:
-        # A coder failure (no fallback) is usually systemic — auth, rate limit,
-        # or out of credits. Surface it immediately rather than retrying.
-        from autotest import notify
-        notify.notify(
-            "Autopilot coder error (Claude)",
-            f"The Claude coder failed on bug `{fp}` — there is no fallback. Detail:\n"
-            f"{out[-500:]}\n\nCheck ANTHROPIC_API_KEY, credits, and rate limits.")
-        return {"fp": fp, "result": "coder-failed", "detail": out[-300:]}
-    files, ins = builder._changed_files()
-    if not files:
-        return _give_up_or_retry(bug, attempts, "no-op (coder made no changes)")
-    if builder._touches_protected(files):
         builder._git("reset", "--hard", f"origin/{builder.BASE_BRANCH}")
-        return _give_up_or_retry(bug, attempts, "touched protected engine")
-    if len(files) > builder.MAX_FILES or ins > builder.MAX_INSERTIONS:
-        builder._git("reset", "--hard", f"origin/{builder.BASE_BRANCH}")
-        return _give_up_or_retry(bug, attempts, "diff too large")
-    gate_ok, tail = builder._test_gate()
-    if not gate_ok:
-        builder._git("reset", "--hard", f"origin/{builder.BASE_BRANCH}")
-        return _give_up_or_retry(bug, attempts, "tests not green")
+        if info.startswith("coder-failed"):
+            from autotest import notify
+            notify.notify(
+                "Autopilot coder error (Claude)",
+                f"The Claude coder errored fixing bug `{fp}` — no fallback. {info}\n\n"
+                "Check ANTHROPIC_API_KEY, credits, and rate limits.")
+            return {"fp": fp, "result": "coder-failed", "detail": info}
+        return _give_up_or_retry(bug, attempts, info)
 
     builder._git("commit", "-m", f"fix: {bug.get('title', '')[:60]}\n\nAutonomous fix for autotest "
                  f"finding {fp} ({bug.get('category')}).")
