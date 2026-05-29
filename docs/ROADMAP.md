@@ -31,7 +31,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `c88489386` · fix: add GET /healthz/ping ultra-light liveness route (#149)
+**Last updated:** 2026-05-29 · `d89e4870d` · Merge pull request #150 from elijahkendrick04/claude/free-gemini-coder
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -39,7 +39,9 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `3d5521cbd` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `c88489386` | fix: add GET /healthz/ping ultra-light liveness route (#149) |
+| 2026-05-29 | `61d5e2d35` | autotest: free autonomous fixing — Gemini coder instead of Claude API |
 | 2026-05-29 | `9101a606f` | Autopilot: autonomous tester + roadmap builder + self-healing fix loop (#147) |
 | 2026-05-29 | `8372f3972` | Add mediahub-engineering Claude Code skill |
 | 2026-05-21 | `42838034f` | Add DesignSpec contract + strict normaliser for the LLM art-director |
@@ -48,8 +50,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-21 | `f846a99ca` | Add brand bootstrap extractor: URL -> draft DesignTokens |
 | 2026-05-21 | `f8b112a00` | Add deterministic saliency-aware cropping helpers |
 | 2026-05-21 | `465a115f2` | Add quality.variant_metrics: deterministic §8C distinctiveness metrics |
-| 2026-05-21 | `8598ce7df` | docs: add GENERATION.md and ADR-0001 for generation engine v2 |
-| 2026-05-21 | `7b28c46ab` | Add deterministic text auto-fit helper for the graphic renderer |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
