@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `54939cdf0` · Merge pull request #157 from elijahkendrick04/claude/trusting-planck-LubQe
+**Last updated:** 2026-05-29 · `6b55678f5` · autotest(ci): hourly loop tests the live site so it finds + fixes real bugs (#159)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,9 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `6b55678f5` | autotest(ci): hourly loop tests the live site so it finds + fixes real bugs (#159) |
+| 2026-05-29 | `dedf0488b` | autopilot: persist builder state [skip ci] |
+| 2026-05-29 | `25dc58896` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `c367a96b3` | autotest: live-site testing + new-club sign-up + create/delete lifecycle (#158) |
 | 2026-05-29 | `bd0b06821` | chore: remove unused Vercel config (we deploy on Render only) |
 | 2026-05-29 | `a51972df9` | chore: consolidate downloaded skill toolkits under vendor/ |
@@ -72,8 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-29 | `bfc19a00b` | Add plain-English docs, repo-hygiene automation, and a repo-tidy skill |
 | 2026-05-29 | `32f0b192a` | Make the autonomous coder write code properly: ruflo skills + Claude coder + self-correcting gate lo |
 | 2026-05-29 | `e46185614` | autotest: refresh bug report [skip ci] |
-| 2026-05-29 | `3d5521cbd` | autotest: refresh bug report [skip ci] |
-| 2026-05-29 | `c88489386` | fix: add GET /healthz/ping ultra-light liveness route (#149) |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
