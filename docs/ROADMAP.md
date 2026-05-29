@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `6b55678f5` · autotest(ci): hourly loop tests the live site so it finds + fixes real bugs (#159)
+**Last updated:** 2026-05-29 · `bccc85df0` · autotest: builder picks small PAR items first; council is live-aware (#160)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,8 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-29 | `bccc85df0` | autotest: builder picks small PAR items first; council is live-aware (#160) |
+| 2026-05-29 | `4c39c5650` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `6b55678f5` | autotest(ci): hourly loop tests the live site so it finds + fixes real bugs (#159) |
 | 2026-05-29 | `dedf0488b` | autopilot: persist builder state [skip ci] |
 | 2026-05-29 | `25dc58896` | autotest: refresh bug report [skip ci] |
@@ -73,8 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-29 | `0287d1add` | autotest: refresh bug report [skip ci] |
 | 2026-05-29 | `a799eef98` | ci(repo-hygiene): scope pre-commit to a PR's changed files |
 | 2026-05-29 | `bfc19a00b` | Add plain-English docs, repo-hygiene automation, and a repo-tidy skill |
-| 2026-05-29 | `32f0b192a` | Make the autonomous coder write code properly: ruflo skills + Claude coder + self-correcting gate lo |
-| 2026-05-29 | `e46185614` | autotest: refresh bug report [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
