@@ -54,22 +54,25 @@ def _is_meta_finding(bug: dict) -> bool:
 
 
 def _open_bugs(limit: int) -> list[dict]:
-    """Open bugs worth a fix attempt RIGHT NOW. We require all of:
-    - status ``open``, no fix already in flight, under the per-bug attempt cap
-      (so we never keep spending credits on a bug that won't fix);
-    - ``present_last_run`` — reproduced in the latest sweep, so we don't chase
-      stale or flaky findings that aren't actually happening any more;
-    - not a meta/framework finding about the tester itself (the product coder
-      can't fix those — that's tester tuning, not a product bug).
-    """
-    cap = _max_attempts()
+    """Open bugs eligible for a fix attempt. NEVER-SKIP policy: every open
+    product bug stays eligible forever — we never drop one for having too many
+    attempts or for not being reproduced on the latest (input-rotated) sweep.
+    The only exclusions are fixes already in flight (``fix_pr``) and meta-findings
+    about the tester itself (not product code the coder can fix). Priority is set
+    by ORDER, not by exclusion (see below)."""
     ledger = report.load_ledger()
     bugs = [b for b in ledger["bugs"].values()
             if b.get("status") == "open" and not b.get("fix_pr")
-            and int(b.get("fix_attempts", 0)) < cap
-            and b.get("present_last_run", True)
             and not _is_meta_finding(b)]
-    bugs.sort(key=lambda b: SEV_ORDER.get(b.get("severity", "low"), 4))
+    # NEVER-SKIP ordering (not exclusion): highest severity, then fewest prior
+    # attempts, then reproduced-this-sweep first. A hard bug just sinks in the
+    # queue and is retried later — it is never dropped. With many open bugs the
+    # attempt-count ordering naturally round-robins, so no one bug is hammered.
+    bugs.sort(key=lambda b: (
+        SEV_ORDER.get(b.get("severity", "low"), 4),
+        int(b.get("fix_attempts", 0)),
+        0 if b.get("present_last_run", True) else 1,
+    ))
     return bugs[:limit]
 
 
@@ -113,19 +116,21 @@ def _persist_to_main() -> None:
 
 
 def _give_up_or_retry(bug: dict, attempts: int, reason: str) -> dict:
-    """A fix attempt failed. If we've hit the cap, mark the bug needs-human and
-    notify the operator; otherwise leave it open to retry next run."""
+    """A fix attempt failed. NEVER-SKIP: the bug stays ``open`` and is retried on
+    a later sweep (de-prioritised by its higher attempt count), never marked
+    terminal and dropped. Once it has failed enough we notify the operator ONCE
+    for visibility, then keep retrying."""
     fp = bug["fingerprint"]
-    if attempts >= _max_attempts():
-        _update(fp, status="needs-human")
+    if attempts >= _max_attempts() and not bug.get("escalated"):
+        _update(fp, escalated=True)   # visibility flag only — status stays "open"
         from autotest import notify
         notify.notify(
-            f"Autopilot can't auto-fix: {bug.get('title', '')[:70]}",
-            f"Gave up after {attempts} attempt(s); last reason: {reason}.\n\n"
-            f"Bug `{fp}` ({bug.get('category')}) at `{bug.get('route')}`.\n"
+            f"Autopilot keeps retrying a hard bug: {bug.get('title', '')[:70]}",
+            f"Bug `{fp}` ({bug.get('category')}) at `{bug.get('route')}` has failed "
+            f"{attempts} auto-fix attempts; last reason: {reason}.\n\n"
             f"Expected: {bug.get('expected')}\nActual: {bug.get('actual')}\n\n"
-            f"Stopped retrying to avoid wasting Claude credits — this one needs a human.")
-        return {"fp": fp, "result": f"gave-up after {attempts} ({reason})"}
+            "It will KEEP being retried (de-prioritised, never dropped) — a human eye may help.")
+        return {"fp": fp, "result": f"failed-escalated after {attempts} ({reason})"}
     return {"fp": fp, "result": f"failed: {reason} (attempt {attempts})"}
 
 
