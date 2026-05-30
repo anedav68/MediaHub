@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 from autotest import handover, roadmap
@@ -50,6 +51,9 @@ PROTECTED = (
 MAX_FILES = int(os.environ.get("AUTOTEST_BUILD_MAX_FILES", "25"))
 MAX_INSERTIONS = int(os.environ.get("AUTOTEST_BUILD_MAX_INSERTIONS", "2000"))
 BREAKER_LIMIT = int(os.environ.get("AUTOTEST_BUILD_BREAKER", "3"))
+# How long the breaker backs off after tripping before it self-heals and retries.
+# It is a temporary back-off, NEVER a permanent halt (never-skip policy).
+COOLDOWN_S = int(os.environ.get("AUTOTEST_BUILD_COOLDOWN", str(6 * 3600)))
 
 
 def _git(*args: str, check: bool = False) -> tuple[int, str]:
@@ -75,16 +79,21 @@ def _record(ok: bool) -> None:
     s = _state()
     if ok:
         s["consecutive_failures"] = 0
+        s.pop("last_failure_at", None)
+        s.pop("breaker_notified", None)
     else:
         s["consecutive_failures"] = int(s.get("consecutive_failures", 0)) + 1
-        if s["consecutive_failures"] == BREAKER_LIMIT:
+        s["last_failure_at"] = time.time()
+        if s["consecutive_failures"] >= BREAKER_LIMIT and not s.get("breaker_notified"):
+            s["breaker_notified"] = True   # notify once per trip, not every overshoot
             try:
                 from autotest import notify
                 notify.notify(
-                    "Autopilot builder halted (circuit breaker)",
-                    f"The roadmap builder hit {BREAKER_LIMIT} consecutive failed cycles and "
-                    "stopped to avoid wasting credits. A human should review the recent "
-                    "autotest/build-* branches and autotest/reports/NEEDS_ATTENTION.md.")
+                    "Autopilot builder backing off (circuit breaker)",
+                    f"The roadmap builder hit {BREAKER_LIMIT} consecutive failed cycles and is "
+                    f"backing off ~{COOLDOWN_S // 3600}h before retrying — it does NOT stop "
+                    "permanently. Review recent autotest/build-* branches and "
+                    "autotest/reports/NEEDS_ATTENTION.md if this persists.")
             except Exception:
                 pass
     _save_state(s)
@@ -197,8 +206,20 @@ def build_cycle() -> dict:
 
     if STOP_FILE.exists():
         return {"halted": "kill switch (autotest/STOP present)"}
-    if _state().get("consecutive_failures", 0) >= BREAKER_LIMIT:
-        return {"halted": f"circuit breaker: {BREAKER_LIMIT} consecutive failures — human needed"}
+    s = _state()
+    if int(s.get("consecutive_failures", 0)) >= BREAKER_LIMIT:
+        # Self-healing back-off — NEVER a permanent halt. After the cooldown the
+        # streak clears and we try again; within it we pause THIS tick only so we
+        # don't hammer a broken build, but we always come back (never-skip).
+        last = float(s.get("last_failure_at", 0) or 0)
+        if time.time() - last >= COOLDOWN_S:
+            s["consecutive_failures"] = 0
+            s.pop("breaker_notified", None)
+            _save_state(s)
+        else:
+            mins = max(1, int((COOLDOWN_S - (time.time() - last)) // 60))
+            return {"cooling-down": f"circuit breaker: {s.get('consecutive_failures')} recent "
+                    f"failures — backing off, auto-retry in ~{mins} min"}
 
     item = roadmap.next_item()
     if item is None:
