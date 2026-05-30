@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-29 · `035712ae5` · ci(autotest): keep the autonomous fix/build pass inside the job clock (#162)
+**Last updated:** 2026-05-30 · `75dc0b468` · fix(autotest): give the Claude coder a realistic time budget per fix (#164)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,18 +63,18 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
-| 2026-05-29 | `035712ae5` | ci(autotest): keep the autonomous fix/build pass inside the job clock (#162) |
-| 2026-05-29 | `896858a75` | autotest: refresh bug report [skip ci] |
-| 2026-05-29 | `c6ccb7fec` | autotest: fix end-of-file newline on coder.py (pre-commit hygiene) |
-| 2026-05-29 | `dd804cf3c` | autotest: zero API keys — judges + council + coder all on the Claude CLI |
-| 2026-05-29 | `6b8593e4d` | autotest(ci): coder runs on a Claude subscription token, not the metered API |
-| 2026-05-29 | `10472a991` | autotest: refresh bug report [skip ci] |
-| 2026-05-29 | `bccc85df0` | autotest: builder picks small PAR items first; council is live-aware (#160) |
-| 2026-05-29 | `4c39c5650` | autotest: refresh bug report [skip ci] |
-| 2026-05-29 | `6b55678f5` | autotest(ci): hourly loop tests the live site so it finds + fixes real bugs (#159) |
-| 2026-05-29 | `dedf0488b` | autopilot: persist builder state [skip ci] |
-| 2026-05-29 | `25dc58896` | autotest: refresh bug report [skip ci] |
-| 2026-05-29 | `c367a96b3` | autotest: live-site testing + new-club sign-up + create/delete lifecycle (#158) |
+| 2026-05-30 | `75dc0b468` | fix(autotest): give the Claude coder a realistic time budget per fix (#164) |
+| 2026-05-30 | `93118df28` | autotest: persist fixer memory [skip ci] |
+| 2026-05-30 | `4602d2f5c` | autotest: refresh bug report [skip ci] |
+| 2026-05-30 | `250fcbfd4` | autotest: persist fixer memory [skip ci] |
+| 2026-05-30 | `d890e63d7` | autotest: refresh bug report [skip ci] |
+| 2026-05-30 | `9ae9dd48f` | autopilot: persist builder state [skip ci] |
+| 2026-05-30 | `7c8a0aa7f` | autotest: persist fixer memory [skip ci] |
+| 2026-05-30 | `ebc550ceb` | autotest: refresh bug report [skip ci] |
+| 2026-05-29 | `cbfee1d33` | autopilot: persist builder state [skip ci] |
+| 2026-05-29 | `f3ba8a374` | autopilot: persist builder state [skip ci] |
+| 2026-05-29 | `fdd59c62d` | autotest: persist fixer memory [skip ci] |
+| 2026-05-29 | `c130415b5` | autotest: refresh bug report [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
