@@ -29,6 +29,7 @@ from swim_content.evidence_aggregate import attach_evidence_from_claims
 from swim_content.captions_v3 import write_captions
 from swim_content.ranker_v3 import rank_cards
 from swim_content.self_check import run_self_check
+from swim_content.cards import ContentCard, CaptionVariants
 
 from mediahub.interpreter import interpret_document
 
@@ -134,6 +135,42 @@ def _resolve_club_filter(
         if profile.club_codes:
             return profile.club_codes[0]
     return ""
+
+
+def _v5_ranked_to_v3_stubs(ranked: list[dict]) -> list[ContentCard]:
+    """Convert V5 ranked achievements to minimal V3 ContentCard stubs.
+
+    The V3 detector path is skipped for interpreter-parsed runs (no ASA IDs),
+    so run.cards ends up empty even when V5 recognition finds achievements.
+    This bridge populates run.cards with lightweight stubs so the export,
+    review-page stats, and trust report all reflect the real V5 output.
+
+    Stubs carry no V3 claims (the trust evaluator defaults to medium/review).
+    """
+    stubs: list[ContentCard] = []
+    for ra in ranked:
+        ach = ra.get("achievement") or {}
+        swim_id = ach.get("swim_id") or f"v5-{ra.get('rank', len(stubs))}"
+        swimmer = ach.get("swimmer_name") or ""
+        cap = ""
+        for vc in (ra.get("voice_captions") or {}).values():
+            if isinstance(vc, dict):
+                cap = vc.get("caption") or ""
+            elif isinstance(vc, str):
+                cap = vc
+            if cap:
+                break
+        stubs.append(ContentCard(
+            card_id=swim_id,
+            card_type=ach.get("type") or "standout_swim",
+            headline=ach.get("headline") or "",
+            subhead=ach.get("event") or "",
+            swimmer_names=[swimmer] if swimmer else [],
+            claims=[],
+            bucket="queue",
+            captions=CaptionVariants(clean=cap, team=cap, hype=cap),
+        ))
+    return stubs
 
 
 def run_pipeline_v4(
@@ -387,6 +424,26 @@ def run_pipeline_v4(
         run.recognition_report = None
         run.recognition_error = f"{type(exc).__name__}: {exc}"
         step(f"v5 recognition failed: {exc}")
+
+    # 13. Bridge V5 → V3 stubs when V3 produced no cards.
+    # The V3 detector path is intentionally skipped for interpreter-parsed
+    # runs (swimmers have no ASA IDs), so run.cards is empty. V5 recognition
+    # does the heavy lifting and its ranked_achievements are the real output.
+    # Synthesise minimal ContentCard stubs so exports, review-page stats, and
+    # the trust report all reflect the actual V5 findings rather than showing
+    # "No content cards were generated."
+    if not run.cards and run.recognition_report:
+        _ranked = run.recognition_report.get("ranked_achievements") or []
+        if _ranked:
+            run.cards = _v5_ranked_to_v3_stubs(_ranked)
+            run.trust = build_trust_report(
+                meet=meet,
+                profile=profile or _ephemeral_profile(effective_filter),
+                cards=run.cards,
+                pb_snapshots=pb_snapshots,
+                standards_meta=run.standards_meta,
+            )
+            step(f"V3 stubs synthesised from {len(run.cards)} V5 achievements.")
 
     run.finished_at = datetime.now(timezone.utc).isoformat()
     return run
