@@ -27,3 +27,4 @@ replicate>=0.25
 # See docs/THEMING.md for the architecture.
 materialyoucolor>=3.0
 coloraide>=4.0
+numpy>=1.24
