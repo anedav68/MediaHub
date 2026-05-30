@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-30 · `a9d7b7a61` · fix(autotest): scope build/fix commits + collapse duplicate defects (#169)
+**Last updated:** 2026-05-30 · `a903cd200` · ci(autotest): give the test-gate budget slow-runner margin (#170)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-30 | `a903cd200` | ci(autotest): give the test-gate budget slow-runner margin (#170) |
 | 2026-05-30 | `a9d7b7a61` | fix(autotest): scope build/fix commits + collapse duplicate defects (#169) |
 | 2026-05-30 | `dc00bb188` | autopilot: persist builder state [skip ci] |
 | 2026-05-30 | `567fc05a8` | fix(autotest): make the autopilot able to actually merge a good build (#168) |
@@ -73,8 +74,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-30 | `b487fa069` | fix(autotest): coder hangs headlessly — use skip-permissions on the non-root CI runner (#165) |
 | 2026-05-30 | `beb6a9b10` | autotest: persist fixer memory [skip ci] |
 | 2026-05-30 | `89f909b3d` | autotest: refresh bug report [skip ci] |
-| 2026-05-30 | `75dc0b468` | fix(autotest): give the Claude coder a realistic time budget per fix (#164) |
-| 2026-05-30 | `93118df28` | autotest: persist fixer memory [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
