@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-31 · `69f475b4a` · test(turn-into): fix flaky temp-dir teardown race with heartbeat daemon (#178)
+**Last updated:** 2026-05-31 · `ba2b8cc69` · fix(autotest): rotate roadmap builds attempts-first so a hard item can't starve the rest (#179)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `ba2b8cc69` | fix(autotest): rotate roadmap builds attempts-first so a hard item can't starve the rest (#179) |
 | 2026-05-31 | `69f475b4a` | test(turn-into): fix flaky temp-dir teardown race with heartbeat daemon (#178) |
 | 2026-05-31 | `6cd9034ab` | fix(autotest): make PR-open/auto-merge honest — stop silently stranding fixes (#177) |
 | 2026-05-30 | `740d459f8` | test(review): assert /review/&lt;id&gt; renders card content (rescue council blind-spot fix) (#176) |
@@ -74,7 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-30 | `6a36e0864` | autopilot: persist builder state [skip ci] |
 | 2026-05-30 | `a5bb00a07` | fix(autotest): gate-judged fixes, tractable-first ordering, phrasing-stable fingerprints (#174) |
 | 2026-05-30 | `2926a6ac2` | autotest: persist fixer memory [skip ci] |
-| 2026-05-30 | `b3c9f11a7` | autotest: refresh bug report [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
