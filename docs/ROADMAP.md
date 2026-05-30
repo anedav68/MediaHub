@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-30 · `4794f9bf6` · fix(autotest): unblock the coder (inherited-stdin hang) + un-wedge the autopilot (#166)
+**Last updated:** 2026-05-30 · `2ece931e3` · feat(autotest): never-skip policy — retry-with-backoff, no terminal dead-ends (#167)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-30 | `2ece931e3` | feat(autotest): never-skip policy — retry-with-backoff, no terminal dead-ends (#167) |
 | 2026-05-30 | `4794f9bf6` | fix(autotest): unblock the coder (inherited-stdin hang) + un-wedge the autopilot (#166) |
 | 2026-05-30 | `773d9431a` | autotest: persist fixer memory [skip ci] |
 | 2026-05-30 | `91d3f6135` | autotest: refresh bug report [skip ci] |
@@ -74,7 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-30 | `4602d2f5c` | autotest: refresh bug report [skip ci] |
 | 2026-05-30 | `250fcbfd4` | autotest: persist fixer memory [skip ci] |
 | 2026-05-30 | `d890e63d7` | autotest: refresh bug report [skip ci] |
-| 2026-05-30 | `9ae9dd48f` | autopilot: persist builder state [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
