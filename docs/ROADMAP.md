@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-30 · `740d459f8` · test(review): assert /review/&lt;id&gt; renders card content (rescue council blind-spot fix) (#176)
+**Last updated:** 2026-05-31 · `6cd9034ab` · fix(autotest): make PR-open/auto-merge honest — stop silently stranding fixes (#177)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `6cd9034ab` | fix(autotest): make PR-open/auto-merge honest — stop silently stranding fixes (#177) |
 | 2026-05-30 | `740d459f8` | test(review): assert /review/&lt;id&gt; renders card content (rescue council blind-spot fix) (#176) |
 | 2026-05-30 | `e3300268c` | autotest: persist fixer memory [skip ci] |
 | 2026-05-30 | `cfa3863dd` | autotest: refresh bug report [skip ci] |
@@ -74,7 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-30 | `2926a6ac2` | autotest: persist fixer memory [skip ci] |
 | 2026-05-30 | `b3c9f11a7` | autotest: refresh bug report [skip ci] |
 | 2026-05-30 | `a903cd200` | ci(autotest): give the test-gate budget slow-runner margin (#170) |
-| 2026-05-30 | `a9d7b7a61` | fix(autotest): scope build/fix commits + collapse duplicate defects (#169) |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
