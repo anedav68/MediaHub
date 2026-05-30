@@ -1293,7 +1293,8 @@
       "last_run_id": "20260530T145013Z-784a",
       "present_last_run": true,
       "fix_pr": null,
-      "fix_branch": null
+      "fix_branch": null,
+      "fix_attempts": 1
     },
     "33868b7dcd6e": {
       "fingerprint": "33868b7dcd6e",
