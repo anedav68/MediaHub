@@ -159,16 +159,66 @@ def _changed_files() -> tuple[list[str], int]:
     return files, insertions
 
 
-def _merge_to_main(item: roadmap.RoadmapItem, branch: str) -> str:
-    """Full-auto-to-main, armed by AUTOTEST_BUILD_MERGE=1. Prefers `gh pr merge
-    --auto` (waits for green CI) so a red build never lands."""
+def _classify_pr_error(err: str) -> str:
+    """Turn a raw `gh pr create` failure into an actionable operator message.
+    The common silent killer is the repo policy that blocks the Actions token
+    from opening PRs — name it explicitly so the operator knows the exact fix."""
+    low = err.lower()
+    if "not permitted to create" in low or "createpullrequest" in low:
+        return ("GitHub Actions is not permitted to create PRs for this repo. Fix: "
+                "enable Settings → Actions → General → 'Allow GitHub Actions to create "
+                "and approve pull requests', or add an AUTOTEST_GH_PAT secret (a "
+                "fine-grained PAT with PR write) — the workflows prefer it over "
+                "GITHUB_TOKEN. Raw: " + (err[:300] or "non-zero exit"))
+    if any(s in low for s in ("http 401", "authentication", "gh auth", "bad credentials")):
+        return "gh auth/token problem opening the PR. Raw: " + (err[:300] or "non-zero exit")
+    return "gh pr create failed: " + (err[:400] or "empty output, non-zero exit")
+
+
+def _open_pr(branch: str, title: str, body: str) -> tuple[str, str]:
+    """Create (or recover) the PR for `branch`. Returns (pr_url, error).
+
+    A non-empty error means NO PR exists — callers must not then claim a merge
+    was armed. The old code ignored `gh pr create`'s exit code, so a blocked
+    creation silently produced `pr=""` *and* a false 'auto-merge enabled', and
+    the fix branch was stranded with nothing landing. The 'already exists' case
+    (a re-run on the same branch) recovers the live URL so it reads as success."""
+    import shutil
+    if not shutil.which("gh"):
+        return "", "gh CLI not found — cannot open a PR"
+    pr = subprocess.run(["gh", "pr", "create", "--head", branch, "--base", BASE_BRANCH,
+                         "--title", title, "--body", body],
+                        cwd=str(REPO_ROOT), capture_output=True, text=True)
+    url = (pr.stdout or "").strip()
+    if pr.returncode == 0 and url.startswith("http"):
+        return url, ""
+    err = (pr.stderr or pr.stdout or "").strip()
+    if "already exists" in err.lower():
+        view = subprocess.run(["gh", "pr", "view", branch, "--json", "url", "--jq", ".url"],
+                              cwd=str(REPO_ROOT), capture_output=True, text=True)
+        existing = (view.stdout or "").strip()
+        if existing.startswith("http"):
+            return existing, ""
+    return "", _classify_pr_error(err)
+
+
+def _merge_to_main(branch: str, *, has_pr: bool) -> str:
+    """Arm CI-gated auto-merge for an EXISTING PR (armed by AUTOTEST_BUILD_MERGE=1).
+    `gh pr merge --auto` waits for green CI so a red build never lands — but it
+    needs a real PR, so this no-ops honestly when none was opened, and verifies
+    the command actually succeeded instead of assuming it did."""
     import shutil
     if os.environ.get("AUTOTEST_BUILD_MERGE") != "1":
         return "merge not armed (set AUTOTEST_BUILD_MERGE=1 to auto-merge to main on green CI)"
+    if not has_pr:
+        return "no PR opened — auto-merge NOT armed (nothing will land; see the PR error)"
     if not shutil.which("gh"):
         return "gh CLI not found — cannot enable CI-gated auto-merge"
-    subprocess.run(["gh", "pr", "merge", branch, "--auto", "--squash"],
-                   cwd=str(REPO_ROOT), capture_output=True, text=True)
+    m = subprocess.run(["gh", "pr", "merge", branch, "--auto", "--squash"],
+                       cwd=str(REPO_ROOT), capture_output=True, text=True)
+    if m.returncode != 0:
+        return "auto-merge NOT armed: " + ((m.stderr or m.stdout or "").strip()[:300]
+                                           or "gh pr merge failed")
     return "auto-merge to main enabled (will land when CI is green)"
 
 
@@ -276,17 +326,19 @@ def build_cycle() -> dict:
     _git("commit", "-m", msg)
     _git("push", "-u", "origin", branch)
 
-    pr_url = ""
-    import shutil
-    if shutil.which("gh"):
-        pr = subprocess.run(["gh", "pr", "create", "--head", branch, "--base", BASE_BRANCH,
-                             "--title", f"build({item.id}): {item.title[:60]}",
-                             "--body", f"Autonomous build of roadmap {item.id}. "
-                             f"{roadmap.directive(item.id, 'wip')}"],
-                            cwd=str(REPO_ROOT), capture_output=True, text=True)
-        pr_url = (pr.stdout or "").strip()
+    pr_url, pr_err = _open_pr(
+        branch, f"build({item.id}): {item.title[:60]}",
+        f"Autonomous build of roadmap {item.id}. {roadmap.directive(item.id, 'wip')}")
+    merge_status = _merge_to_main(branch, has_pr=bool(pr_url))
+    if pr_err:
+        try:
+            from autotest import notify
+            notify.notify(
+                f"Autopilot built roadmap {item.id} but could not open a PR",
+                f"Branch `{branch}` is pushed, but no PR opened so nothing will land. {pr_err}")
+        except Exception:
+            pass
 
-    merge_status = _merge_to_main(item, branch)
     handover.write({
         "item_id": item.id, "title": item.title,
         "intent": item.body[:2000], "summary": info,
@@ -297,8 +349,9 @@ def build_cycle() -> dict:
                                f"end-to-end and no existing flow regressed.",
     })
     _record(True)
-    return {**plan, "result": "built", "files": len(files), "insertions": insertions,
-            "pr": pr_url, "merge": merge_status}
+    return {**plan, "result": "built" if pr_url else "built-no-pr",
+            "files": len(files), "insertions": insertions,
+            "pr": pr_url, "pr_error": pr_err, "merge": merge_status}
 
 
 def main() -> int:
