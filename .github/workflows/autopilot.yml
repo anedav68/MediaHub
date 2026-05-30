@@ -93,7 +93,7 @@ jobs:
           # Subscription token (flat cost), NOT the metered ANTHROPIC_API_KEY —
           # so it can never silently fall back to per-token API billing.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTOTEST_GH_PAT || secrets.GITHUB_TOKEN }}
           AUTOTEST_BUILD_APPLY: "1"
           AUTOTEST_BUILD_MERGE: "0"
           AUTOTEST_BUILD_ITEM: ${{ github.event.inputs.item }}
@@ -125,7 +125,7 @@ jobs:
       - if: ${{ always() && steps.guard.outputs.skip != 'true' && steps.build.outputs.result == 'built' }}
         name: Merge to main if no hard regression, else discard
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AUTOTEST_GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           # Fail-closed: a missing/malformed last_run.json must NOT merge (default crashes=1, blocked=True).
           crashes=$(python -c "import json,pathlib;p=pathlib.Path('autotest/reports/last_run.json');print((json.loads(p.read_text()) if p.exists() else {}).get('hard_crashes',1))" 2>/dev/null || echo 1)

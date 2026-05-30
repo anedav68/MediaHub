@@ -17,6 +17,14 @@ runner, so nothing needs to "escape a sandbox".
    and the relevant API key — but the default is API-key-free.)*
 2. Settings → General → enable **Allow auto-merge**, and allow the actions bot
    to merge to `main` (loosen branch protection / required reviews as needed).
+   **Also let the loop open PRs**, or its fixes have nowhere to land: either
+   Settings → Actions → General → tick **"Allow GitHub Actions to create and
+   approve pull requests"**, **or** add an **`AUTOTEST_GH_PAT`** secret (a
+   fine-grained PAT with `pull_request: write` + `contents: write`) — the
+   workflows prefer it over `GITHUB_TOKEN`, and a PAT-opened PR also triggers CI
+   so `--auto` merge can actually fire. Without one of these, `gh pr create`
+   is denied, the loop reports `fix-pushed-no-pr` (branch pushed, **not** merged)
+   and notifies you — it no longer silently claims success.
 3. That's it. `.github/workflows/autotest.yml` (hourly) finds + fixes bugs and
    commits `BUGS.md` back; `.github/workflows/autopilot.yml` (every 2h) builds
    the next roadmap item, tests it, and merges it to `main` if it didn't

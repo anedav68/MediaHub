@@ -18,13 +18,10 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
-from pathlib import Path
 
 from autotest import builder, report
 from autotest._env import load_dotenv
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
 SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 
 # Ledger changes this run, keyed by fingerprint. The per-bug fix attempt does
@@ -222,16 +219,20 @@ def fix_one(bug: dict) -> dict:
     builder._git("commit", "-m", f"fix: {bug.get('title', '')[:60]}\n\nAutonomous fix for autotest "
                  f"finding {fp} ({bug.get('category')}).")
     builder._git("push", "-u", "origin", branch)
-    pr_url = ""
-    import shutil
-    if shutil.which("gh"):
-        pr = subprocess.run(["gh", "pr", "create", "--head", branch, "--base", builder.BASE_BRANCH,
-                             "--title", f"fix: {bug.get('title', '')[:60]}",
-                             "--body", f"Autonomous fix for autotest finding `{fp}`."],
-                            cwd=str(REPO_ROOT), capture_output=True, text=True)
-        pr_url = (pr.stdout or "").strip()
-    merge = builder._merge_to_main(None, branch)  # honours AUTOTEST_BUILD_MERGE
+    pr_url, pr_err = builder._open_pr(
+        branch, f"fix: {bug.get('title', '')[:60]}",
+        f"Autonomous fix for autotest finding `{fp}` ({bug.get('category')}).")
+    merge = builder._merge_to_main(branch, has_pr=bool(pr_url))  # honours AUTOTEST_BUILD_MERGE
     _mark_fixing(fp, branch, pr_url)
+    if pr_err:
+        # Branch is pushed with the fix, but no PR opened → nothing will land.
+        # Report it honestly (not a false "fix-opened") and tell the operator why.
+        from autotest import notify
+        notify.notify(
+            f"Autopilot pushed a fix for `{fp}` but could not open a PR",
+            f"Branch `{branch}` carries the fix, but no PR opened so it will not land. {pr_err}")
+        return {"fp": fp, "result": "fix-pushed-no-pr", "files": len(files),
+                "pr": "", "pr_error": pr_err, "merge": merge, "branch": branch}
     return {"fp": fp, "result": "fix-opened", "files": len(files), "pr": pr_url, "merge": merge}
 
 
