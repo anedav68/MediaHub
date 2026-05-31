@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-31 · `5c8670678` · fix(review): explain zero-card runs when no swims match the club (#196)
+**Last updated:** 2026-05-31 · `592391217` · Merge pull request #198 from elijahkendrick04/claude/monolith-lint-debt-cleanup
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `abd5592df` | chore(lint): clear ruff F401/F811 debt + format touched files |
 | 2026-05-31 | `5c8670678` | fix(review): explain zero-card runs when no swims match the club (#196) |
 | 2026-05-31 | `8be81920b` | docs(adr): council verdict — do not integrate jcode (#188) |
 | 2026-05-31 | `21af4f990` | autopilot: persist builder state [skip ci] |
@@ -72,8 +73,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-31 | `9d69cb486` | Vendor a curated subset of mattpocock/skills (reference only) (#190) |
 | 2026-05-31 | `1e1aa8a5c` | docs: reject 9router integration (ADR 0002) after council review (#191) |
 | 2026-05-31 | `e85505ad1` | docs(adr): council verdict — do not integrate agentmemory (#193) |
-| 2026-05-31 | `5e94f95d1` | autotest: add vision judge — the UI-TARS idea, not the stack (#194) |
-| 2026-05-31 | `0de1d8f12` | autotest: persist fixer memory [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
