@@ -29,6 +29,7 @@ import contextlib
 import functools
 import json
 import logging
+import mimetypes
 import os
 import queue
 import re
@@ -6735,6 +6736,11 @@ _PALETTE_PICKER_JS = """
 
 
 def create_app() -> Flask:
+    # Python's mimetypes database omits font/woff2 on some Linux systems,
+    # causing Flask to serve .woff2 as application/octet-stream and browsers
+    # to treat it as a download rather than loading it as a font.
+    mimetypes.add_type("font/woff2", ".woff2")
+
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
     app.url_map.strict_slashes = False

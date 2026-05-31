@@ -87,6 +87,19 @@ class TestWebRenderedHead:
             body = c.get("/status").get_data(as_text=True)
         assert "Hanken Grotesk Fallback" in body
 
+    def test_woff2_served_as_font_mimetype(self, app):
+        # Regression: Python's mimetypes omits font/woff2 on some Linux
+        # systems, causing Flask to serve woff2 as application/octet-stream
+        # and Playwright/browsers to trigger a download instead of loading.
+        with app.test_client() as c:
+            resp = c.get("/static/fonts/hanken-latin-normal-400.woff2")
+        assert resp.status_code == 200
+        assert "font/woff2" in resp.content_type, (
+            f"expected font/woff2 Content-Type, got {resp.content_type!r}"
+        )
+        cd = resp.headers.get("Content-Disposition", "")
+        assert "attachment" not in cd, "woff2 must not be served as an attachment"
+
 
 # --- Still-graphic renderer (Playwright HTML->PNG) --------------------------
 _RL = _ROOT / "src" / "mediahub" / "graphic_renderer" / "layouts"
