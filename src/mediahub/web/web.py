@@ -624,12 +624,25 @@ def _render_why_this_card(
     just streams in. Eager mode (the default) is preserved for callers
     and tests that want the fully-rendered block.
     """
+    # The explainer is visible-by-default (the Phase 1.4 "visible intelligence"
+    # invariant) on focused / eager single-card surfaces. On the LAZY review
+    # list, though, every one of a meet's 150-250 cards rendering its full
+    # reasoning open produced a ~70,000px wall the reviewer had to scroll past
+    # (Council UI verdict, 2026-05-31). There we collapse-by-default for scroll
+    # relief, keeping the reasoning exactly one click away with a clear "show
+    # reasoning" affordance — deferred, never hidden. Eager callers (and the
+    # test_visible_intelligence invariant) keep <details open>.
+    _open_attr = "" if lazy else " open"
+    _summary_label = (
+        'Why this card?<span class="why-peek"> · show reasoning</span>'
+        if lazy else "Why this card?"
+    )
     shell_open = (
-        '<details open class="why-card" style="margin-top:10px;padding:10px 12px;'
+        f'<details{_open_attr} class="why-card" style="margin-top:10px;padding:10px 12px;'
         'background:rgba(212,255,58,0.06);border:1px solid rgba(212,255,58,0.25);border-radius:8px">'
         '<summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--lane);'
         'user-select:none;list-style:none;display:flex;align-items:center;gap:6px">'
-        '<span aria-hidden="true">&#9432;</span> Why this card?</summary>'
+        f'<span aria-hidden="true">&#9432;</span> {_summary_label}</summary>'
     )
     if lazy and ach_index is not None and run_id:
         why_url = url_for("api_why_card", run_id=run_id, ach_index=int(ach_index))
@@ -1065,20 +1078,25 @@ def _init_db():
             profile_id TEXT,
             meet_name TEXT,
             our_swims INTEGER,
-            n_cards INTEGER,
+            n_cards INTEGER,         -- legacy V4 content-card count (≈0 in the V5 recognition-first flow)
             n_queue INTEGER,
+            n_achievements INTEGER,  -- V5 recognition output: the REAL engine output a run produced
             error TEXT,
             file_name TEXT,
             progress_log TEXT,       -- JSON array, streamed for cross-worker polls
             heartbeat_at TEXT        -- ISO ts, advanced while the pipeline runs
         );
     """)
-    # Additive migration for DBs created before progress_log / heartbeat_at.
+    # Additive migration for DBs created before progress_log / heartbeat_at /
+    # n_achievements. Old rows keep NULL n_achievements until they are listed
+    # (the Activity page lazily backfills from the run JSON) or re-run.
     cols = {r[1] for r in conn.execute("PRAGMA table_info(runs)").fetchall()}
     if "progress_log" not in cols:
         conn.execute("ALTER TABLE runs ADD COLUMN progress_log TEXT")
     if "heartbeat_at" not in cols:
         conn.execute("ALTER TABLE runs ADD COLUMN heartbeat_at TEXT")
+    if "n_achievements" not in cols:
+        conn.execute("ALTER TABLE runs ADD COLUMN n_achievements INTEGER")
     conn.commit()
     conn.close()
 
@@ -1221,17 +1239,21 @@ def _persist_run(run: PipelineRunV4, file_name: str) -> None:
 
     n_cards = len(run.cards)
     n_queue = sum(1 for c in run.cards if c.bucket == "queue")
+    # The real engine output is the V5 recognition count, not the legacy V4
+    # cards (which the recognition-first pipeline leaves empty). Persist it so
+    # Activity can surface "Achievements detected" instead of "Cards: 0".
+    n_achievements = int((getattr(run, "recognition_report", None) or {}).get("n_achievements", 0) or 0)
     meet_name = run.canonical_meet.name if run.canonical_meet else "(unknown)"
     status = "error" if run.error else "done"
     conn = _db()
     conn.execute(
         """INSERT OR REPLACE INTO runs
            (id, created_at, finished_at, status, profile_id, meet_name,
-            our_swims, n_cards, n_queue, error, file_name)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            our_swims, n_cards, n_queue, n_achievements, error, file_name)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (run.run_id, run.started_at, run.finished_at, status,
          run.profile_id, meet_name, run.our_swim_count, n_cards, n_queue,
-         run.error, file_name),
+         n_achievements, run.error, file_name),
     )
     conn.commit()
     conn.close()
@@ -5231,11 +5253,31 @@ def _theme_seed_style_block() -> str:
         return ""
 
     overrides = [f"--mh-brand-seed: {seed_hex};"]
+    # Re-derive the on-colour (button/label ink) from the LIVE seed so the
+    # recoloured chrome stays legible whatever the club's brand lightness.
+    # --lane-ink aliases --mh-on-primary, and --mh-primary resolves to the
+    # raw seed (brand tone 400) — so without this, a dark brand seed (the
+    # signed-out navy default, a maroon/navy club) keeps the static near-
+    # black ink and the primary CTA renders dark-on-dark (~1.3:1, a WCAG
+    # fail). brand_on_color reuses the deterministic contrast science to
+    # pick paper-cream vs paper-black; for the lane-yellow default it
+    # returns the existing near-black, so nothing changes there.
+    try:
+        from mediahub.theming.contrast import brand_on_color as _brand_on_color
+    except Exception:
+        _brand_on_color = None
+    if _brand_on_color is not None:
+        overrides.append(f"--mh-on-primary: {_brand_on_color(seed_hex[:7])};")
     # Secondary → tertiary ramp (the "medal gold" slot). Honouring the
     # user's secondary here means a navy+gold org sees navy chrome AND
     # gold medal/accent ribbons instead of the MediaHub default cream.
     if secondary_hex and _re.fullmatch(r"#[0-9A-Fa-f]{6,8}", secondary_hex):
         overrides.append(f"--mh-tertiary-seed: {secondary_hex};")
+        # On-tertiary (--medal-ink) must track a custom secondary too, so a
+        # dark secondary doesn't break medal/achievement text. The default
+        # medal-gold keeps its themed ink (this branch is simply skipped).
+        if _brand_on_color is not None:
+            overrides.append(f"--mh-on-tertiary: {_brand_on_color(secondary_hex[:7])};")
     # Accent is a third brand colour with no dedicated seed in
     # theme-base.css yet; expose it as a custom property so component
     # code that wants it can opt in via var(--mh-brand-accent).
@@ -7110,7 +7152,8 @@ def create_app() -> Flask:
         rows = []
         unfiltered_counts: dict[str, int] = {}
         total_unfiltered = 0
-        cards_unfiltered = 0
+        ach_unfiltered = 0
+        ach_by_id: dict[str, int] = {}
         db_failed = False
         try:
             conn = _db()
@@ -7118,7 +7161,7 @@ def create_app() -> Flask:
                 if status_q:
                     rows = conn.execute(
                         "SELECT id, created_at, finished_at, status, profile_id, "
-                        "meet_name, our_swims, n_cards, n_queue, error, file_name "
+                        "meet_name, our_swims, n_cards, n_queue, n_achievements, error, file_name "
                         "FROM runs WHERE profile_id = ? AND status = ? "
                         "ORDER BY created_at DESC LIMIT 100",
                         (prof.profile_id, status_q),
@@ -7132,15 +7175,10 @@ def create_app() -> Flask:
                     ).fetchall()
                     unfiltered_counts = {r["status"]: r["n"] for r in counts_row}
                     total_unfiltered = sum(unfiltered_counts.values())
-                    _cards_row = conn.execute(
-                        "SELECT COALESCE(SUM(n_cards), 0) AS s FROM runs WHERE profile_id = ?",
-                        (prof.profile_id,),
-                    ).fetchone()
-                    cards_unfiltered = int(_cards_row["s"] if _cards_row else 0)
                 else:
                     rows = conn.execute(
                         "SELECT id, created_at, finished_at, status, profile_id, "
-                        "meet_name, our_swims, n_cards, n_queue, error, file_name "
+                        "meet_name, our_swims, n_cards, n_queue, n_achievements, error, file_name "
                         "FROM runs WHERE profile_id = ? "
                         "ORDER BY created_at DESC LIMIT 100",
                         (prof.profile_id,),
@@ -7148,7 +7186,36 @@ def create_app() -> Flask:
                     for r in rows:
                         unfiltered_counts[r["status"]] = unfiltered_counts.get(r["status"], 0) + 1
                     total_unfiltered = len(rows)
-                    cards_unfiltered = sum(int(r["n_cards"] or 0) for r in rows)
+
+                # Council STEP 3 — surface the REAL engine output (V5
+                # recognition achievements), not the legacy n_cards which the
+                # recognition-first pipeline leaves at 0 and a user reads as
+                # "nothing was produced". Old rows have NULL n_achievements;
+                # read each from its run JSON once and write it back so the
+                # dashboard self-heals. Honest: the achievements genuinely
+                # exist in recognition_report — no fabricated output.
+                _need = []
+                for r in rows:
+                    v = r["n_achievements"] if "n_achievements" in r.keys() else None
+                    if v is None:
+                        _need.append(r["id"])
+                    else:
+                        ach_by_id[r["id"]] = int(v or 0)
+                for _rid in _need:
+                    _d = _load_run(_rid) or {}
+                    _n = int((_d.get("recognition_report") or {}).get("n_achievements", 0) or 0)
+                    ach_by_id[_rid] = _n
+                    try:
+                        conn.execute("UPDATE runs SET n_achievements = ? WHERE id = ?", (_n, _rid))
+                    except Exception:
+                        pass
+                if _need:
+                    conn.commit()
+                _ach_row = conn.execute(
+                    "SELECT COALESCE(SUM(n_achievements), 0) AS s FROM runs WHERE profile_id = ?",
+                    (prof.profile_id,),
+                ).fetchone()
+                ach_unfiltered = int(_ach_row["s"] if _ach_row else 0)
             finally:
                 conn.close()
         except Exception as e:
@@ -7283,13 +7350,11 @@ def create_app() -> Flask:
         }
         bucket_order = ["today", "yesterday", "this_week", "this_month", "earlier"]
         grouped: dict[str, list] = {b: [] for b in bucket_order}
-        # Also keep a flat count of total cards / failures for the top stats.
-        n_cards_total = 0
+        # Flat status counts for the top stats / failure callout.
         n_done = 0
         n_running = 0
         n_errored = 0
         for r in rows:
-            n_cards_total += int(r["n_cards"] or 0)
             if r["status"] == "done":     n_done += 1
             if r["status"] == "running":  n_running += 1
             if r["status"] == "error":    n_errored += 1
@@ -7319,7 +7384,7 @@ def create_app() -> Flask:
                     f'<td data-label="Input"><a href="{review_href}">{_h(r["meet_name"] or r["file_name"] or r["id"])}</a></td>'
                     f'<td data-label="Status"><span class="tag {badge}">{_h(r["status"])}</span></td>'
                     f'<td data-label="Matched">{_h(r["our_swims"] or 0)}</td>'
-                    f'<td data-label="Queue / Total">{_h(r["n_queue"] or 0)} / {_h(r["n_cards"] or 0)}</td>'
+                    f'<td data-label="Achievements">{_h(ach_by_id.get(r["id"], 0))}</td>'
                     f'<td data-label="Schedule">{_schedule_summary_html(r["id"])}</td>'
                     f'<td data-label="Started"><time class="mh-rel" datetime="{_h(started_iso)}">{_h(started)}</time></td>'
                     f'<td><form method="post" action="{delete_href}" '
@@ -7406,7 +7471,7 @@ def create_app() -> Flask:
         summary_html = (
             '<div class="mh-activity-summary mh-reveal">'
             f'<div class="stat live"><div class="l">Total runs</div><div class="v" data-mh-count="{total_unfiltered}">{total_unfiltered:02d}</div></div>'
-            f'<div class="stat medal"><div class="l">Cards generated</div><div class="v" data-mh-count="{cards_unfiltered}">{cards_unfiltered:,}</div></div>'
+            f'<div class="stat medal"><div class="l">Achievements detected</div><div class="v" data-mh-count="{ach_unfiltered}">{ach_unfiltered:,}</div></div>'
             f'<div class="stat good"><div class="l">Completed</div><div class="v" data-mh-count="{unfiltered_counts.get("done", 0)}">{unfiltered_counts.get("done", 0):02d}</div></div>'
         )
         if unfiltered_counts.get("error", 0):
@@ -7502,7 +7567,7 @@ def create_app() -> Flask:
             f'{toolbar_html}'
             '<div class="card"><table class="mh-table-stack">'
             '<thead><tr><th>Input</th><th>Status</th>'
-            '<th>Matched</th><th>Queue / Total</th><th>Schedule</th>'
+            '<th>Matched</th><th>Achievements</th><th>Schedule</th>'
             '<th>Started</th><th></th></tr></thead>'
             f'<tbody>{rows_html}</tbody>'
             '</table></div>'
@@ -8852,11 +8917,14 @@ def create_app() -> Flask:
   </div>
   <a class="btn" href="{_pack_url}" style="align-self:flex-start">Open content builder &rarr;</a>
 </div>
-<div class="mh-progress-strip" role="group" aria-label="Review progress">
+<div class="mh-progress-strip mh-review-stickybar" role="group" aria-label="Review progress">
   <span class="mh-progress-strip-label">Reviewed</span>
   <span class="mh-progress-strip-value">{_wf_decided}<span class="total">/ {_wf_grand_total}</span></span>
   <span class="mh-progress-strip-bar"><span style="width:{_wf_pct}%"></span></span>
   <span class="mh-progress-strip-label">{_wf_pct}%</span>
+  <button type="button" class="btn ghost" id="mh-expand-all-why"
+          style="margin-left:auto;font-size:11px;padding:6px 10px" aria-pressed="false"
+          title="Show or hide every card's reasoning at once">Expand all reasoning</button>
 </div>
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
@@ -9061,6 +9129,19 @@ def create_app() -> Flask:
 .filters-bar {{ display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius-sm);position:sticky;top:56px;z-index:50; }}
 .filters-bar select {{ width:auto;min-width:120px;font-size:13px;padding:6px 10px; }}
 .ach-row.hidden {{ display:none; }}
+/* Council UI verdict (2026-05-31) — the review list collapses each card's
+   reasoning by default for scroll relief (a 249-card meet was a ~70,000px
+   wall). These rules keep the reasoning one click away with a clear "show
+   reasoning" affordance, and give the progress + expand-all controls a sticky
+   home so the reviewer never loses the workflow mid-scroll. */
+.mh-review-stickybar {{
+  position: sticky; top: 64px; z-index: 40;
+  background: color-mix(in oklab, var(--bg-deep) 88%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}}
+@media (max-width: 720px) {{ .mh-review-stickybar {{ top: 56px; }} }}
+details.why-card > summary .why-peek {{ color: var(--ink-muted); font-weight: 500; }}
+details.why-card[open] > summary .why-peek {{ display: none; }}
 @keyframes spin {{ from {{ transform:rotate(0deg) }} to {{ transform:rotate(360deg) }} }}
 </style>
 
@@ -9250,16 +9331,36 @@ function copyWhyCard(btn, taId) {{
     if (body) {{ body.dataset.whyLoaded = ''; queue.push(body); pump(); }}
     return false;
   }};
+  function loadBody(b) {{
+    if (!b || b.dataset.whyLoaded) {{ return; }}
+    queue.push(b); pump();
+  }}
+  function markSeen(d) {{
+    var row = d.closest ? d.closest('.ach-row') : null;
+    if (row) row.setAttribute('data-why-seen', '1');
+  }}
   function init() {{
     var bodies = Array.prototype.slice.call(document.querySelectorAll('.why-body[data-why-url]'));
     if (!bodies.length) {{ return; }}
+    // The review list collapses each card's reasoning by default (Council UI
+    // verdict): a collapsed <details> hides its .why-body (display:none), so
+    // the IntersectionObserver never fires for it. Load on expand instead, and
+    // remember the reviewer has now actually seen that card's reasoning.
+    Array.prototype.slice.call(document.querySelectorAll('details.why-card')).forEach(function(d){{
+      d.addEventListener('toggle', function(){{
+        if (d.open) {{ loadBody(d.querySelector('.why-body[data-why-url]')); markSeen(d); }}
+      }});
+      if (d.open) {{ loadBody(d.querySelector('.why-body[data-why-url]')); markSeen(d); }}
+    }});
     if ('IntersectionObserver' in window) {{
       var obs = new IntersectionObserver(function(entries) {{
         entries.forEach(function(e) {{
           if (e.isIntersecting) {{ obs.unobserve(e.target); queue.push(e.target); pump(); }}
         }});
       }}, {{rootMargin: '600px 0px'}});
-      bodies.forEach(function(b) {{ obs.observe(b); }});
+      // Only observe bodies already visible (inside an open card); collapsed
+      // ones are handled by the toggle listener above.
+      bodies.forEach(function(b) {{ if (b.offsetParent !== null) obs.observe(b); }});
     }} else {{
       bodies.forEach(function(b) {{ queue.push(b); }});
       pump();
@@ -9359,13 +9460,33 @@ function copyWhyCard(btn, taId) {{
         if (window.MH) MH.toast('No cards in the queue to approve.', 'info');
         return;
       }}
-      if (!window.confirm('Approve all ' + queued.length + ' queued card' + (queued.length === 1 ? '' : 's') + '?')) return;
+      var unseen = queued.filter(function(el){{ return !el.getAttribute('data-why-seen'); }}).length;
+      var msg = 'Approve all ' + queued.length + ' queued card' + (queued.length === 1 ? '' : 's') + '?';
+      if (unseen > 0) {{
+        msg += '  (' + unseen + " not yet opened — you haven't read their reasoning; approving accepts them as-is.)";
+      }}
+      if (!window.confirm(msg)) return;
       var n = 0;
       queued.forEach(function(row){{
         var btn = row.querySelector('[data-mh-wf="approved"]');
         if (btn) {{ btn.click(); n++; }}
       }});
       if (window.MH) MH.toast('Approving ' + n + ' card' + (n === 1 ? '' : 's') + '…', 'success');
+    }});
+  }}
+
+  // ----- Expand / collapse all reasoning -----
+  // Reviewers who want the old "everything visible" experience get it in one
+  // click; opening a card fires its toggle handler, which lazy-loads the
+  // reasoning and marks it seen.
+  var expandBtn = document.getElementById('mh-expand-all-why');
+  if (expandBtn) {{
+    expandBtn.addEventListener('click', function(){{
+      var next = expandBtn.getAttribute('aria-pressed') !== 'true';
+      Array.prototype.slice.call(document.querySelectorAll('details.why-card'))
+        .forEach(function(d){{ d.open = next; }});
+      expandBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+      expandBtn.textContent = next ? 'Collapse all reasoning' : 'Expand all reasoning';
     }});
   }}
 }})();

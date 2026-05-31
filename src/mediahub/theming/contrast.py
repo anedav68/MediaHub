@@ -32,6 +32,7 @@ __all__ = [
     "wcag2_ratio",
     "pick_ink",
     "polarity_of",
+    "brand_on_color",
     "Polarity",
 ]
 
@@ -175,3 +176,40 @@ def pick_ink(bg_hex: str) -> tuple[str, Polarity]:
     a surface."""
     polarity = polarity_of(bg_hex)
     return ("#000000" if polarity == "dark_on_light" else "#FFFFFF", polarity)
+
+
+def brand_on_color(
+    bg_hex: str,
+    *,
+    dark: str = "#0A0B11",
+    light: str = "#F5F2E8",
+    aa: float = 4.5,
+) -> str:
+    """Pick a legible on-colour (text/ink) for a brand-coloured fill.
+
+    The Adaptive Theming Engine recolours the whole UI to each club's brand,
+    so a button's background becomes the brand seed — which may be light
+    (the lane-yellow default) or dark (a navy / maroon club). This selector
+    keeps the label readable on either, reusing the deterministic contrast
+    primitives above rather than hard-coding a per-club value.
+
+    Preference order:
+      1. MediaHub's own ink pair — paper-black ``dark`` / paper-cream
+         ``light`` — picking whichever clears WCAG 2.x AA (``aa``, default
+         4.5:1). This keeps the house aesthetic; for the lane-yellow default
+         it returns the existing near-black, so nothing changes there.
+      2. If neither house ink clears AA (a rare mid-luminance seed where no
+         ink can comfortably), fall back to :func:`pick_ink` — maximal pure
+         #000 / #FFF — so we always emit the highest-contrast option available.
+
+    Returns an uppercase hex string. Deterministic and pure; no I/O.
+    """
+    dark_ratio = wcag2_ratio(dark, bg_hex)
+    light_ratio = wcag2_ratio(light, bg_hex)
+    if dark_ratio >= light_ratio:
+        best, best_ratio = dark, dark_ratio
+    else:
+        best, best_ratio = light, light_ratio
+    if best_ratio >= aa:
+        return best
+    return pick_ink(bg_hex)[0]
