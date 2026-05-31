@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-31 · `1e1aa8a5c` · docs: reject 9router integration (ADR 0002) after council review (#191)
+**Last updated:** 2026-05-31 · `9d69cb486` · Vendor a curated subset of mattpocock/skills (reference only) (#190)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `9d69cb486` | Vendor a curated subset of mattpocock/skills (reference only) (#190) |
 | 2026-05-31 | `1e1aa8a5c` | docs: reject 9router integration (ADR 0002) after council review (#191) |
 | 2026-05-31 | `e85505ad1` | docs(adr): council verdict — do not integrate agentmemory (#193) |
 | 2026-05-31 | `5e94f95d1` | autotest: add vision judge — the UI-TARS idea, not the stack (#194) |
@@ -74,7 +75,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-31 | `20b00808e` | harden(MERGE): auto-revert catches silent content regressions, guarded + honest (#187) |
 | 2026-05-31 | `aaab9da2c` | harden(OPEN-PR): carry the council's reasoning into the PR body (#186) |
 | 2026-05-31 | `2d1236af5` | harden(FIND): golden-input baseline-diff for silent regressions (#185) |
-| 2026-05-31 | `63063c408` | harden(FIX): advisory regression-proof for the coder's test (#184) |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
