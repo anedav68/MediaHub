@@ -9,8 +9,15 @@ Live issues that we accept for now. Each has a workaround and is tracked in
   results runs them as one super-meet. Workaround: split the upload.
 - **Background thread leaks on Werkzeug debug-server reload.** Run with
   Gunicorn in any non-trivial scenario.
-- **Run-id is not signed** — anyone with a run id can read its cards. Mitigate
-  by deploying behind authentication.
+- **Run-ids are not signed (defence-in-depth gap, not an open cross-tenant leak).**
+  Cross-organisation access *is* enforced: every `<run_id>` route checks
+  `_can_access_run`, regression-tested in `tests/test_cross_tenant_access.py` and
+  locked as an invariant across all current/future run routes by
+  `tests/test_run_route_isolation_invariant.py`. The residual: within a single org,
+  run-ids are 48-bit random (`uuid4().hex[:12]`) rather than HMAC-signed, and
+  owner-less *legacy* runs stay readable by design so historical data isn't orphaned.
+  Signed tokens would add defence-in-depth against guessing; the cross-tenant hole
+  itself is closed.
 
 ## Interpreter
 
