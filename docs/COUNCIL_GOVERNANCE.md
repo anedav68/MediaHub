@@ -97,19 +97,28 @@ Every council-gated change produces a decision record at **two levels**:
 
 ---
 
-## 4. Enforcement
+## 4. Enforcement — wired into Claude Code
 
-Two levels. The repo ships with **advisory/process** on by default; **binding CI** is
-opt-in because it requires an LLM credential in CI and adds per-PR cost (see below).
+The Council is enforced **through Claude Code, not CI.** It is registered as a
+first-class Claude Code skill at [`.claude/skills/llm-council`](../.claude/skills/llm-council)
+— a symlink to the single source of truth in
+[`autotest/skills/llm-council`](../autotest/skills/llm-council), mirroring how
+`emil-design-eng` is wired. That means:
 
-| Level | Mechanism | Default |
-|---|---|---|
-| **Advisory / process** | This document + the `CLAUDE.md` *Decision governance* rule. Agents and contributors run the council before council-gated work and link the decision record in the PR. | **On** |
-| **Binding CI gate** | A CI job runs (or verifies the presence of) a council decision record for PRs that touch council-gated paths, and blocks merge without one. Requires a provider token available to CI and incurs a small per-PR LLM cost. | **Off** (opt-in) |
+- **Every Claude Code session in this repo auto-discovers the skill.** Any agent or
+  contributor convenes the Council with `/llm-council` or a trigger phrase ("council
+  this", "run the council", "pressure-test this", "debate this", …) — the skill's
+  `description` lists the mandatory and strong triggers.
+- **The `CLAUDE.md` "Decision governance" rule binds agents** to run it before
+  council-gated work and to record the verdict as an ADR linked from the PR.
+- The autonomous tester additionally runs the in-process Council
+  (`autotest/council.py`) to adjudicate its own findings, so the same methodology
+  governs both interactive and automated decisions.
 
-The advisory level is deliberately the default: a hard CI gate that calls an LLM on
-every qualifying PR costs money and can block the trunk, which conflicts with the
-"green trunk auto-deploys" model. Turn it on consciously, not by accident.
+A hard CI merge-gate was considered and **deliberately not adopted**: running an LLM on
+every qualifying PR costs money and can block the auto-deploying trunk. Governance lives
+where the decisions are actually made — in the Claude Code session — not in a post-hoc
+CI check.
 
 ---
 

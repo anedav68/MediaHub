@@ -36,18 +36,18 @@ non-trivial decisions.** Concretely:
   full transcript + HTML briefing are kept as ephemeral artifacts under the gitignored
   `autotest/reports/council/`.
 
-### Enforcement: advisory-by-default, binding-by-choice
+### Enforcement: wired into Claude Code
 
-Two levels, with the safe one on by default:
+The Council is enforced **through Claude Code, not CI.** It is registered as a
+first-class Claude Code skill at `.claude/skills/llm-council` — a symlink to the single
+source of truth in `autotest/skills/llm-council`, mirroring how `emil-design-eng` is
+wired — so every session in this repo auto-discovers it and can convene it via
+`/llm-council` or a trigger phrase ("council this", "pressure-test this", …). The
+`CLAUDE.md` "Decision governance" rule binds agents to run it before council-gated work
+and link the ADR in the PR; the autonomous tester runs the in-process Council
+(`autotest/council.py`) for its own findings.
 
-- **Advisory / process (default ON):** the `CLAUDE.md` rule + this policy. Agents and
-  humans run the Council before council-gated work and link the ADR in the PR.
-- **Binding CI gate (opt-in, default OFF):** a CI job that blocks a PR touching
-  council-gated paths unless it carries a decision record. Left off by default because
-  it requires an LLM credential in CI and adds per-PR cost, which conflicts with the
-  "green trunk auto-deploys to Render" model. Turn it on consciously.
-
-The binding CI gate is **not** wired in this change — see Consequences.
+A hard CI merge-gate was considered and **deliberately rejected** — see Consequences.
 
 ## Consequences
 
@@ -57,9 +57,10 @@ The binding CI gate is **not** wired in this change — see Consequences.
   inherit the same discipline from one file.
 - **Cost:** a real overhead per non-trivial decision. Mitigated by the explicit
   "don't council trivia" carve-out and by the Council's own warning against trivial use.
-- **Deliberately deferred:** the hard CI merge-gate. It needs a provider token in CI
-  and a per-PR spend, and it can block the trunk — a maintainer should enable it
-  knowingly. Documented in `COUNCIL_GOVERNANCE.md` §4 as the opt-in level.
+- **Deliberately rejected:** a hard CI merge-gate. It needs a provider token in CI and
+  a per-PR spend, and it can block the auto-deploying trunk. Enforcement is wired into
+  Claude Code instead — the registered `.claude/skills/llm-council` skill — so governance
+  lives where decisions are made, not in a post-hoc check.
 - **Boundary preserved:** the Council may frame, but **cannot approve**, Gemini-ifying
   the deterministic engine (parsers, detectors, ranker, colour-science) — that still
   requires explicit user sign-off.

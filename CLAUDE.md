@@ -53,10 +53,13 @@ data/                  — Runtime data (DB, runs, cache)
 
 Non-trivial decisions in this repo are made by **the Council**, not by a single
 voice (human or AI) acting on a hunch. The Council is Karpathy's LLM Council
-methodology (`autotest/skills/llm-council/SKILL.md`, embedded as
-`autotest/council.py`): five advisors argue from clashing angles, peer-review each
-other anonymously, and a chairman writes a binding verdict. **The verdict — not your
-first instinct — is what you build.** Full policy: **`docs/COUNCIL_GOVERNANCE.md`**.
+methodology, wired into Claude Code as the invocable **`/llm-council`** skill
+(`.claude/skills/llm-council` → `autotest/skills/llm-council/SKILL.md`; embedded
+in-process as `autotest/council.py`): five advisors argue from clashing angles,
+peer-review each other anonymously, and a chairman writes a binding verdict. **The
+verdict — not your first instinct — is what you build.** Convene it with `/llm-council`
+or a trigger phrase ("council this", "pressure-test this"). Full policy:
+**`docs/COUNCIL_GOVERNANCE.md`**.
 
 - **Convene the Council BEFORE acting** on any council-gated decision: architecture or
   data-model changes; removing/replacing a route or data structure (the council runs
