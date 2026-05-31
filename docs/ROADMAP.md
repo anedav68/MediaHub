@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-31 · `15cab5b26` · Merge pull request #207 from elijahkendrick04/claude/proof-run-prep
+**Last updated:** 2026-05-31 · `f92fe4cd3` · Merge pull request #206 from elijahkendrick04/claude/eloquent-galileo-oiKeY
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,16 +63,18 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `620a08351` | style: ruff-format the three PR-changed modules (clear advisory hygiene check) |
 | 2026-05-31 | `f240f1b99` | proof prereqs: add no-valid-patch + break-point + cascade + n=1 caveats (council) |
 | 2026-05-31 | `2574da021` | proof prereqs: autonomy boundary + independent verifier + #204/#205 note |
+| 2026-05-31 | `447cbc3ff` | docs: self-hosted-fonts convention covers all three surfaces (Council nicety) |
+| 2026-05-31 | `6941cc2e8` | Reel uses real brand fonts: self-host into Remotion too (Council verdict) |
+| 2026-05-31 | `8adc67ddf` | Self-host graphic renderer poster fonts (Council audit) |
+| 2026-05-31 | `5ed33a9e5` | Self-host web UI fonts: fix CDN fallback + EU/UK GDPR exposure (Council-directed) |
 | 2026-05-31 | `bcacf6d04` | autotest: persist fixer memory [skip ci] |
 | 2026-05-31 | `0e7b3d196` | autotest: refresh bug report [skip ci] |
 | 2026-05-31 | `72855b79a` | fix-c (RULE A): the whole council:blind_spot category is meta + clear residual queue |
 | 2026-05-31 | `83d0e0458` | autopilot: persist builder state [skip ci] |
 | 2026-05-31 | `9b4931693` | governance: human-authored change-classification rule + machine-verifiable proof criterion |
-| 2026-05-31 | `a5acc8242` | refactor(voice): remove the dead shadowed implementation in voice_imitation |
-| 2026-05-31 | `acdde4a34` | autotest(ledger): invalidate 32 code-provably-false open entries (PR #197 follow-up) |
-| 2026-05-31 | `9c36b5654` | fix(pb_discovery): make the interpreter PB-extraction path actually work |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
