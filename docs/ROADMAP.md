@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-31 · `0c59ebcb4` · Merge pull request #199 from elijahkendrick04/claude/pb-discovery-interpreter-bugfix
+**Last updated:** 2026-05-31 · `35bf0f3e1` · Merge pull request #200 from elijahkendrick04/claude/voice-imitation-dedupe
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `a5acc8242` | refactor(voice): remove the dead shadowed implementation in voice_imitation |
 | 2026-05-31 | `9c36b5654` | fix(pb_discovery): make the interpreter PB-extraction path actually work |
 | 2026-05-31 | `d0e77590d` | decontaminate FIND/adjudicate: provenance guard, council framing, meta-filter, dedup |
 | 2026-05-31 | `abd5592df` | chore(lint): clear ruff F401/F811 debt + format touched files |
@@ -72,7 +73,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-31 | `02ac71cef` | Deterministic, approval-gated caption voiceover (council verdict on Pixelle-Video) (#195) |
 | 2026-05-31 | `872230785` | feat(council): the Council as repo decision authority, wired into Claude Code (#192) |
 | 2026-05-31 | `c4aa2e880` | docs: ADR 0002 — decline CloakBrowser integration (council verdict) (#189) |
-| 2026-05-31 | `9d69cb486` | Vendor a curated subset of mattpocock/skills (reference only) (#190) |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
