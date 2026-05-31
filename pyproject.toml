@@ -35,6 +35,7 @@ dependencies = [
   # See requirements.txt and docs/stage_b_colour_science_plan.md.
   "materialyoucolor>=3.0",
   "coloraide>=4.0",
+  "numpy>=1.24",
 ]
 
 [project.optional-dependencies]

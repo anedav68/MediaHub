@@ -27,6 +27,7 @@ system-prompt branch. The model decides exactly what that looks like.
 from __future__ import annotations
 
 import random
+import re
 import sys
 from pathlib import Path
 from typing import Optional
@@ -79,6 +80,102 @@ _TONE_DESCRIPTORS: dict[str, str] = {
 }
 
 KNOWN_AI_TONES: frozenset[str] = frozenset(_TONE_DESCRIPTORS.keys())
+
+
+# ---------------------------------------------------------------------------
+# AI-tell ban list
+# ---------------------------------------------------------------------------
+
+AI_TELL_BAN_LIST: frozenset[str] = frozenset({
+    "delve",
+    "delves",
+    "delving",
+    "elevate",
+    "elevates",
+    "elevated",
+    "elevating",
+    "in the world of",
+})
+
+_AI_TELL_SYSTEM_INSTRUCTION: str = (
+    "Never use these overworked AI phrases: "
+    '"delve", "elevate", "in the world of". '
+    "Avoid reflexive exclamation marks — use '!' only when the moment "
+    "genuinely warrants it, not as empty emphasis."
+)
+
+
+def _contains_ai_tell(text: str) -> bool:
+    """Return True if text contains any phrase from the ban list."""
+    lower = text.lower()
+    return any(phrase in lower for phrase in AI_TELL_BAN_LIST)
+
+
+# ---------------------------------------------------------------------------
+# N-gram similarity helpers (no external deps)
+# ---------------------------------------------------------------------------
+
+def _word_ngrams(text: str, n: int) -> set[str]:
+    """Return the set of word n-grams for text after stripping punctuation."""
+    tokens = re.sub(r"[^\w\s]", "", text.lower()).split()
+    if not tokens:
+        return set()
+    if len(tokens) < n:
+        return set(tokens)
+    return {" ".join(tokens[i:i + n]) for i in range(len(tokens) - n + 1)}
+
+
+def _ngram_similarity(a: str, b: str, n: int = 3) -> float:
+    """Trigram Jaccard similarity — 0.0 (completely different) to 1.0 (identical)."""
+    na, nb = _word_ngrams(a, n), _word_ngrams(b, n)
+    if not na or not nb:
+        return 0.0
+    union = na | nb
+    return len(na & nb) / len(union) if union else 0.0
+
+
+def _is_near_duplicate(
+    candidate: str, reference_list: list[str], threshold: float = 0.55
+) -> bool:
+    """Return True if candidate is too similar to any string in reference_list."""
+    return any(_ngram_similarity(candidate, ref) >= threshold for ref in reference_list)
+
+
+# ---------------------------------------------------------------------------
+# Platform format specifications for generate_platform_variants
+# ---------------------------------------------------------------------------
+
+_PLATFORM_SPECS: dict[str, dict] = {
+    "feed": {
+        "label": "Instagram/Facebook feed",
+        "max_chars": 280,
+        "guidance": (
+            "casual and warm, emoji welcome, 1–3 hashtags, reads naturally "
+            "in a feed scroll"
+        ),
+    },
+    "story": {
+        "label": "Instagram/TikTok story",
+        "max_chars": 100,
+        "guidance": (
+            "punchy single sentence, no hashtags, fits on a visual card, "
+            "immediate impact"
+        ),
+    },
+    "x": {
+        "label": "X (Twitter)",
+        "max_chars": 280,
+        "guidance": "snappy, 1–2 hashtags only, link-friendly, punchy opener",
+    },
+    "linkedin": {
+        "label": "LinkedIn",
+        "max_chars": 500,
+        "guidance": (
+            "professional tone, full sentences, no casual emoji, "
+            "sponsor-friendly, suitable for a wider audience"
+        ),
+    },
+}
 
 
 def _resolve_tone_descriptor(club_profile, tone: str) -> str:
@@ -189,6 +286,7 @@ def generate_caption_for_tone(
     brief_prose: Optional[str] = None,
     direction: Optional[dict] = None,
     requirements: str = "",
+    few_shot_examples: Optional[list[str]] = None,
 ) -> str:
     """Generate one caption in plain English. Raises ClaudeUnavailableError
     if no provider can answer. NO heuristic fallback — that's intentional;
@@ -222,7 +320,8 @@ def generate_caption_for_tone(
         "Keep it specific, human, club-appropriate, ~280 characters max. "
         "Never invent facts. Output ONLY the caption text — no preamble, "
         "no quotes, no markdown.",
-        # Force genuine variety. The model has a strong attractor toward "
+        _AI_TELL_SYSTEM_INSTRUCTION,
+        # Force genuine variety. The model has a strong attractor toward
         # the same opener / same closer wording on identical inputs;
         # this instruction nudges it off the attractor.
         "When you write, pick a fresh angle and structure: vary your "
@@ -256,6 +355,18 @@ def generate_caption_for_tone(
         system_parts.append(dna_prose)
     elif vp_prose:
         system_parts.append("Voice profile from past captions: " + vp_prose)
+    # Few-shot voice examples — real captions approved by the club. Injected
+    # after the voice-profile block so they reinforce (not override) the
+    # abstract voice guidance. Capped at 5; most-recent examples are most
+    # representative of the current voice.
+    if few_shot_examples:
+        capped = [e.strip() for e in few_shot_examples[-5:] if e and e.strip()]
+        if capped:
+            block = "\n".join(f"- {e}" for e in capped)
+            system_parts.append(
+                "Voice examples — real captions this club has published "
+                "(match their voice and style):\n" + block
+            )
     # Per-artefact creative intent (AI-derived per org via brand.derived,
     # falls back to the hardcoded intent) — surfaces here so the LLM
     # actually receives it. This was previously written onto the
@@ -375,11 +486,156 @@ def _voice_profile_addendum(*_args, **_kwargs) -> str:
 _voice_profile_instructions = _voice_profile_addendum
 
 
+# ---------------------------------------------------------------------------
+# Multi-candidate generation with deduplication
+# ---------------------------------------------------------------------------
+
+def generate_caption_candidates(
+    achievement_dict: dict,
+    club_brand: Optional[dict] = None,
+    tone: str = "ai",
+    n: int = 5,
+    recent_captions: Optional[list[str]] = None,
+    few_shot_examples: Optional[list[str]] = None,
+    club_profile=None,
+    *,
+    brief_prose: Optional[str] = None,
+    direction: Optional[dict] = None,
+    requirements: str = "",
+    dedupe_threshold: float = 0.55,
+) -> list[str]:
+    """Generate 4–6 caption candidates, dropping near-duplicates and AI-tells.
+
+    Returns up to ``n`` captions (clamped to 4–6) in generation order.
+    Each candidate is checked against the ban list and against already-seen
+    captions (``recent_captions`` plus previously accepted candidates) using
+    trigram Jaccard similarity. Raises ``ClaudeUnavailableError`` if the
+    provider is unavailable.
+    """
+    target = max(4, min(6, n))
+    pool: list[str] = []
+    # seen accumulates recent_captions + accepted candidates; the generator
+    # is told to avoid them so similarity filtering converges quickly.
+    seen: list[str] = list(recent_captions or [])
+
+    for _ in range(target + 2):
+        try:
+            candidate = generate_caption_for_tone(
+                achievement_dict,
+                club_brand,
+                tone,
+                club_profile=club_profile,
+                recent_captions=seen,
+                brief_prose=brief_prose,
+                direction=direction,
+                requirements=requirements,
+                few_shot_examples=few_shot_examples,
+            )
+        except ClaudeUnavailableError:
+            raise
+        if _contains_ai_tell(candidate):
+            continue
+        if _is_near_duplicate(candidate, seen, threshold=dedupe_threshold):
+            continue
+        pool.append(candidate)
+        seen.append(candidate)
+        if len(pool) >= target:
+            break
+
+    return pool
+
+
+# ---------------------------------------------------------------------------
+# Per-platform variant generation
+# ---------------------------------------------------------------------------
+
+def generate_platform_variants(
+    base_caption: str,
+    club_brand: Optional[dict] = None,
+    club_profile=None,
+    *,
+    platforms: Optional[list[str]] = None,
+    few_shot_examples: Optional[list[str]] = None,
+) -> dict[str, str]:
+    """Produce per-platform variants from one approved caption.
+
+    ``platforms`` selects the output platforms (default: all four —
+    feed, story, x, linkedin). Returns a dict mapping platform key to
+    variant caption. Raises ``ClaudeUnavailableError`` if no provider is
+    available or ``base_caption`` is empty.
+    """
+    if not base_caption or not base_caption.strip():
+        raise ClaudeUnavailableError("base_caption is empty")
+
+    target_platforms = [
+        p for p in (platforms or list(_PLATFORM_SPECS.keys()))
+        if p in _PLATFORM_SPECS
+    ]
+    if not target_platforms:
+        return {}
+
+    from mediahub.ai_core import narrate_brand
+
+    results: dict[str, str] = {}
+    for platform in target_platforms:
+        spec = _PLATFORM_SPECS[platform]
+        system_parts = [
+            f"You are a sports social-media writer. Adapt the given caption "
+            f"for {spec['label']}.",
+            f"Rules: {spec['guidance']}. Maximum {spec['max_chars']} characters.",
+            "Keep all factual details exactly as in the original caption. "
+            "Output ONLY the adapted caption — no preamble, no quotes, "
+            "no markdown.",
+            _AI_TELL_SYSTEM_INSTRUCTION,
+        ]
+        if few_shot_examples:
+            capped = [e.strip() for e in few_shot_examples[-5:] if e and e.strip()]
+            if capped:
+                block = "\n".join(f"- {e}" for e in capped)
+                system_parts.append(
+                    "Voice examples from this club (match their style):\n" + block
+                )
+        brand_prose = narrate_brand(club_brand)
+        if brand_prose:
+            system_parts.append("Brand voice: " + brand_prose)
+        dna_prose = _brand_dna_prose(club_profile)
+        if dna_prose:
+            system_parts.append(dna_prose)
+
+        system = "\n\n".join(system_parts)
+        user = f"Original caption:\n{base_caption.strip()}"
+        try:
+            variant = call_claude(system=system, user=user, max_tokens=300)
+        except ClaudeUnavailableError:
+            raise
+        results[platform] = (variant or "").strip()
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Approval-loop hook
+# ---------------------------------------------------------------------------
+
+def record_approved_caption(profile_id: str, caption: str) -> None:
+    """Append an edited-and-approved caption to the club's few-shot store.
+
+    Call this whenever a user accepts a caption so future generation for
+    this club benefits from its real published voice.
+    """
+    from mediahub.web.caption_examples import append_example
+    append_example(profile_id, caption)
+
+
 __all__ = [
     "ClaudeUnavailableError",
     "KNOWN_AI_TONES",
+    "AI_TELL_BAN_LIST",
     "generate_ai_caption",
     "generate_caption_for_tone",
+    "generate_caption_candidates",
+    "generate_platform_variants",
+    "record_approved_caption",
     "_SYSTEM_PROMPT",
     "_build_user_message",
     "_voice_profile_addendum",
