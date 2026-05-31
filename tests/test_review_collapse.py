@@ -103,15 +103,20 @@ class TestReviewListCollapse:
 
     def test_reasoning_is_one_click_away(self, review_app):
         body = _review_body(*review_app)
-        # The collapsed card visibly advertises its hidden reasoning.
+        # The collapsed card visibly advertises its hidden reasoning with an
+        # interactive (underlined + chevron) "Show reasoning" toggle.
         assert "why-peek" in body
-        assert "show reasoning" in body
+        assert "Show reasoning" in body
+        assert "why-chev" in body
         # And the lazy body + load URL are still present for on-expand fetch.
         assert "why-body" in body and "data-why-url" in body
 
-    def test_sticky_workflow_bar_and_expand_all(self, review_app):
+    def test_sticky_controls_and_expand_all(self, review_app):
         body = _review_body(*review_app)
-        assert "mh-review-stickybar" in body
+        # "Expand all reasoning" lives in the already-sticky achievement
+        # filters bar above the list (a second sticky bar collided with it —
+        # caught in the Council audit round).
+        assert "filters-bar" in body
         assert 'id="mh-expand-all-why"' in body
         assert "Expand all reasoning" in body
 

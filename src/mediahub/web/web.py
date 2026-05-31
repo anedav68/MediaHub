@@ -634,7 +634,8 @@ def _render_why_this_card(
     # test_visible_intelligence invariant) keep <details open>.
     _open_attr = "" if lazy else " open"
     _summary_label = (
-        'Why this card?<span class="why-peek"> · show reasoning</span>'
+        'Why this card? <span class="why-peek">Show reasoning'
+        '<span class="why-chev" aria-hidden="true">&#9662;</span></span>'
         if lazy else "Why this card?"
     )
     shell_open = (
@@ -7190,10 +7191,15 @@ def create_app() -> Flask:
                 # Council STEP 3 — surface the REAL engine output (V5
                 # recognition achievements), not the legacy n_cards which the
                 # recognition-first pipeline leaves at 0 and a user reads as
-                # "nothing was produced". Old rows have NULL n_achievements;
-                # read each from its run JSON once and write it back so the
-                # dashboard self-heals. Honest: the achievements genuinely
-                # exist in recognition_report — no fabricated output.
+                # "nothing was produced". Read each run's count from the column,
+                # or its run JSON for rows written before the column existed.
+                #
+                # Audit-round hardening: the DISPLAY never depends on a DB
+                # write. We compute the counts in memory (column or JSON), then
+                # best-effort cache-warm the column so old rows don't re-read
+                # JSON next time — but that write is purely an optimisation,
+                # wrapped so a locked / read-only DB is a silent no-op, never a
+                # 500 and never an undercount.
                 _need = []
                 for r in rows:
                     v = r["n_achievements"] if "n_achievements" in r.keys() else None
@@ -7203,19 +7209,16 @@ def create_app() -> Flask:
                         ach_by_id[r["id"]] = int(v or 0)
                 for _rid in _need:
                     _d = _load_run(_rid) or {}
-                    _n = int((_d.get("recognition_report") or {}).get("n_achievements", 0) or 0)
-                    ach_by_id[_rid] = _n
+                    ach_by_id[_rid] = int((_d.get("recognition_report") or {}).get("n_achievements", 0) or 0)
+                if _need:
                     try:
-                        conn.execute("UPDATE runs SET n_achievements = ? WHERE id = ?", (_n, _rid))
+                        for _rid in _need:
+                            conn.execute("UPDATE runs SET n_achievements = ? WHERE id = ?",
+                                         (ach_by_id[_rid], _rid))
+                        conn.commit()
                     except Exception:
                         pass
-                if _need:
-                    conn.commit()
-                _ach_row = conn.execute(
-                    "SELECT COALESCE(SUM(n_achievements), 0) AS s FROM runs WHERE profile_id = ?",
-                    (prof.profile_id,),
-                ).fetchone()
-                ach_unfiltered = int(_ach_row["s"] if _ach_row else 0)
+                ach_unfiltered = sum(ach_by_id.values())
             finally:
                 conn.close()
         except Exception as e:
@@ -8917,14 +8920,11 @@ def create_app() -> Flask:
   </div>
   <a class="btn" href="{_pack_url}" style="align-self:flex-start">Open content builder &rarr;</a>
 </div>
-<div class="mh-progress-strip mh-review-stickybar" role="group" aria-label="Review progress">
+<div class="mh-progress-strip" role="group" aria-label="Review progress">
   <span class="mh-progress-strip-label">Reviewed</span>
   <span class="mh-progress-strip-value">{_wf_decided}<span class="total">/ {_wf_grand_total}</span></span>
   <span class="mh-progress-strip-bar"><span style="width:{_wf_pct}%"></span></span>
   <span class="mh-progress-strip-label">{_wf_pct}%</span>
-  <button type="button" class="btn ghost" id="mh-expand-all-why"
-          style="margin-left:auto;font-size:11px;padding:6px 10px" aria-pressed="false"
-          title="Show or hide every card's reasoning at once">Expand all reasoning</button>
 </div>
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
@@ -9132,15 +9132,17 @@ def create_app() -> Flask:
 /* Council UI verdict (2026-05-31) — the review list collapses each card's
    reasoning by default for scroll relief (a 249-card meet was a ~70,000px
    wall). These rules keep the reasoning one click away with a clear "show
-   reasoning" affordance, and give the progress + expand-all controls a sticky
-   home so the reviewer never loses the workflow mid-scroll. */
-.mh-review-stickybar {{
-  position: sticky; top: 64px; z-index: 40;
-  background: color-mix(in oklab, var(--bg-deep) 88%, transparent);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+   reasoning" affordance; the "Expand all reasoning" control lives in the
+   already-sticky .filters-bar above the list (a second sticky bar collided
+   with it — caught in the Council audit round). */
+details.why-card > summary .why-peek {{
+  color: var(--ink-dim); font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--lane) 50%, transparent);
+  text-underline-offset: 3px;
+  display: inline-flex; align-items: center; gap: 4px;
 }}
-@media (max-width: 720px) {{ .mh-review-stickybar {{ top: 56px; }} }}
-details.why-card > summary .why-peek {{ color: var(--ink-muted); font-weight: 500; }}
+details.why-card > summary .why-peek .why-chev {{ font-size: 9px; text-decoration: none; }}
 details.why-card[open] > summary .why-peek {{ display: none; }}
 @keyframes spin {{ from {{ transform:rotate(0deg) }} to {{ transform:rotate(360deg) }} }}
 </style>
@@ -9200,6 +9202,9 @@ details.why-card[open] > summary .why-peek {{ display: none; }}
     <select id="f-post" onchange="applyFilters()">{opts(post_types_set, 'post types')}</select>
     <button class="btn secondary" style="font-size:13px;padding:6px 12px" onclick="clearFilters()">Clear</button>
     <span id="f-count" class="muted" style="font-size:12px;align-self:center"></span>
+    <button type="button" class="btn secondary" id="mh-expand-all-why" aria-pressed="false"
+            style="margin-left:auto;font-size:12px;padding:6px 12px"
+            title="Show or hide every card's reasoning at once">Expand all reasoning</button>
   </div>
   <div id="ach-list">{ach_rows_html_wf}</div>
 </div>
