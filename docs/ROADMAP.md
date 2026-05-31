@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-05-31 · `4f7de3206` · fix(autotest): stranded fix (no PR) keeps its bug open, not stuck in limbo (#180)
+**Last updated:** 2026-05-31 · `b9bc39a21` · fix(autotest): force-push loop branches + delete on merge (robust retry/redo) (#181)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,6 +63,7 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-05-31 | `b9bc39a21` | fix(autotest): force-push loop branches + delete on merge (robust retry/redo) (#181) |
 | 2026-05-31 | `4f7de3206` | fix(autotest): stranded fix (no PR) keeps its bug open, not stuck in limbo (#180) |
 | 2026-05-31 | `ba2b8cc69` | fix(autotest): rotate roadmap builds attempts-first so a hard item can't starve the rest (#179) |
 | 2026-05-31 | `69f475b4a` | test(turn-into): fix flaky temp-dir teardown race with heartbeat daemon (#178) |
@@ -73,7 +74,6 @@ flips an item's status badge when a commit message contains a directive line:
 | 2026-05-30 | `d2a6f5621` | autotest: persist fixer memory [skip ci] |
 | 2026-05-30 | `0165c0674` | autotest: refresh bug report [skip ci] |
 | 2026-05-30 | `b33f6fac7` | fix(pipeline): surface V5 achievements as content cards (zero-cards bug) (#175) |
-| 2026-05-30 | `6a36e0864` | autopilot: persist builder state [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
