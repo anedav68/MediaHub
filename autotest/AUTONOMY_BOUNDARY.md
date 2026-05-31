@@ -36,6 +36,27 @@ own seeding) — stated, not hidden.
   (committed RED before the run) so it can't be reverse-fitted to the coder's output.
 - **The merge click** for harness/governance changes (by policy).
 
+## No-valid-patch behaviour (council prereq — the most likely outcome on a hard bug)
+
+The autonomous run targets the **zero-cards architectural root** (the hardest real bug
+in the queue). The coder may produce **no valid patch** — it stalls, hits max-turns,
+the gate stays red, or it can't one-shot the architectural fix. When that happens the
+loop **HALTS AND SURFACES** it explicitly: `fix_one` returns a `failed`/`coder-failed`
+result, the bug stays `open` (never-skip), the branch is reset, and NO PR is opened. It
+is **never** a silent success and never a hand-written rescue. A no-valid-patch outcome
+is a **documented BREAK at the PATCH stage** — a valid, interpretable result of the
+proof (see PROOF_VERIFIER.md's break-point box), not an error to retry away.
+
+## Fixture coupling (council prereq)
+
+The seeded fixture is the INPUT to the (currently broken) pipeline. If fixing the
+zero-cards root requires **changing the fixture's expected behaviour or seed data**, that
+is a **HUMAN PRECONDITION**, not an autonomous action — the loop must fix the *product*,
+not the test fixture, to count. If the coder's only path to green is editing the seed/
+fixture, that is a BREAK (it did not fix the product), recorded as such. The protected-
+engine guard and the harness-merge rule already prevent the loop from quietly editing
+`autotest/` to force a pass.
+
 ## What the proof does NOT claim
 
 - It does not claim the loop selects bugs with zero human filtering (a human applied the

@@ -40,13 +40,54 @@
 8. **[ ] Caveats stated.** The writeup states the seeded-harness oracle is weaker than a
    cold client, and that this is one close (proof-of-concept, not reliability).
 
+## What this proof actually claims (council — do not overclaim)
+
+If it passes, the proof shows: **the autonomous loop can execute ONE complete close cycle
+(FIND→RANK→PATCH→VERIFY→PR→merge) on a real seeded bug, with a documented result.** It does
+NOT claim pipeline reliability in general (n=1 is an anecdote, not a distribution). "Is it
+working?" for the narrow claim needs TWO closes on two different bugs.
+
+## The break-point case (council prereq — the most likely outcome on the architectural bug)
+
+The target is the hardest real bug (zero-cards root). The coder may not produce a valid
+patch. That is a **valid, interpretable result**, classified as:
+
+- **BREAK@PATCH** — the coder produced no valid patch (stalled / max-turns / gate stayed
+  red / would only pass by editing the fixture). → check: the loop's result is
+  `failed`/`coder-failed`, the bug is still `open`, NO PR opened, NO product code
+  hand-written. This is a **valid PROOF OUTCOME**, not a proof failure: it locates the
+  break exactly where the council predicted (downstream of FIND, at the coder). Record the
+  exact stall reason + the coder's last output.
+- **BREAK@VERIFY** — a patch landed but `prove_regression` is hollow/no-test or the suite
+  is red. → recorded; not a close.
+- **BREAK@PR/CI** — PR didn't open or CI is red. → recorded; not a close.
+- **CLOSE** — all 8 boxes above pass.
+
+A BREAK is a **successful, certifiable run with a negative result** — the proof ran and we
+learned exactly where the chain breaks. The only *uninterpretable* outcome (which this box
+exists to prevent) is a stall with no recorded classification.
+
+## Cascade close (council prereq)
+
+A root-cause fix to zero-cards may close MULTIPLE queue items at once (the 13 functional
+facets are downstream of it). That is still ONE close cycle for proof purposes (one fix,
+one PR). The before/after assertion targets the ROOT symptom (the seeded sample meet
+produces ≥1 content card after the fix where it produced 0 before). Secondary items
+closing as a side effect are noted, not separately counted.
+
+## Independence caveat (stated, not hidden)
+
+This checklist was authored by the same effort that designed the proof. The evaluation is
+mechanical (artifact-checks anyone can re-run), which bounds but does not eliminate the
+conflict. **External audit pending** — a reviewer outside this effort can re-run the 8
+boxes against the committed logs and should.
+
 ## Disposition
 
-- ALL 8 checked → the narrow claim is PROVEN for this one bug. (Two such closes on two
-  different bugs → "is it working?" answered yes for the narrow claim.)
-- ANY box fails → NOT a valid close. Record which box failed and the artifact. A failed
-  box at the PATCH/VERIFY/PR stage is the council-predicted "downstream break" — a valuable
-  finding, recorded as such, not retried-in-place to force a pass.
+- ALL 8 boxes checked → the narrow claim is PROVEN for this one bug (n=1).
+- A classified BREAK (@PATCH/@VERIFY/@PR) → a VALID run with a negative result: the proof
+  ran, the break point is located and recorded. Not retried-in-place to force a pass.
+- An UNCLASSIFIED stall (no box assignable) → the run is inconclusive; fix the gap and re-run.
 
 ## Why this resolves the conflict of interest
 
