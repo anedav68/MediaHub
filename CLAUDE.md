@@ -49,6 +49,32 @@ data/                  — Runtime data (DB, runs, cache)
 - **Feature flags** — `_club_platform_ok`, `_v73_ok`, `_v8_ok` guard optional features
 - **Removing routes or data structures is allowed, but gated** — you may remove or replace an existing route or data structure when an update genuinely needs it; don't just pile on additively. When you do, follow the process in *"Changing the engine: removing or replacing routes & data structures"* below — a 15-step breakage check **before** removal, a 15-step verification **after** removal and replacement, and a dead-code sweep at the end of every engine change.
 
+## Decision governance — the Council decides
+
+Non-trivial decisions in this repo are made by **the Council**, not by a single
+voice (human or AI) acting on a hunch. The Council is Karpathy's LLM Council
+methodology (`autotest/skills/llm-council/SKILL.md`, embedded as
+`autotest/council.py`): five advisors argue from clashing angles, peer-review each
+other anonymously, and a chairman writes a binding verdict. **The verdict — not your
+first instinct — is what you build.** Full policy: **`docs/COUNCIL_GOVERNANCE.md`**.
+
+- **Convene the Council BEFORE acting** on any council-gated decision: architecture or
+  data-model changes; removing/replacing a route or data structure (the council runs
+  *before* the 15-step breakage check below); roadmap priority/sequencing ("what to
+  build next"); a choice between ≥2 credible approaches where the wrong pick costs more
+  than an afternoon; new AI judgement surfaces or anything touching the
+  deterministic-engine boundary; and anything outward-facing or hard to reverse.
+- **Don't council trivial work** — typo/format/mechanical-refactor fixes, single-
+  obvious-fix bugs, or implementing a step the Council *already* decided (cite that
+  decision instead). Counciling trivia dulls the mechanism for the decisions that matter.
+- **Record the decision.** Every council-gated change writes a transcript +
+  HTML report under `autotest/reports/council/`, and the **PR body links that decision
+  record**. If hands-on work invalidates a premise the Council assumed, write the
+  deviation and its reason *into the verdict* — never deviate silently.
+- The Council **cannot approve** Gemini-ifying the deterministic engine (parsers,
+  detectors, ranker, colour-science) — that still requires explicit user sign-off — but
+  it must be consulted on the framing.
+
 ## Changing the engine: removing or replacing routes & data structures
 
 Removing or replacing existing routes and data structures is allowed when an update genuinely needs it — prefer a clean replacement over piling on additively. But because `web/web.py` is a large monolith with f-string templates, persisted `DATA_DIR` state, and feature-flagged surfaces, every removal/replacement MUST be gated by both checklists below. Do not skip steps to save time.
