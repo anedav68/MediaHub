@@ -1959,14 +1959,15 @@
         "Open https://mediahub-gzwc.onrender.com/static/fonts/hanken-latin-normal-400.woff2"
       ],
       "screenshot": "autotest/screenshots/25cd61befbd6.png",
-      "status": "open",
+      "status": "fixing",
       "first_seen": "2026-05-31T19:29:01+00:00",
       "last_seen": "2026-05-31T19:29:01+00:00",
       "seen_count": 1,
       "last_run_id": "20260531T192113Z-ca95",
       "present_last_run": true,
-      "fix_pr": null,
-      "fix_branch": null
+      "fix_pr": "https://github.com/elijahkendrick04/MediaHub/pull/209",
+      "fix_branch": "autotest/fix-25cd61befbd6",
+      "fix_attempts": 1
     },
     "a12292408770": {
       "fingerprint": "a12292408770",
