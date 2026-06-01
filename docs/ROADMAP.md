@@ -55,7 +55,7 @@ flips an item's status badge when a commit message contains a directive line:
 > `roadmap: SEQ-1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-06-02 · `0e4dbdc04` · Rebuild
+**Last updated:** 2026-06-02 · `8ad41baf7` · Merge pull request #212: fix review progress denominator (ranked total, not store total)
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -63,18 +63,18 @@ flips an item's status badge when a commit message contains a directive line:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-06-01 | `499a94083` | test: add real /review route regression for the progress-denominator fix |
 | 2026-06-02 | `0e4dbdc04` | Rebuild |
 | 2026-06-01 | `0fa7633ea` | autotest: persist fixer memory [skip ci] |
+| 2026-06-01 | `2f1f20d0e` | fix: 'REVIEWED 3/3 = 100%' contradicts 54 cards still in queue — |
 | 2026-06-01 | `828cdcb8a` | autotest: refresh bug report [skip ci] |
 | 2026-06-01 | `95f260688` | autopilot: persist builder state [skip ci] |
 | 2026-06-01 | `eb077b923` | autotest: persist fixer memory [skip ci] |
+| 2026-06-01 | `6d1d6abb0` | fix: All 12 cards have empty captions |
 | 2026-06-01 | `4cd98502d` | autotest: refresh bug report [skip ci] |
 | 2026-06-01 | `89958737f` | autopilot: persist builder state [skip ci] |
 | 2026-06-01 | `d995c75cf` | autotest: persist fixer memory [skip ci] |
 | 2026-06-01 | `8385e7010` | autotest: refresh bug report [skip ci] |
-| 2026-06-01 | `1050230d0` | autopilot: persist builder state [skip ci] |
-| 2026-06-01 | `0b7fbd071` | autotest: persist fixer memory [skip ci] |
-| 2026-06-01 | `175099d51` | fix: Navigation failed: crawl:/static/fonts/bigshoulders-latin-no (#210) |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
