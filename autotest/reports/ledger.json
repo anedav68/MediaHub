@@ -2230,7 +2230,8 @@
       "last_run_id": "20260601T114019Z-02d6",
       "present_last_run": true,
       "fix_pr": null,
-      "fix_branch": null
+      "fix_branch": null,
+      "fix_attempts": 1
     },
     "59f0888a0a93": {
       "fingerprint": "59f0888a0a93",
