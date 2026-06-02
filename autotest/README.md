@@ -131,6 +131,7 @@ between a bad AI change and production, and they are strict:
 | `AUTOTEST_BUILD_MERGE` | `0` | **arm** CI-gated auto-merge of fix PRs to `main` (full auto to prod). One flag from hands-off |
 | `AUTOTEST_CODER` | `claude` | coding agent: `claude` (best quality, no fallback) or `gemini` |
 | `AUTOTEST_FIX_MAX_ATTEMPTS` | `2` | give up + open a GitHub issue after N failed fix tries (credit guard) |
+| `AUTOTEST_MAX_OPEN_FIX_PRS` | `3` | backpressure: pause opening NEW fix PRs while ≥ N `autotest/fix-*` PRs are already open (awaiting merge). Stops a pile-up under a human-merge policy; `0` disables. The fixer also never opens a 2nd PR for a problem already in flight (same `category`+route) |
 | `AUTOTEST_GATE_MAX_ITERS` | `3` | when a change fails the test gate, feed the failure back to the coder to fix the root cause, up to N iterations, then give up (bounded) |
 | `AUTOTEST_SEMANTIC` / `AUTOTEST_COUNCIL` | `1` | enable the AI judges / the council |
 | `AUTOTEST_VISION` | `1` | enable the screenshot vision judge (`vision.py`) — skips cleanly with no provider key |

@@ -147,7 +147,16 @@ def _open_bugs(limit: int) -> list[dict]:
     # of root causes. Keep one bug per (category, normalised route) so we don't
     # open duplicate PRs or burn attempts on the same defect; the rest resurface
     # next sweep once this one is fixed/in-flight.
-    seen: set[tuple[str, str]] = set()
+    #
+    # Seed the collapse with the surfaces ALREADY in flight (a fix PR open / status
+    # ``fixing``). Until that PR is human-merged the symptom is still live on prod, so
+    # the finder keeps seeing it — sometimes under a reworded fingerprint. Without this
+    # we'd open a SECOND PR for the same problem while the first awaits a merge. This
+    # makes "one open fix PR per problem" hold even across fingerprint drift.
+    in_flight = {(b.get("category", ""), report.normalise(b.get("route", "")))
+                 for b in ledger["bugs"].values()
+                 if b.get("fix_pr") or b.get("status") == "fixing"}
+    seen: set[tuple[str, str]] = set(in_flight)
     unique: list[dict] = []
     for b in bugs:
         key = (b.get("category", ""), report.normalise(b.get("route", "")))
@@ -398,12 +407,29 @@ def fix_one(bug: dict) -> dict:
             "merge": merge, "regression": reg_status}
 
 
+def _open_pr_cap() -> int:
+    """Max autotest fix PRs allowed open at once (backpressure). 0 disables the cap.
+    Under a human-merge policy this stops fix PRs accumulating faster than you merge
+    them — the loop pauses opening new fixes until the open ones drain."""
+    return int(os.environ.get("AUTOTEST_MAX_OPEN_FIX_PRS", "3"))
+
+
 def main() -> int:
     load_dotenv()
     if os.environ.get("AUTOTEST_FIX_APPLY", "1") == "0":
         bugs = _open_bugs(int(os.environ.get("AUTOTEST_FIX_MAX", "3")))
         print(json.dumps({"dry_run": True, "would_fix": [b["title"] for b in bugs]}, indent=2))
         return 0
+    # Backpressure: don't open new fix PRs while too many already await a merge — caps
+    # the pile-up and prevents a second PR for a problem whose first fix is unmerged.
+    cap = _open_pr_cap()
+    if cap > 0:
+        open_prs = gitops.count_open_fix_prs()
+        if open_prs >= cap:
+            print(json.dumps({"paused": f"{open_prs} autotest fix PR(s) already open "
+                              f"(>= AUTOTEST_MAX_OPEN_FIX_PRS={cap}) — not opening new "
+                              "fixes until they're merged"}, indent=2))
+            return 0
     results = []
     for bug in _open_bugs(int(os.environ.get("AUTOTEST_FIX_MAX", "3"))):
         results.append(fix_one(bug))
