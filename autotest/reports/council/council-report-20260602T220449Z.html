@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Council verdict — Web research into PB verification</title>
+<style>
+  :root { --ink:#1a1d24; --muted:#5b6270; --line:#e4e7ec; --bg:#fbfcfd; --accent:#2f6f4f; --warn:#b4541a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         line-height:1.55; }
+  .wrap { max-width:860px; margin:0 auto; padding:40px 24px 80px; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-0.01em; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:28px; }
+  .q { background:#fff; border:1px solid var(--line); border-left:3px solid var(--accent);
+       border-radius:10px; padding:16px 18px; margin-bottom:28px; font-size:15px; }
+  .q b { display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
+         color:var(--accent); margin-bottom:6px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted);
+       margin:34px 0 12px; }
+  .verdict { background:#fff; border:1px solid var(--line); border-radius:12px; padding:8px 22px 18px; }
+  .verdict h3 { font-size:15px; margin:18px 0 8px; }
+  .verdict ul { margin:0 0 4px; padding-left:20px; }
+  .verdict li { margin-bottom:7px; }
+  .first { background:#f0f6f2; border:1px solid #cfe3d6; border-radius:10px; padding:14px 18px;
+           margin-top:14px; font-size:15px; }
+  .first b { color:var(--accent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:6px 0 4px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:9px; padding:11px 13px; font-size:13px; }
+  .card .who { font-weight:650; margin-bottom:3px; }
+  .pick { font-size:12px; font-weight:650; padding:1px 7px; border-radius:999px; }
+  .pickB { background:#e7f1ec; color:var(--accent); }
+  .pickC { background:#fdeee2; color:var(--warn); }
+  details { background:#fff; border:1px solid var(--line); border-radius:9px; margin-bottom:9px; padding:2px 14px; }
+  summary { cursor:pointer; padding:10px 0; font-weight:600; font-size:14px; }
+  details p { margin:4px 0 12px; font-size:14px; color:#2c313b; }
+  .foot { color:var(--muted); font-size:12px; margin-top:36px; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Web research &rarr; PB verification</h1>
+  <div class="sub">LLM Council verdict &middot; 2026-06-02 &middot; MediaHub Capability 3 (deterministic-engine boundary)</div>
+
+  <div class="q">
+    <b>The decision</b>
+    How should the new bounded deep-research loop relate to personal-best (PB) baseline discovery &mdash; given a deterministic PB-discovery flow already exists &mdash; without the model ever authoring a baseline time used in the deterministic &ldquo;is this a PB?&rdquo; decision? Options: <b style="display:inline">A</b> don&rsquo;t connect &middot; <b style="display:inline">B</b> URL-broker fallback &middot; <b style="display:inline">C</b> converge the two stacks.
+  </div>
+
+  <h2>Advisor positions</h2>
+  <div class="grid">
+    <div class="card"><div class="who">Contrarian</div><span class="pick pickB">B</span> &mdash; but the trigger is the poison entry</div>
+    <div class="card"><div class="who">First Principles</div><span class="pick pickB">B</span> &mdash; narrow; type-contract gate</div>
+    <div class="card"><div class="who">Expansionist</div><span class="pick pickC">C</span> &mdash; the ledger is the moat</div>
+    <div class="card"><div class="who">Outsider</div><span class="pick pickB">B</span> &mdash; or ship A &amp; measure</div>
+    <div class="card"><div class="who">Executor</div><span class="pick pickB">B</span> &mdash; one function, off by default</div>
+  </div>
+  <div class="sub" style="margin-top:10px">Peer review was unanimous: the First Principles take was rated strongest by all five reviewers.</div>
+
+  <h2>Chairman verdict</h2>
+  <div class="verdict">
+    <h3>Where the council agrees</h3>
+    <ul>
+      <li><b>Option B (URL-broker fallback)</b>, not A or C. The deterministic flow already supplies baselines and already rides SearXNG; the only real gap is disambiguation for hard-to-find swimmers &mdash; what the model is good at. Model proposes <em>where to look</em>; the deterministic parser still extracts the number.</li>
+      <li><b>Enforce the boundary structurally:</b> the fallback returns <b>only <code>list[str]</code> URLs</b> &mdash; a leaked time should be a type error, not a code-review note.</li>
+      <li><b>Off by default, hard-capped per run</b> (a run-shared counter, not per-swimmer) so one big meet can&rsquo;t trigger dozens of LLM loops.</li>
+      <li><b>Fail toward false negatives</b> &mdash; a wrong PB is catastrophic for a small club.</li>
+      <li><b>Converge the two stacks later, if ever</b> &mdash; don&rsquo;t refactor a working deterministic path while adding behaviour.</li>
+    </ul>
+    <h3>Where the council clashes</h3>
+    <ul>
+      <li><b>Trigger:</b> fire only on a true dead end (<b>zero usable parsed PBs</b>), never on &ldquo;low confidence&rdquo; &mdash; low-confidence is exactly when you must stay deterministic. (Contrarian wins over the confidence-threshold idea.)</li>
+      <li><b>Converge now?</b> Only the Expansionist; everyone else says premature &mdash; converging before the poisoning/identity surface is hardened turns the moat into a liability. <b>Defer.</b></li>
+    </ul>
+    <h3>Blind spots peer review caught</h3>
+    <ul>
+      <li><b>Identity collision (top risk):</b> a URL can parse cleanly yet be a <em>different same-named swimmer</em>. Gate: parsed name must fuzzy-match the target before any time is accepted.</li>
+      <li><b>Untrusted-domain bytes:</b> a model-proposed domain&rsquo;s page must clear an authority/trust floor <em>before</em> it is fetched/parsed.</li>
+      <li><b>Ships dark:</b> instrument every fire (swimmer, URLs tried, parsed/rejected).</li>
+      <li><b>No write-back = no compounding:</b> promote a gated-success domain into the trust ledger so it doesn&rsquo;t fire forever &mdash; but only <em>after</em> the gates pass.</li>
+      <li><b>Stale cache</b> as false confidence &mdash; partially mitigated by the 7-day TTL; follow-up, not a blocker.</li>
+    </ul>
+    <div class="first">
+      <b>The one thing to do first:</b> lock the two invariants &mdash; the fallback fires <b>only when the deterministic pass returns zero usable parsed PBs</b>, and it returns <b>only <code>list[str]</code> candidate URLs</b> &mdash; with a regression test proving the deterministic path never calls the fallback. Every other gate hangs off these safely.
+    </div>
+  </div>
+
+  <h2>Full advisor responses</h2>
+  <details><summary>The Contrarian</summary><p>Option B is correct, but the most dangerous assumption is buried: the fallback trigger is undefined and that&rsquo;s where the poison enters. &ldquo;Fails how?&rdquo; Zero rows parsed is defensible; &ldquo;low confidence&rdquo; hands the model a foothold to re-run exactly when you need determinism. The cap is understated &mdash; dozens of swimmers &times; per-swimmer fallback &times; multiple cycles hits Gemini free-tier limits mid-meet; without a hard ceiling (~2/run) a 40-obscure-swimmer meet blows the budget and silently leaves half the pack with no baseline. The gate is fragile: who validates the URL is a results page before fetching? A poisoned page with valid-looking HTML and fabricated times passes straight to the parser, which trusts the byte stream; a new model-proposed domain starts at zero trust &mdash; fetching it at all is the exposure. Biggest blind spot: identical swimmer names are exactly where hallucinated URLs are likeliest.</p></details>
+  <details><summary>The First Principles Thinker</summary><p>Strip the framing: the tension isn&rsquo;t AI-vs-deterministic, it&rsquo;s query-construction quality vs parsing correctness &mdash; separable, and pb_discovery already separates them; the only gap is query construction for ambiguous swimmers. Option B, narrow: one function (<code>_build_candidate_urls()</code>); deep_research&rsquo;s only permitted output is a list of URLs (passing a time fails the type contract). Conflict rule: external baselines only RAISE the bar &mdash; reject an external time faster than club-recorded. Cap: fallback only if zero parse-confidence candidates after the normal SearXNG pass; 5/run, configurable. Converge LATER. Biggest blind spot: ledger poisoning via a model-proposed URL that parses correctly but is the WRONG same-named swimmer &mdash; the gate must require the parsed name to fuzzy-match the target before accepting a time.</p></details>
+  <details><summary>The Expansionist</summary><p>Option C, and the council undervalues what&rsquo;s being built. The trust ledger is a swimmer-identity graph &mdash; a compounding athlete-intelligence asset (longitudinal tracking, career narratives, spotlights, sellable coach insights). Gate via distinct types: deep_research returns <code>CandidateURLs</code>, the parser returns <code>ParsedBaseline</code> &mdash; can&rsquo;t be conflated. Cost: trigger on parse-confidence &lt; ~0.7 AND cache miss; cap 2/meet; high-trust sources skip deep_research. Converge now &mdash; two parallel stacks drift. Option A throws away the disambiguation intelligence a fixed query-builder always gets wrong on common names. The moat is the ledger.</p></details>
+  <details><summary>The Outsider</summary><p>Option B, almost self-evident; don&rsquo;t touch a working system. B adds a fallback disambiguation layer; the AI only reasons about which page, never the number. Naming danger: &ldquo;agent&rdquo;/&ldquo;PB finder&rdquo; invites trusting prose &mdash; call it &ldquo;page finder.&rdquo; A wrong PB is catastrophic for a small club &mdash; prefer false negatives over false positives. Option A is fine if the existing flow catches 95%+; ship A, measure the real failure rate, build B only when users hit real walls.</p></details>
+  <details><summary>The Executor</summary><p>Option B. Add <code>_deep_research_fallback_urls()</code> in <code>pb_discovery/discover.py</code>, called from <code>discover_swimmer_pbs</code> after the ranked-URL loop exhausts with zero usable PBs (<code>if best_source is None</code>). URLs from <code>ResearchResult.sources</code> (flat list), prefer <code>authority_sources</code>, max 2, into the existing parser; the model never touches times. Hard cap <code>max_deep_fallbacks=0</code> (off by default), env <code>MEDIAHUB_PB_DEEP_FALLBACK_LIMIT</code>, run-shared counter via RunCache. Tests: the model&rsquo;s answer is never written to a PBRow; the deterministic path never calls deep_research. Defer C, ledger updates, UI.</p></details>
+
+  <div class="foot">Methodology: Karpathy&rsquo;s LLM Council (5 advisors &rarr; anonymous peer review &rarr; chairman synthesis). Counciled: wiring web research into deterministic PB verification. Transcript: council-transcript-20260602T220449Z.md</div>
+</div>
+</body>
+</html>

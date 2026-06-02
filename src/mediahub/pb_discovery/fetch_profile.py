@@ -48,7 +48,19 @@ def _extract_domain(url: str) -> str:
 
 
 def _fetch_raw(url: str, timeout: int = 12) -> Optional[bytes]:
-    """Fetch raw bytes from a URL via urllib."""
+    """Fetch raw bytes from a URL via urllib.
+
+    SSRF-guarded: candidate URLs can come from web search and (when enabled) a
+    model, so refuse any URL that resolves to a private / loopback / link-local
+    / cloud-metadata address before opening a connection.
+    """
+    try:
+        from mediahub.web_research.safe_fetch import is_url_safe
+
+        if not is_url_safe(url):
+            return None
+    except Exception:
+        pass
     try:
         req = urllib.request.Request(
             url,
