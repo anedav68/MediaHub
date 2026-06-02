@@ -21002,6 +21002,17 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
         )
         return _layout("File too large", body, active=""), 413
 
+    # Start the in-process scheduler once per worker. Idempotent and self-
+    # guarded (no-ops under pytest and when MEDIAHUB_SCHEDULER=0). Safe under
+    # 2 workers because each due (task, UTC-slot) is fired via a single atomic
+    # SQLite claim — see mediahub.scheduler / mediahub.workflow.schedule.
+    try:
+        from mediahub.scheduler import start_scheduler
+
+        start_scheduler()
+    except Exception:
+        log.warning("scheduler did not start", exc_info=True)
+
     return app
 
 
