@@ -10,6 +10,7 @@ Consumed by :mod:`mediahub.media_ai.llm_providers`. Kept separate from any
 network code so the routing logic is trivially unit-testable and so the
 deterministic "which model for which surface" decision stays in one place.
 """
+
 from __future__ import annotations
 
 import os
@@ -18,16 +19,26 @@ from typing import Optional
 
 # Content types whose output is read directly by an end audience and so
 # justify the premium model. Everything else defaults to the cheap model.
-HERO_CONTENT_TYPES = frozenset({
-    "caption", "caption_live", "spotlight", "athlete_spotlight",
-    "meet_recap", "recap", "story", "creative_direction", "brand_voice",
-})
+HERO_CONTENT_TYPES = frozenset(
+    {
+        "caption",
+        "caption_live",
+        "spotlight",
+        "athlete_spotlight",
+        "meet_recap",
+        "recap",
+        "story",
+        "creative_direction",
+        "brand_voice",
+    }
+)
 
 
 @dataclass(frozen=True)
 class ModelChoice:
     """A resolved model decision: the model name and whether it's the premium
     tier (used to decide whether a premium retry is still available)."""
+
     model: str
     premium: bool
 
@@ -38,6 +49,7 @@ def _env_or_secret(env_name: str, secret_name: str) -> Optional[str]:
         return v.strip()
     try:
         from mediahub.web.secrets_store import get_secret
+
         s = get_secret(secret_name)
         return s.strip() if s and s.strip() else None
     except Exception:
@@ -54,9 +66,9 @@ def models_from_env() -> tuple[Optional[str], Optional[str], dict]:
     """
     cheap = _env_or_secret("MEDIAHUB_LLM_MODEL_CHEAP", "mediahub_llm_model_cheap")
     premium = _env_or_secret("MEDIAHUB_LLM_MODEL_PREMIUM", "mediahub_llm_model_premium")
-    overrides_raw = _env_or_secret(
-        "MEDIAHUB_LLM_MODEL_OVERRIDES", "mediahub_llm_model_overrides"
-    ) or ""
+    overrides_raw = (
+        _env_or_secret("MEDIAHUB_LLM_MODEL_OVERRIDES", "mediahub_llm_model_overrides") or ""
+    )
     overrides: dict = {}
     for pair in overrides_raw.split(","):
         pair = pair.strip()
@@ -69,8 +81,7 @@ def models_from_env() -> tuple[Optional[str], Optional[str], dict]:
     return cheap, premium, overrides
 
 
-def select_model(content_type, *, cheap=None, premium=None,
-                 overrides=None) -> ModelChoice:
+def select_model(content_type, *, cheap=None, premium=None, overrides=None) -> ModelChoice:
     """Pick the model for ``content_type``.
 
     Precedence: explicit per-type override > hero-type => premium > cheap.
@@ -103,6 +114,9 @@ def premium_fallback(choice, *, cheap=None, premium=None) -> Optional[ModelChoic
 
 
 __all__ = [
-    "HERO_CONTENT_TYPES", "ModelChoice",
-    "models_from_env", "select_model", "premium_fallback",
+    "HERO_CONTENT_TYPES",
+    "ModelChoice",
+    "models_from_env",
+    "select_model",
+    "premium_fallback",
 ]

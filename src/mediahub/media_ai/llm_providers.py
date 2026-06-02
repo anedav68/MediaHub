@@ -13,6 +13,7 @@ Model routing (cheap vs premium per content type) is delegated to
 
 Inert unless ``MEDIAHUB_LLM_ENDPOINTS`` is configured.
 """
+
 from __future__ import annotations
 
 import logging
@@ -52,7 +53,9 @@ def call_openai(messages, system, max_tokens, *, content_type=None) -> Optional[
     if not choice.model:
         # Endpoints are configured but no model name is — we can't route.
         _log_call(
-            provider="openai", ok=False, model=None,
+            provider="openai",
+            ok=False,
+            model=None,
             error_kind="no_model",
             error_message="MEDIAHUB_LLM_MODEL_CHEAP / _PREMIUM unset",
         )
@@ -68,13 +71,18 @@ def call_openai(messages, system, max_tokens, *, content_type=None) -> Optional[
         started = time.monotonic()
         try:
             result = client.chat(
-                messages, model=attempt.model, system=system,
+                messages,
+                model=attempt.model,
+                system=system,
                 max_completion_tokens=max_tokens,
             )
             text = (result.text or "").strip() or None
             _log_call(
-                provider="openai", ok=bool(text), model=attempt.model,
-                tokens_in=result.tokens_in, tokens_out=result.tokens_out,
+                provider="openai",
+                ok=bool(text),
+                model=attempt.model,
+                tokens_in=result.tokens_in,
+                tokens_out=result.tokens_out,
                 duration_ms=(time.monotonic() - started) * 1000.0,
                 error_kind=None if text else "empty_response",
                 error_message=None if text else "endpoint returned no text",
@@ -85,9 +93,12 @@ def call_openai(messages, system, max_tokens, *, content_type=None) -> Optional[
             msg = _redact_key(str(e), key)
             log.warning("openai-compat call failed (%s): %s", attempt.model, msg)
             _log_call(
-                provider="openai", ok=False, model=attempt.model,
+                provider="openai",
+                ok=False,
+                model=attempt.model,
                 duration_ms=(time.monotonic() - started) * 1000.0,
-                error_kind=type(e).__name__, error_message=msg,
+                error_kind=type(e).__name__,
+                error_message=msg,
             )
             continue
     return None

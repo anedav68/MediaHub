@@ -29,6 +29,7 @@ There are no heuristic fallbacks here: a failed call raises
 :class:`OpenAICompatError` so the caller can fail honestly, consistent with
 MediaHub's no-fake-content rule.
 """
+
 from __future__ import annotations
 
 import json
@@ -46,9 +47,24 @@ DEFAULT_TIMEOUT = 45.0
 # a cheap heuristic by :meth:`OpenAICompatClient.supports_tools` before falling
 # back to a live ``/models`` probe.
 _TOOL_CAPABLE_HINTS = (
-    "gpt-4", "gpt-4o", "gpt-3.5", "o1", "o3", "o4",
-    "llama-3", "llama3", "llama-4", "mixtral", "mistral", "ministral",
-    "qwen", "deepseek", "command-r", "firefunction", "gemma-2", "gemma2",
+    "gpt-4",
+    "gpt-4o",
+    "gpt-3.5",
+    "o1",
+    "o3",
+    "o4",
+    "llama-3",
+    "llama3",
+    "llama-4",
+    "mixtral",
+    "mistral",
+    "ministral",
+    "qwen",
+    "deepseek",
+    "command-r",
+    "firefunction",
+    "gemma-2",
+    "gemma2",
 )
 
 # Statuses worth retrying on the next configured endpoint. Everything else
@@ -64,6 +80,7 @@ class OpenAICompatError(RuntimeError):
 class ChatResult:
     """A single chat completion. ``raw`` carries the full decoded response so
     tool-calling callers can read ``choices[0].message.tool_calls``."""
+
     text: str
     model: str = ""
     raw: dict = field(default_factory=dict)
@@ -94,8 +111,7 @@ class OpenAICompatClient:
     ``None`` for keyless local servers (the Authorization header is omitted).
     """
 
-    def __init__(self, endpoints, api_key=None, *, timeout=DEFAULT_TIMEOUT,
-                 default_model=None):
+    def __init__(self, endpoints, api_key=None, *, timeout=DEFAULT_TIMEOUT, default_model=None):
         self.endpoints = [e.rstrip("/") for e in (endpoints or []) if e and e.strip()]
         if not self.endpoints:
             raise ValueError("OpenAICompatClient requires at least one endpoint URL")
@@ -137,8 +153,17 @@ class OpenAICompatClient:
         )
 
     # -- public API ---------------------------------------------------------
-    def chat(self, messages, *, model=None, system=None, max_completion_tokens=1024,
-             tools=None, temperature=0.7, extra=None) -> ChatResult:
+    def chat(
+        self,
+        messages,
+        *,
+        model=None,
+        system=None,
+        max_completion_tokens=1024,
+        tools=None,
+        temperature=0.7,
+        extra=None,
+    ) -> ChatResult:
         """POST a chat completion, failing over across endpoints.
 
         Non-transient statuses (e.g. 400/401/404) raise immediately;
@@ -166,14 +191,14 @@ class OpenAICompatClient:
             is_last = i == len(self.endpoints) - 1
             url = f"{endpoint}/chat/completions"
             try:
-                r = requests.post(url, json=payload, headers=self._headers(),
-                                  timeout=self.timeout)
+                r = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             except Exception as e:
                 last_err = OpenAICompatError(f"transport error to {_host(endpoint)}: {e}")
                 if is_last:
                     raise last_err from e
-                log.warning("openai-compat transport error (%s); trying next endpoint",
-                            _host(endpoint))
+                log.warning(
+                    "openai-compat transport error (%s); trying next endpoint", _host(endpoint)
+                )
                 continue
             if r.status_code == 200:
                 return self._parse_chat(r.json(), use_model)
@@ -183,12 +208,23 @@ class OpenAICompatClient:
             if not _is_transient_status(r.status_code) or is_last:
                 raise err
             last_err = err
-            log.warning("openai-compat HTTP %s from %s; trying next endpoint",
-                        r.status_code, _host(endpoint))
+            log.warning(
+                "openai-compat HTTP %s from %s; trying next endpoint",
+                r.status_code,
+                _host(endpoint),
+            )
         raise last_err or OpenAICompatError("all endpoints failed")
 
-    def stream_chat(self, messages, *, model=None, system=None,
-                    max_completion_tokens=1024, temperature=0.7, extra=None) -> Iterator[str]:
+    def stream_chat(
+        self,
+        messages,
+        *,
+        model=None,
+        system=None,
+        max_completion_tokens=1024,
+        temperature=0.7,
+        extra=None,
+    ) -> Iterator[str]:
         """Yield content deltas from a streaming completion (SSE).
 
         Streaming uses the first endpoint only — mid-stream failover can't be
@@ -212,8 +248,9 @@ class OpenAICompatClient:
         endpoint = self.endpoints[0]
         url = f"{endpoint}/chat/completions"
         try:
-            r = requests.post(url, json=payload, headers=self._headers(),
-                              timeout=self.timeout, stream=True)
+            r = requests.post(
+                url, json=payload, headers=self._headers(), timeout=self.timeout, stream=True
+            )
         except Exception as e:
             raise OpenAICompatError(f"transport error to {_host(endpoint)}: {e}") from e
         if r.status_code != 200:
@@ -225,7 +262,7 @@ class OpenAICompatClient:
                 continue
             if not line.startswith("data:"):
                 continue
-            data = line[len("data:"):].strip()
+            data = line[len("data:") :].strip()
             if data == "[DONE]":
                 break
             try:
@@ -252,10 +289,9 @@ class OpenAICompatClient:
 
         ids: set = set()
         try:
-            r = requests.get(f"{endpoint}/models", headers=self._headers(),
-                             timeout=self.timeout)
+            r = requests.get(f"{endpoint}/models", headers=self._headers(), timeout=self.timeout)
             if r.status_code == 200:
-                for m in (r.json().get("data") or []):
+                for m in r.json().get("data") or []:
                     mid = m.get("id")
                     if mid:
                         ids.add(str(mid).lower())
@@ -295,8 +331,7 @@ class OpenAICompatClient:
         endpoint = self.endpoints[0]
         url = f"{endpoint}/embeddings"
         try:
-            r = requests.post(url, json=payload, headers=self._headers(),
-                              timeout=self.timeout)
+            r = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
         except Exception as e:
             raise OpenAICompatError(f"transport error to {_host(endpoint)}: {e}") from e
         if r.status_code != 200:
@@ -310,6 +345,7 @@ class OpenAICompatClient:
 # Env-driven construction
 # ---------------------------------------------------------------------------
 
+
 def endpoints_from_env() -> list[str]:
     """Parse ``MEDIAHUB_LLM_ENDPOINTS`` (env, then secrets_store) into a list.
 
@@ -319,6 +355,7 @@ def endpoints_from_env() -> list[str]:
     if not raw.strip():
         try:
             from mediahub.web.secrets_store import get_secret
+
             raw = get_secret("mediahub_llm_endpoints") or ""
         except Exception:
             raw = ""
@@ -335,6 +372,7 @@ def resolve_openai_key() -> Optional[str]:
         return env.strip()
     try:
         from mediahub.web.secrets_store import get_secret
+
         v = get_secret("mediahub_llm_api_key")
         return v.strip() if v and v.strip() else None
     except Exception:
@@ -365,6 +403,10 @@ def client_from_env(*, default_model=None) -> Optional[OpenAICompatClient]:
 
 
 __all__ = [
-    "OpenAICompatClient", "ChatResult", "OpenAICompatError",
-    "endpoints_from_env", "resolve_openai_key", "client_from_env",
+    "OpenAICompatClient",
+    "ChatResult",
+    "OpenAICompatError",
+    "endpoints_from_env",
+    "resolve_openai_key",
+    "client_from_env",
 ]

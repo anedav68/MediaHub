@@ -102,6 +102,7 @@ def _preferred_pref() -> str:
     `anthropic` is accepted as an alias for `claude` so MEDIAHUB_LLM_PROVIDER
     carries the same meaning here as it does in media_ai.llm.
     """
+
     def _norm(v: str) -> str:
         v = (v or "").strip().lower()
         return "claude" if v == "anthropic" else v
@@ -541,9 +542,7 @@ def _ask_openai_with_tools(
             convo.tool_calls.append(
                 ToolCallRecord(name=name, input=args, result=r_str, provider="openai")
             )
-            messages.append(
-                {"role": "tool", "tool_call_id": tc.get("id", ""), "content": r_str}
-            )
+            messages.append({"role": "tool", "tool_call_id": tc.get("id", ""), "content": r_str})
     convo.text = "(the model is still gathering evidence; try a smaller question.)"
     return convo
 
