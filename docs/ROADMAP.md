@@ -65,7 +65,10 @@ This roadmap stays current automatically. A GitHub Action
 ([`.github/workflows/roadmap-autoupdate.yml`](../.github/workflows/roadmap-autoupdate.yml),
 backed by [`scripts/roadmap_autoupdate.py`](../scripts/roadmap_autoupdate.py))
 refreshes the stamp and activity feed below on **every push to `main`**, and
-flips an item's status badge when a commit message contains a directive line:
+flips an item's status badge when a commit message contains a directive line.
+These directives are **human-authored** — the autonomous roadmap builder that
+used to emit them was removed in #214; the script still applies any you write by
+hand in a commit message:
 
 > `roadmap: <ID> <status>` — where `<ID>` is a new phase (`P0`, `P3`) or item
 > (`P0.1`, `P1.2`), a legacy phase (`1.6`, `2.1`), or an Appendix item (`PAR-1`,
