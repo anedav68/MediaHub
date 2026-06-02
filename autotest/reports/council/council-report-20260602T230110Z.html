@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Council verdict — in-process scheduler (exactly-once under 2 workers)</title>
+<style>
+  :root { --ink:#1a1d24; --muted:#5b6270; --line:#e4e7ec; --bg:#fbfcfd; --accent:#2f6f4f; --warn:#b4541a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  .wrap { max-width:860px; margin:0 auto; padding:40px 24px 80px; }
+  h1 { font-size:25px; margin:0 0 6px; letter-spacing:-0.01em; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:26px; }
+  .q { background:#fff; border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:16px 18px; margin-bottom:26px; font-size:15px; }
+  .q b { display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); margin-bottom:6px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin:32px 0 12px; }
+  .verdict { background:#fff; border:1px solid var(--line); border-radius:12px; padding:8px 22px 18px; }
+  .verdict h3 { font-size:15px; margin:18px 0 8px; }
+  .verdict ul { margin:0 0 4px; padding-left:20px; }
+  .verdict li { margin-bottom:7px; }
+  .first { background:#f0f6f2; border:1px solid #cfe3d6; border-radius:10px; padding:14px 18px; margin-top:14px; font-size:15px; }
+  .first b { color:var(--accent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:6px 0 4px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:9px; padding:11px 13px; font-size:13px; }
+  .card .who { font-weight:650; margin-bottom:3px; }
+  .pick { font-size:12px; font-weight:650; padding:1px 7px; border-radius:999px; background:#e7f1ec; color:var(--accent); }
+  code { background:#f3f4f6; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  details { background:#fff; border:1px solid var(--line); border-radius:9px; margin-bottom:9px; padding:2px 14px; }
+  summary { cursor:pointer; padding:10px 0; font-weight:600; font-size:14px; }
+  details p { margin:4px 0 12px; font-size:14px; color:#2c313b; }
+  .foot { color:var(--muted); font-size:12px; margin-top:36px; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>In-process scheduler &mdash; fire exactly once</h1>
+  <div class="sub">LLM Council verdict &middot; 2026-06-02 &middot; MediaHub Section 6 step 4 (Scheduler + Notifier)</div>
+
+  <div class="q">
+    <b>The decision</b>
+    How to run an in-process job scheduler so each job fires <b style="display:inline">exactly once</b>, given <b style="display:inline">2 Gunicorn workers</b> that also <b style="display:inline">recycle every ~200 requests</b>, at <b style="display:inline">£0</b> (SQLite + threads only). Phase-2 future: scheduled human-approved posting, where a double-post is catastrophic.
+  </div>
+
+  <h2>Advisor positions</h2>
+  <div class="grid">
+    <div class="card"><div class="who">First Principles</div><span class="pick">B</span> &mdash; reframe: idempotent, keyed by (task, slot)</div>
+    <div class="card"><div class="who">Executor</div><span class="pick">B</span> &mdash; INSERT on UNIQUE = the claim</div>
+    <div class="card"><div class="who">Contrarian</div><span class="pick">B</span> &mdash; claim &ne; completion; no TTL reset</div>
+    <div class="card"><div class="who">Outsider</div><span class="pick">B</span> &mdash; "run only if I won the race"</div>
+    <div class="card"><div class="who">Expansionist</div><span class="pick">B</span> &mdash; same primitive the autonomy runner needs</div>
+  </div>
+  <div class="sub" style="margin-top:10px">Unanimous on Option B (per-job atomic claim). Leader election and file-lock both rejected. Peer review unanimously folded in the Contrarian's claim-vs-completion correction.</div>
+
+  <h2>Chairman verdict</h2>
+  <div class="verdict">
+    <h3>Agree</h3>
+    <ul>
+      <li><b>Per-job atomic claim, not leader election or file lock.</b> The claim <em>is</em> the mutex; there's no "leader" to reason about, and worker recycling becomes a non-event.</li>
+      <li><b>The primitive:</b> <code>INSERT &hellip; ON CONFLICT(task_id, fire_time_utc) DO NOTHING</code> &mdash; one atomic write, SQLite serialises writers, the loser skips. Not a read-modify-write <code>UPDATE</code>.</li>
+      <li><b>Reframe:</b> not impossible "exactly-once delivery" but <b>idempotent execution keyed by (task, scheduled slot)</b> &mdash; the <em>outcome</em> happens once.</li>
+      <li><b>fire_time = canonical scheduled slot in UTC</b> (timezone-aware croniter), never wall-clock, so every worker computes the same dedup key.</li>
+      <li>Execute <b>off the tick thread</b> (existing <code>threading.Thread</code> model); WAL + <code>busy_timeout</code>; claim txn = one insert.</li>
+    </ul>
+    <h3>Clash &rarr; resolved</h3>
+    <ul>
+      <li><b>Recovering a dead worker's <code>running</code> row:</b> a TTL <code>_reap_stale</code> that auto-resets it is the <b>double-post catastrophe</b> (any TTL that recovers a real crash also re-fires a job whose effect already happened). <b>Resolution: never auto-reset.</b> Recover deterministically; <code>failed</code>/<code>interrupted</code> are terminal, human-reviewed.</li>
+      <li><b>Tick mechanism:</b> a daemon tick in every worker (the claim dedups, so multiple tickers are safe) <b>+ startup catch-up</b> &mdash; covers the brief "both recycling" gap.</li>
+    </ul>
+    <h3>Blind spots caught (all folded in)</h3>
+    <ul>
+      <li><b>SIGTERM &rarr; explicit completion.</b> A recycling worker marks its in-flight runs <code>interrupted</code> <em>before</em> it dies &mdash; closes the orphaned-row gap at £0, removes the need for TTL reset.</li>
+      <li><b>Claim &ne; completion.</b> <code>done</code> is written only <em>after</em> the work (Phase 2: confirmed external success), in try/finally that records <code>failed</code> explicitly.</li>
+      <li><b>DST/timezone:</b> store + dedup on UTC; a naive-local slot double-fires across a DST boundary.</li>
+      <li><b>Phase-2 idempotency may not exist</b> on the target platform &mdash; the completion-after-success discipline + human approval is the only guard.</li>
+    </ul>
+    <div class="first">
+      <b>The one thing to do first:</b> nail the claim primitive + its dedup key &mdash; a single <code>INSERT &hellip; ON CONFLICT(task_id, fire_time_utc) DO NOTHING</code> that reports whether this worker won &mdash; with the regression test that <b>8 concurrent threads (2 workers &times; 4) racing the same slot yield exactly one winner</b>. Everything else hangs off that.
+    </div>
+  </div>
+
+  <h2>Full advisor responses</h2>
+  <details><summary>First Principles Thinker</summary><p>The question is framed wrong &mdash; "exactly-once delivery" is unsolvable; you need idempotent execution keyed by (task_id, fire_time). One row per (task_id, fire_time) via <code>INSERT OR IGNORE</code> on a UNIQUE constraint; every worker ticks, first insert wins, others skip. No leader/lock/TTL. Recycling is a non-problem. Catch-up scans ~4h on startup. Phase-2: this is exactly-once <em>claim</em> not <em>effect</em> &mdash; add <code>completed_at</code> written after the external success, try/finally, mark failed explicitly.</p></details>
+  <details><summary>Executor</summary><p>Schema <code>scheduled_tasks</code> + <code>scheduled_runs UNIQUE(task_id,fire_time)</code>; claim = INSERT, IntegrityError = lost; lock-free. fire_time = canonical croniter slot. Tick every worker 45s; spawn a daemon thread to run; WAL + busy_timeout=5000. 8-thread race test &rarr; one winner. Phase-2: run_id dedup before the external HTTP call.</p></details>
+  <details><summary>Contrarian</summary><p>None give exactly-once in Phase 2. SIGTERM on recycle kills the mid-API-call daemon thread &rarr; row stuck <code>running</code> &rarr; TTL takeover resets &rarr; re-posts. The TTL reset is the catastrophe. Fix: separate claim from completion; completed only after a committed row AND a confirmed success; never auto-reset; explicit failed. Phase-2 idempotency must live on the destination platform &mdash; the ledger can be lost, the post can't be unposted.</p></details>
+  <details><summary>Outsider</summary><p>B is simplest to reason about: no "leader" &mdash; every copy claims atomically and runs only if it won. Optimistic locking; restarts irrelevant. Leader-election foot-gun: the leader dies mid-job and the successor can't tell if it ran. flock fragile. Name it <code>due_jobs</code>, states <code>pending&rarr;claimed&rarr;done&rarr;failed</code>; avoid leader/master/heartbeat.</p></details>
+  <details><summary>Expansionist</summary><p>B &mdash; the claim primitive is the same one the autonomy runner (step 6) needs; build once, reuse. The run-history ledger seeds a "your week ahead" content calendar (proactive, Buffer/Later-like). <code>then_task</code> chaining = approve-Sunday pipelines, any sport. Net-new: scheduled re-ingest against a live results-feed URL &mdash; the zero-human flywheel.</p></details>
+
+  <div class="foot">Methodology: Karpathy's LLM Council (5 advisors &rarr; anonymous peer review &rarr; chairman). Counciled: in-process scheduler single-fire under 2 recycling workers. Transcript: council-transcript-20260602T230110Z.md</div>
+</div>
+</body>
+</html>
