@@ -47,3 +47,8 @@ numpy>=1.24
 # data/sport_profiles/*.yaml files. PyYAML is MIT-licensed and free; the loader is
 # inert scaffolding (not yet wired into the runtime pipeline).
 PyYAML>=6.0
+
+# Scheduler (mediahub.scheduler / mediahub.workflow.schedule) uses croniter to
+# compute cron / daily / weekly / monthly fire-times. croniter is MIT-licensed,
+# maintained under the Pallets-Eco (Flask) org; deps python-dateutil + pytz.
+croniter>=2.0

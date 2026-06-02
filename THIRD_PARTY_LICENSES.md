@@ -30,6 +30,18 @@ search queries.
   upstream repository (https://github.com/searxng/searxng) at that ref. Its
   transitive dependencies carry their own licenses via their distributions.
 
+## Scheduler — croniter (Capability: scheduling)
+
+The in-process scheduler (`mediahub.scheduler`, `mediahub.workflow.schedule`)
+uses **croniter** to compute cron / daily / weekly / monthly fire-times. It is a
+**registry dependency** (installed from PyPI via `requirements.txt`), not
+vendored source — its upstream notice is retained here for completeness:
+
+- **croniter** — © the croniter authors, maintained under **Pallets-Eco** —
+  **MIT License** (https://github.com/pallets-eco/croniter). Transitive
+  dependencies (`python-dateutil`, `pytz`) carry their own licenses via their
+  distributions.
+
 ---
 
 _When a future change vendors third-party source (as opposed to a registry
