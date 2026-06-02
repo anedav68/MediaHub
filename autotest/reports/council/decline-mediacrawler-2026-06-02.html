@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LLM Council — MediaCrawler integration (Decline)</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --panel:#ffffff; --ink:#1b1b1a; --muted:#6b6b66;
+    --line:#e6e5e1; --accent:#b3261e; --good:#1f7a4d; --chip:#f1efea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:860px;margin:0 auto;padding:40px 22px 80px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:30px;line-height:1.15;margin:.25em 0 .1em}
+  h2{font-size:20px;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--line)}
+  .verdict{display:inline-block;margin-top:10px;padding:6px 14px;border-radius:999px;
+    background:#fbe9e7;color:var(--accent);font-weight:700;font-size:14px;
+    border:1px solid #f3c9c4}
+  .q{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:18px 0;color:#37372f}
+  .q b{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 13px}
+  .card .nm{font-weight:700;font-size:14px}
+  .card .vt{margin-top:6px;font-size:12px;font-weight:700;color:var(--accent);
+    text-transform:uppercase;letter-spacing:.06em}
+  .card .ln{margin-top:6px;font-size:13px;color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:6px 20px;margin:12px 0}
+  details{border-top:1px solid var(--line);padding:12px 0}
+  details:first-of-type{border-top:none}
+  summary{cursor:pointer;font-weight:600;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ ";color:var(--accent)}
+  details[open] summary::before{content:"▾ "}
+  .body{margin:10px 2px 4px;color:#33332d}
+  ul{margin:.3em 0 .6em;padding-left:1.15em}
+  li{margin:.28em 0}
+  .rec{background:#f3f8f5;border:1px solid #cfe6da;border-radius:12px;padding:16px 20px;margin:14px 0}
+  .rec h2{border:none;margin-top:.2em;color:var(--good)}
+  .first{background:#1b1b1a;color:#fff;border-radius:12px;padding:16px 20px;margin:18px 0}
+  .first b{color:#ffd9d4}
+  footer{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
+  code{background:var(--chip);padding:1px 5px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">LLM Council · llm-council skill · 2026-06-02</div>
+  <h1>Should MediaHub integrate MediaCrawler?</h1>
+  <div class="verdict">VERDICT — DECLINE (unanimous, 5 / 5)</div>
+
+  <div class="q">
+    <b>The question.</b> Where would integrating
+    <a href="https://github.com/NanmiCoder/MediaCrawler">NanmiCoder/MediaCrawler</a>
+    be helpful — and should it be integrated at all? MediaCrawler is a Python +
+    Playwright crawler that keeps <b>logged-in sessions</b> to scrape <b>7 Chinese
+    platforms only</b> (Xiaohongshu, Douyin, Kuaishou, Bilibili, Weibo, Tieba,
+    Zhihu), under a custom <b>"Non-Commercial Learning License 1.1"</b> that
+    prohibits commercial use. MediaHub is a commercial UK/EU swimming-club SaaS
+    (Instagram/Facebook/TikTok) whose moat is being explainable, auditable, GDPR-
+    clean and human-approved — and which <b>already</b> has a polite brand-voice
+    learner (<code>brand/link_learners</code>) and a human-gated
+    <code>publishing/</code> subsystem.
+  </div>
+
+  <h2>Where the advisors landed</h2>
+  <div class="grid">
+    <div class="card"><div class="nm">The Contrarian</div><div class="vt">Decline</div>
+      <div class="ln">License is an absolute bar; platform mismatch total; <code>link_learners</code> already superior.</div></div>
+    <div class="card"><div class="nm">First Principles</div><div class="vt">Decline</div>
+      <div class="ln">Wrong question — solves a problem MediaHub doesn't have; it ingests results &amp; publishes, doesn't scrape.</div></div>
+    <div class="card"><div class="nm">The Expansionist</div><div class="vt">Decline</div>
+      <div class="ln">Bull case is zero; any value needs a different company; no CDP pattern worth importing.</div></div>
+    <div class="card"><div class="nm">The Outsider</div><div class="vt">Decline</div>
+      <div class="ln">Secret logged-in crawling is the opposite of "the trustworthy one"; carve-out is incoherent.</div></div>
+    <div class="card"><div class="nm">The Executor</div><div class="vt">Decline</div>
+      <div class="ln">Monday path dead-ends before step 3; license, zero overlap, multi-tenant cookie/IDOR nightmare.</div></div>
+  </div>
+
+  <h2>Where the council agrees</h2>
+  <ul>
+    <li><b>License is disqualifying</b> — non-commercial licence cannot ship in a paid SaaS (identical to the 9router decline).</li>
+    <li><b>Platform mismatch is total</b> — 7 Chinese platforms vs UK/EU clubs on Instagram/Facebook/TikTok/X. Zero overlap.</li>
+    <li><b>The one plausible use is already solved, better</b> — <code>brand/link_learners</code> learns club voice via polite public reads (og:meta / oembed), GDPR-safe and auditable.</li>
+    <li><b>It contradicts the moat</b> — logged-in anti-bot crawling is "proper ingestion, never evasion" (the CloakBrowser verdict) all over again.</li>
+  </ul>
+
+  <h2>Where the council clashes</h2>
+  <ul>
+    <li><b>Category error vs compliance failure</b> — First Principles says MediaCrawler solves a non-problem; the others lead with license/ToS/platform. Both right, complementary.</li>
+    <li><b>"Not even a council question"</b> — the Contrarian's "just existing policy" was flagged as circular: the council is what confirms the 9router/CloakBrowser reasoning transfers (it does).</li>
+    <li><b>Nuance:</b> MediaHub <i>does</i> read public pages politely — the real line is <b>polite public read vs logged-in session scrape</b>, not crawl vs no-crawl.</li>
+  </ul>
+
+  <h2>Blind spots the peer review caught</h2>
+  <ul>
+    <li><b>Supply-chain / dependency hygiene (unanimous new point).</b> Even <i>vendoring or listing</i> MediaCrawler — never calling it — drags session-persistence / anti-detection code and transitive deps into the production container, creating audit &amp; ToS exposure <i>by association</i>. Prohibit listing it even as an optional/dev dep; candidate for a CI / SBOM guard.</li>
+    <li><b>Need a durable principle</b>, not "no need today," so a future "benchmarking/trend-scraping" ask doesn't reopen it.</li>
+    <li><b>The safest "learn our voice" supply is consensual</b> — club-uploaded exemplars (<code>exemplar_post</code>) moot crawling entirely.</li>
+  </ul>
+
+  <div class="rec">
+    <h2>The recommendation</h2>
+    <p><b>Decline.</b> Do not integrate, vendor, or list MediaCrawler in any form,
+    now or "for later." Record it as an ADR in the CloakBrowser/9router series.
+    Grow the polite <code>brand/link_learners</code> path or accept club-uploaded
+    exemplars for any future "learn our voice" need — never a logged-in / anti-bot
+    crawler.</p>
+  </div>
+
+  <div class="first">
+    <b>The one thing to do first.</b> Write
+    <code>docs/adr/0002-decline-mediacrawler-integration.md</code> (done), and open a
+    follow-up to add a CI dependency-policy / SBOM check that blocks
+    non-commercial-licensed and anti-detection packages from the dependency graph —
+    the same guard the CloakBrowser ADR already left as a follow-up.
+  </div>
+
+  <h2>Full advisor responses</h2>
+  <div class="panel">
+    <details><summary>The Contrarian — three kill shots</summary>
+      <div class="body">A dead deal. (1) The license is an absolute bar — "Non-Commercial Learning License 1.1" explicitly prohibits commercial use; MediaHub charges money; no grey zone, identical to the 9router decline. (2) Platform mismatch is total — zero of MediaHub's platforms; you cannot carve a use case from a tool that serves none of your use cases. (3) <code>brand/link_learners</code> already exists and is architecturally superior — polite, oembed/meta-based, GDPR-safe, ToS-compliant, auditable. A crawler that "bypasses anti-bot defences" contradicts the GDPR-cleanliness and auditability that justify the pricing premium. Decline. Write the ADR.</div>
+    </details>
+    <details><summary>First Principles — the wrong question</summary>
+      <div class="body">"Should MediaHub integrate MediaCrawler?" is the wrong question. What problem does MediaHub actually have? Its moat is structured data in → intelligence → branded content out; the club provides results files; it never needed to crawl. MediaCrawler adds Chinese platforms + logged-in scraping — the antithesis of the GDPR-clean, auditable, source-grounded promise. The "brand voice learning" use is already solved by <code>link_learners</code>; no gap. The trap is integration-for-integration's-sake — its social interaction is <i>publishing</i>, not <i>scraping</i>. Decline.</div>
+    </details>
+    <details><summary>The Expansionist — bull case is zero</summary>
+      <div class="body">Finding upside is my job, and finding none is itself a strong signal. Seven Chinese platforms vs UK/EU clubs — no overlap. Getting value would mean pivoting the whole customer base to Chinese platforms: a different company. The one angle I looked for — could CDP/session-persistence patterns inform <code>link_learners</code>? No; that design is deliberately polite, and importing evasion patterns undermines the auditability moat. The non-commercial license forecloses any commercial bull case. Decline; no carve-out.</div>
+    </details>
+    <details><summary>The Outsider — fresh eyes</summary>
+      <div class="body">A tool that secretly logs into Chinese platforms as a fake user to scrape data those platforms don't want scraped — and whose license says don't use it commercially. MediaHub's pitch is being above-board, GDPR-compliant, human-approved. Secret logged-in crawling makes them the opposite. No UK/EU swim club needs Xiaohongshu data. "Narrow carve-out" is incoherent — you can't "narrowly" log into someone's account without permission. Commercial use of a non-commercial tool is illegal use, not a gray area. It's bolting a shoplifting device onto an ethical product. Decline cleanly.</div>
+    </details>
+    <details><summary>The Executor — Monday morning</summary>
+      <div class="body">The path dead-ends before step 3. Step 1: install — you immediately hit the Non-Commercial license; commercial SaaS; over. Step 2 (ignore license): seven Chinese platforms vs Instagram/Facebook/TikTok/X — no shared target. Step 3 (ignore both): logged-in CDP sessions vs polite og:meta reads — swapping a compliant reader for a heavy session manager that violates Western ToS and needs persistent server-side cookies across multi-tenant runs: an IDOR / credential-leak nightmare. Decline. The real need is already met by <code>link_learners</code>.</div>
+    </details>
+  </div>
+
+  <h2>Peer-review highlights</h2>
+  <div class="panel">
+    <details><summary>What the reviewers concluded</summary>
+      <div class="body">
+      <p>Strongest responses split between <b>B (Outsider)</b> — names the moral
+      contradiction precisely and closes the "carve-out" as <i>incoherent</i> — and
+      <b>E (First Principles)</b> — reframes it as a category error, not just a
+      policy violation.</p>
+      <p>Biggest blind spots: <b>C (Contrarian)</b>'s "not even a council question"
+      (circular — the council is what confirms the policy transfers), and
+      <b>E</b>'s overshoot ("MediaHub never crawls" — it does read public pages
+      politely; the real line is polite-read vs logged-in-scrape).</p>
+      <p><b>What all five missed (unanimous):</b> supply-chain / dependency-hygiene
+      risk — even an uncalled, "reference-only" dependency puts anti-detection code
+      and transitive deps into the container and the audit surface. Plus: the
+      decline needs a durable cross-platform principle, and the safest voice-supply
+      is consensual club uploads.</p>
+      </div>
+    </details>
+  </div>
+
+  <footer>
+    Counciled via the <code>llm-council</code> skill (5 advisors → anonymised peer
+    review → chairman). Anonymisation: A=Expansionist, B=Outsider, C=Contrarian,
+    D=Executor, E=First Principles. Decision recorded in
+    <code>docs/adr/0002-decline-mediacrawler-integration.md</code>; full transcript
+    alongside this file. Generated 2026-06-02 (20260602T233537Z).
+  </footer>
+
+</div>
+</body>
+</html>
