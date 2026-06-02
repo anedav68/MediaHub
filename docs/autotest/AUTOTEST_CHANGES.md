@@ -150,6 +150,31 @@
 
 ---
 
+## Follow-ups landed after the initial PR (operator-directed)
+
+**Governed auto-merge for the autotest feature** — `gitops.py`, `fix_loop.py`,
+`tests/test_autonomy_tripwire.py`, `.github/CODEOWNERS`, `CHANGE_CLASSIFICATION.md`,
+`AUTONOMY_BOUNDARY.md`, `docs/adr/0005-autotest-governed-auto-merge.md`.
+- Operator directive: "make the autotest feature fully autonomous … the only place we
+  automerge." Convened the LLM Council (verdict → ADR 0005). `classify_change` is now
+  **3-way** (product / harness → auto-merge; **self-governance** → human merge), the
+  classifier protects itself, a deterministic `test_autonomy_tripwire.py` fails CI if any
+  safety net is disarmed, and `.github/CODEOWNERS` + branch protection are the
+  platform-side stop (the operator chose **Option 2**: require Code-Owner review, so a
+  human approves every bot PR; auto-merge still lands it on approval+green).
+
+**Human-merge backpressure + same-problem suppression** — `fix_loop.py`, `gitops.py`.
+- Under a human-merge policy, fix PRs await approval, so the symptom stays live and the
+  finder keeps re-seeing it. Two guards stop duplicate PRs for one problem:
+  - `_open_bugs` now seeds its near-duplicate collapse with **in-flight surfaces** (any
+    finding with a fix PR / `fixing`), so the loop won't open a 2nd PR for a problem whose
+    first fix is unmerged — even if it re-surfaces under a reworded fingerprint.
+  - `AUTOTEST_MAX_OPEN_FIX_PRS` (default 3) pauses opening NEW fix PRs while that many
+    `autotest/fix-*` PRs are already open (`gitops.count_open_fix_prs`), so they can't pile
+    up faster than they're merged. `0` disables.
+  - Tests: `tests/test_autotest_dedupe_backpressure.py` (new, 9 cases) +
+    `tests/test_autotest_change_classification.py` / `test_autonomy_tripwire.py`.
+
 ## Deviations from the spec (recorded per governance)
 
 1. **A3 excludes `verified-fixed` from regression-reopening.** The spec lists

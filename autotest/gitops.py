@@ -178,6 +178,24 @@ def _open_pr(branch: str, title: str, body: str) -> tuple[str, str]:
     return "", _classify_pr_error(err)
 
 
+def count_open_fix_prs() -> int:
+    """How many autotest fix PRs (`autotest/fix-*` head branches) are currently OPEN —
+    i.e. awaiting a merge. Used as backpressure so the loop doesn't pile up duplicate
+    PRs faster than they're merged (especially under a human-merge policy). Returns 0
+    when `gh` is unavailable or the query fails (don't throttle on an unknown count)."""
+    import shutil
+    if not shutil.which("gh"):
+        return 0
+    p = subprocess.run(
+        ["gh", "pr", "list", "--state", "open", "--limit", "200", "--json", "headRefName",
+         "--jq", '[.[] | select(.headRefName | startswith("autotest/fix-"))] | length'],
+        cwd=str(REPO_ROOT), capture_output=True, text=True)
+    try:
+        return int((p.stdout or "0").strip() or "0")
+    except ValueError:
+        return 0
+
+
 def _merge_to_main(branch: str, *, has_pr: bool, files: list[str] | None = None) -> str:
     """Arm CI-gated auto-merge for an EXISTING PR (armed by AUTOTEST_BUILD_MERGE=1).
     `gh pr merge --auto` waits for green CI so a red build never lands — but it
