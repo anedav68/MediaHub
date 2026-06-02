@@ -76,7 +76,7 @@ hand in a commit message:
 > Example commit trailer: `roadmap: P1.1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-06-02 · `d360c7673` · Merge pull request #219 from elijahkendrick04/autotest/fix-f51fbb0c9424
+**Last updated:** 2026-06-02 · `3bce3c120` · Merge pull request #220 from elijahkendrick04/claude/autotest-autonomy-followups
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -84,6 +84,7 @@ hand in a commit message:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-06-02 | `d4e8f7c4c` | autotest: backpressure + same-problem suppression for human-merged fix PRs |
 | 2026-06-02 | `0d2097a37` | fix: 'Approve all in queue' button and 100% reviewed indicator ar |
 | 2026-06-02 | `2384c9835` | autotest: governed auto-merge — 3-way classification + self-governance boundary (ADR 0005) |
 | 2026-06-02 | `131f8abf7` | autotest: persist fixer memory [skip ci] |
@@ -95,7 +96,6 @@ hand in a commit message:
 | 2026-06-02 | `260e10dcb` | docs(autotest): benchmark report, implementation prompt, change log + index links |
 | 2026-06-02 | `ed74e5429` | autotest: trust lifecycle (Tier A) + deterministic coverage (Tier B-D) |
 | 2026-06-02 | `b72348d07` | docs(readme): align with multi-sport, autonomy-first direction; fix stale facts |
-| 2026-06-02 | `4c43dbe77` | feat(autotest): ground-truth oracle — activate the dormant golden baseline (Council item 4) |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
