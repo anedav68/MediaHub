@@ -157,9 +157,9 @@ Three facts shape the work ahead.
 prompts in Appendix A; not yet built) and the sport-profile scaffolding (added this
 rebuild, inert).
 
-> **Test baseline (point-in-time):** the full suite is green — **2826 passed, 1
-> skipped** in a fully-provisioned environment (the lone skip is the opt-in
-> render-diff regression). Skips are environmental, never structural.
+> **Test baseline (point-in-time):** the full suite is green — **2836 passed, 1
+> skipped** in a fully-provisioned environment after merging `main` (the lone skip
+> is the opt-in render-diff regression). Skips are environmental, never structural.
 
 ---
 
@@ -389,7 +389,7 @@ the no-hidden-fees promise** the whole roadmap is built around.
 | Safeguarding / minors' data | ✅ locked | Isolation invariant per [`adr/0003-pilot-safety-invariant-lock.md`](adr/0003-pilot-safety-invariant-lock.md); applies with extra force to autonomous post types. |
 | Explainability & audit trail | 🔵 partial | Every step explainable; extend the run audit trail to autonomous-publish decisions (P2.3). |
 | Product design / UI polish | ❌ | Targets: Home, Add Input, Content Pack, the autonomy controls. Flask + Jinja stay. |
-| Test-suite stability | ✅ | Full suite green (2826 passed / 1 skipped at this rebuild). Keep green. |
+| Test-suite stability | ✅ | Full suite green (2836 passed / 1 skipped after merging main). Keep green. |
 | Operator deployment template | ✅ | `render.yaml` + `.env.example` canonical; one-click Render deploy works. |
 
 ---

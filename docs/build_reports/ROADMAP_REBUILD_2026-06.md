@@ -43,7 +43,8 @@ Evidence base: [`../research/ROADMAP_RESEARCH_2026.md`](../research/ROADMAP_RESE
   the old name).
 
 **Verification**
-- Full suite green: **2826 passed / 1 skipped** baseline; +23 new sport-profile tests.
+- Full suite green: **2826 passed / 1 skipped** baseline at rebuild; **2836 passed /
+  1 skipped** after merging `main` (PR214), including the 23 new sport-profile tests.
 - All seven pre-commit hooks pass on the changed files (trailing-whitespace, EOF,
   large-files, check-yaml, merge-conflict, ruff, ruff-format).
 - The new roadmap IDs (`P0`–`P5`, `P0.1`…) and the legacy IDs (`PAR-*`, `SEQ-*`,
