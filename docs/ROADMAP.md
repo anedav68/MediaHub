@@ -76,7 +76,7 @@ hand in a commit message:
 > Example commit trailer: `roadmap: P1.1 done`.
 
 <!-- ROADMAP:LAST_UPDATED -->
-**Last updated:** 2026-06-02 · `2ca4ad0d5` · Merge pull request #214 from elijahkendrick04/claude/awesome-wright-6JCYk
+**Last updated:** 2026-06-02 · `617d7f5a1` · Merge pull request #213 from elijahkendrick04/claude/beautiful-brown-oAjpg
 <!-- /ROADMAP:LAST_UPDATED -->
 
 **Recent activity**
@@ -84,18 +84,18 @@ hand in a commit message:
 <!-- ROADMAP:ACTIVITY -->
 | Date | Commit | Summary |
 |---|---|---|
+| 2026-06-02 | `cf2610c58` | docs: refresh test-count notes to post-merge figure (2836 passed / 1 skipped) |
+| 2026-06-02 | `f139f4931` | docs(roadmap): note roadmap directives are human-authored (autobuilder removed in #214) |
+| 2026-06-01 | `8572c4ec4` | Add trailing newline to renamed research report (pre-commit EOF hook) |
 | 2026-06-01 | `d40d673c6` | Remove the autobuilder; extract shared git/PR plumbing to gitops |
+| 2026-06-01 | `49fd619e4` | Add roadmap-rebuild CHANGES summary + next-session backlog |
+| 2026-06-01 | `bf46b5217` | Rebuild ROADMAP around Phase 0-5 multi-sport, autonomy-first strategy |
+| 2026-06-01 | `30c6523be` | Add inert sport_profiles scaffolding (typed loader + AutonomyLevel + 2 profiles) |
 | 2026-06-01 | `499a94083` | test: add real /review route regression for the progress-denominator fix |
 | 2026-06-02 | `0e4dbdc04` | Rebuild |
 | 2026-06-01 | `0fa7633ea` | autotest: persist fixer memory [skip ci] |
 | 2026-06-01 | `2f1f20d0e` | fix: 'REVIEWED 3/3 = 100%' contradicts 54 cards still in queue — |
 | 2026-06-01 | `828cdcb8a` | autotest: refresh bug report [skip ci] |
-| 2026-06-01 | `95f260688` | autopilot: persist builder state [skip ci] |
-| 2026-06-01 | `eb077b923` | autotest: persist fixer memory [skip ci] |
-| 2026-06-01 | `6d1d6abb0` | fix: All 12 cards have empty captions |
-| 2026-06-01 | `4cd98502d` | autotest: refresh bug report [skip ci] |
-| 2026-06-01 | `89958737f` | autopilot: persist builder state [skip ci] |
-| 2026-06-01 | `d995c75cf` | autotest: persist fixer memory [skip ci] |
 <!-- /ROADMAP:ACTIVITY -->
 
 ---
