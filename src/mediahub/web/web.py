@@ -8412,6 +8412,7 @@ def create_app() -> Flask:
             # so resolve it through the canonical resolver here: the manual
             # slot wins per-slot, falling back to the AI's extracted pick.
             from mediahub.brand.palette import effective_palette as _effective_palette
+
             _resolved_palette = _effective_palette(
                 manual=getattr(active_prof, "brand_palette_manual", {}) or {},
                 extracted=getattr(active_prof, "brand_palette_extracted", {}) or {},
