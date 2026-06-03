@@ -5998,6 +5998,12 @@ def _layout(title: str, body: str, active: str = "home") -> str:
 <meta name="format-detection" content="telephone=no" />
 <title>{{ title }} &mdash; MediaHub</title>
 <link rel="icon" type="image/svg+xml" href="{{ url_for('favicon') }}" />
+<link rel="manifest" href="{{ url_for('web_manifest') }}" />
+<link rel="apple-touch-icon" href="{{ url_for('favicon') }}" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="MediaHub" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="application-name" content="MediaHub" />
 <!-- Self-hosted typefaces (Council verdict 2026-05-31): first-party woff2, no
      Google Fonts CDN. Fixes the intermittent Impact/Oswald fallback users saw
      when gstatic was blocked/slow, and removes the EU/UK GDPR exposure of the
@@ -6023,6 +6029,15 @@ def _layout(title: str, body: str, active: str = "home") -> str:
     var m = path.match(/^(\\/port\\/\\d+)/);
     window._API_BASE = m ? m[1] : '';
   })();
+</script>
+<script>
+  // Register the service worker (installable PWA + offline shell). Best-effort:
+  // a failure here never affects the page.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      try { navigator.serviceWorker.register({{ url_for('service_worker')|tojson }}, {scope: {{ url_for('home')|tojson }}}); } catch (e) {}
+    });
+  }
 </script>
 </head>
 <body>
@@ -11332,6 +11347,52 @@ Relay team broke club record"></textarea>
         "</svg>"
     )
 
+    # Installable-PWA service worker. Network-first so the app is always fresh
+    # online; falls back to cache (then a tiny offline page) only when the
+    # network is unavailable — so a stale cache can never be served to an online
+    # user. Only same-origin /static/ assets are opportunistically cached.
+    _SERVICE_WORKER_JS = (
+        "const CACHE = 'mediahub-shell-v1';\n"
+        "self.addEventListener('install', function(e){ self.skipWaiting(); });\n"
+        "self.addEventListener('activate', function(e){\n"
+        "  e.waitUntil((async function(){\n"
+        "    var keys = await caches.keys();\n"
+        "    await Promise.all(keys.map(function(k){ return k === CACHE ? null : caches.delete(k); }));\n"
+        "    await self.clients.claim();\n"
+        "  })());\n"
+        "});\n"
+        "self.addEventListener('fetch', function(e){\n"
+        "  var req = e.request;\n"
+        "  if (req.method !== 'GET') return;\n"
+        "  var url = new URL(req.url);\n"
+        "  if (url.origin !== self.location.origin) return;\n"
+        "  e.respondWith((async function(){\n"
+        "    try {\n"
+        "      var res = await fetch(req);\n"
+        "      if (res && res.status === 200 && url.pathname.indexOf('/static/') !== -1) {\n"
+        "        var c = await caches.open(CACHE); c.put(req, res.clone());\n"
+        "      }\n"
+        "      return res;\n"
+        "    } catch (err) {\n"
+        "      var cached = await caches.match(req);\n"
+        "      if (cached) return cached;\n"
+        "      if (req.mode === 'navigate') {\n"
+        "        return new Response('<!doctype html><meta charset=utf-8>'\n"
+        "          + '<meta name=viewport content=\"width=device-width,initial-scale=1\">'\n"
+        "          + '<title>Offline \\u2014 MediaHub</title>'\n"
+        "          + '<body style=\"font-family:system-ui,sans-serif;background:rgb(10,11,17);'\n"
+        "          + 'color:rgb(245,242,232);display:flex;align-items:center;justify-content:center;'\n"
+        '          + \'height:100vh;margin:0"><div style="text-align:center;padding:24px">\'\n'
+        "          + '<h1 style=\"margin:0 0 8px\">You are offline</h1>'\n"
+        "          + '<p style=\"opacity:.7\">Reconnect to use MediaHub.</p></div></body>',\n"
+        "          { headers: { 'Content-Type': 'text/html; charset=utf-8' } });\n"
+        "      }\n"
+        "      return new Response('', { status: 503 });\n"
+        "    }\n"
+        "  })());\n"
+        "});\n"
+    )
+
     @app.route("/favicon.svg")
     @app.route("/favicon.ico")
     def favicon():
@@ -11345,6 +11406,41 @@ Relay team broke club record"></textarea>
             mimetype="image/svg+xml",
             headers={"Cache-Control": "public, max-age=86400"},
         )
+
+    @app.route("/manifest.webmanifest")
+    def web_manifest():
+        """PWA manifest — lets MediaHub be installed to a phone home screen so a
+        volunteer can approve content on the go (start_url/scope resolve through
+        any deployed prefix)."""
+        manifest = {
+            "name": "MediaHub",
+            "short_name": "MediaHub",
+            "description": "Turn meet results into ready-to-post content.",
+            "start_url": url_for("home"),
+            "scope": url_for("home"),
+            "display": "standalone",
+            "orientation": "portrait-primary",
+            "theme_color": "#0A0B11",
+            "background_color": "#0A0B11",
+            "icons": [
+                {
+                    "src": url_for("favicon"),
+                    "sizes": "any",
+                    "type": "image/svg+xml",
+                    "purpose": "any maskable",
+                }
+            ],
+        }
+        return app.response_class(json.dumps(manifest), mimetype="application/manifest+json")
+
+    @app.route("/sw.js")
+    def service_worker():
+        """Serve the service worker from the app root so it can control the whole
+        scope (via Service-Worker-Allowed)."""
+        resp = app.response_class(_SERVICE_WORKER_JS, mimetype="application/javascript")
+        resp.headers["Service-Worker-Allowed"] = url_for("home")
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
 
     @app.route("/healthz")
     def healthz():
