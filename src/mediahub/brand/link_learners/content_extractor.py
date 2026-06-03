@@ -89,17 +89,15 @@ _HEX_INLINE_RE = re.compile(r"#[0-9a-fA-F]{6}\b")
 def _scan_hex_candidates(raw_text: str, limit: int = 16) -> list[str]:
     """Pull every distinct #rrggbb colour mentioned in the raw text.
 
-    Used as a heuristic seed for the palette resolver: even when the
-    extractor LLM isn't available (or gets cute and invents a colour),
-    every hex mentioned on the page is a real candidate. The unified
-    palette resolver in ``brand/palette.py`` is responsible for ranking
-    them; this just makes sure none are silently dropped before that
-    pass runs.
+    PURE EVIDENCE-GATHERER, NOT A COLOUR DECISION. This no longer feeds
+    the brand-palette resolver — that path now uses frequency-weighted
+    colour-USAGE evidence (``dna_capture.build_colour_usage_map``) and
+    lets the cloud LLM choose. This first-appearance scanner survives
+    only as a draft-onboarding helper (``brand/bootstrap_extract``),
+    where every value is human-confirmed and never auto-applied.
 
-    Drops pure white, pure black, and near-grey (saturation ≈ 0) since
-    those are almost never the brand primary on a sports site — they
-    flood the candidate list and squeeze the actual palette out of the
-    LLM's top picks.
+    Drops pure white, pure black, and near-grey (saturation ≈ 0) as data
+    hygiene — they are UI chrome, not brand identity.
     """
     if not raw_text:
         return []
@@ -197,17 +195,18 @@ def _heuristic(raw_text: str) -> dict:
         seen.add(tl)
         uniq_tags.append(t)
     excerpt = _clean_excerpt(text)
-    # Without an LLM we can't reason about which hex is the brand
-    # primary, but we can still surface every distinct candidate so
-    # the unified palette resolver has something to work with. Pure
-    # white / pure black / near-grey are filtered out in
-    # ``_scan_hex_candidates``.
+    # No LLM → no palette. Choosing brand colours is a judgement call
+    # with no honest non-AI substitute (the product owner removed the
+    # deterministic colour path entirely). We still return the voice /
+    # hashtag signals so text extraction keeps working unchanged; the
+    # palette decision happens later, in brand.palette.resolve_palette,
+    # from the colour-USAGE evidence — and that raises without an LLM.
     return {
         "voice_summary": excerpt,
         "keywords": [],
         "phrases_to_use": [],
         "phrases_to_avoid": [],
-        "palette_mentions": _scan_hex_candidates(text),
+        "palette_mentions": [],
         "typography_hint": "",
         "sponsor_mentions": [],
         "hashtag_patterns": uniq_tags[:8],
@@ -300,25 +299,14 @@ def extract_brand_dna(
         log.debug("content-extractor LLM call failed: %s", e)
         return _heuristic(raw_text)
     out = _normalise(raw)
-    # ALWAYS merge a regex scan of the full raw body into the palette
-    # candidates — not just when the LLM returns none. The LLM only
-    # sees the first ~6 KB of body, where the real brand colours often
-    # haven't appeared yet (they live further down, in inline <style>
-    # blocks or component CSS). On real club sites this meant the LLM
-    # returned only "#ffffff" from the visible header and the resolver
-    # had no choice but to paint the whole palette white. The regex
-    # scan covers the entire body and _scan_hex_candidates already
-    # drops pure white / black / near-grey, so merging surfaces the
-    # actual accent colours (e.g. a club's gold) for the resolver.
-    scanned = _scan_hex_candidates(raw_text)
-    if scanned:
-        merged = list(out.get("palette_mentions") or [])
-        seen = {h.lower() for h in merged}
-        for h in scanned:
-            if h.lower() not in seen:
-                merged.append(h)
-                seen.add(h.lower())
-        out["palette_mentions"] = merged[:12]
+    # NOTE: the brand-colour decision now flows through the colour-USAGE
+    # evidence path (build_colour_usage_map → resolve_palette), where the
+    # cloud LLM weighs each colour by how often it is actually used across
+    # the full site CSS. The old always-on first-appearance regex merge
+    # surfaced unused CMS / page-builder DEFAULT swatches and is removed
+    # per the product owner: there is no deterministic code that *chooses*
+    # brand colours. Any palette_mentions here come only from the
+    # extractor LLM's own reading of the text, not a regex seed.
     # Empty LLM result → fall back to heuristic so the user's data
     # isn't silently dropped.
     has_signal = bool(out["voice_summary"] or out["keywords"] or out["hashtag_patterns"])

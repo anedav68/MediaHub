@@ -297,12 +297,14 @@ class TestContentExtractor:
         assert "#0066cc" in out["palette_mentions"]
         assert len([c for c in out["palette_mentions"] if c.startswith("#")]) == len(out["palette_mentions"])
 
-    def test_full_body_hex_merged_with_llm_palette(self, fake_llm):
-        # The LLM only sees the first ~6KB of body. The real brand
-        # colour (#f4b214 gold) lives further down in a <style> block.
-        # The LLM returns only the visible-header white; the regex scan
-        # of the FULL body must merge the gold in so the resolver has a
-        # real candidate. (Regression for the cocsc.co.uk all-white bug.)
+    def test_no_deterministic_hex_merge_into_palette_mentions(self, fake_llm):
+        # REDESIGN: the always-on first-appearance regex MERGE into
+        # palette_mentions has been removed. The brand-colour decision now
+        # flows through the frequency-weighted colour-USAGE evidence path
+        # (dna_capture.build_colour_usage_map -> palette.resolve_palette),
+        # where the cloud LLM weighs each colour by how often the site
+        # actually uses it. extract_brand_dna must NOT seed palette_mentions
+        # with raw body hexes the LLM never returned.
         fake_llm["response"] = {
             "voice_summary": "Competitive club.",
             "keywords": ["swimming"],
@@ -316,19 +318,22 @@ class TestContentExtractor:
         out = content_extractor.extract_brand_dna(
             body, url="https://x", platform_intent="website",
         )
-        assert "#f4b214" in out["palette_mentions"], out["palette_mentions"]
+        # The deterministic merge is gone: the body-scanned gold is NOT
+        # injected. Only what the LLM itself returned survives.
+        assert out["palette_mentions"] == ["#ffffff"], out["palette_mentions"]
+        assert "#f4b214" not in out["palette_mentions"]
 
-    def test_full_body_scan_skips_pure_white_and_grey(self, fake_llm):
-        # The merged scan must not flood the candidates with #ffffff /
-        # near-grey UI tokens — only chromatic colours are added.
+    def test_llm_palette_mentions_pass_through_unmerged(self, fake_llm):
+        # When the LLM returns palette_mentions they are normalised and
+        # kept verbatim — no extra body-scanned hexes are merged in.
         fake_llm["response"] = {"voice_summary": "x", "keywords": ["a"],
-                                "palette_mentions": []}
+                                "palette_mentions": ["#c0392b"]}
         body = ("<html><body>" + "x " * 400
                 + "<div style='color:#ffffff;background:#eeeeee;border:#333333'>"
-                "<span style='color:#c0392b'>brand</span></div></body></html>")
+                "<span style='color:#1abc9c'>brand</span></div></body></html>")
         out = content_extractor.extract_brand_dna(
             body, url="https://x", platform_intent="website",
         )
-        assert "#c0392b" in out["palette_mentions"]
-        assert "#ffffff" not in out["palette_mentions"]
-        assert "#eeeeee" not in out["palette_mentions"]
+        assert out["palette_mentions"] == ["#c0392b"]
+        # The body-only colour the LLM didn't mention is NOT merged in.
+        assert "#1abc9c" not in out["palette_mentions"]
