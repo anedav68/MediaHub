@@ -8433,12 +8433,32 @@ def create_app() -> Flask:
             if _resolved_palette.get("accent"):
                 prof_accent = _resolved_palette["accent"]
             logo_url = (getattr(active_prof, "brand_logo_url", "") or "").strip()
+            # Uploaded logos live on ``brand_logos`` (local files), distinct
+            # from the auto-detected website ``brand_logo_url``. Either one
+            # counts as "the org has a logo" — without this, a user who
+            # uploaded a crest at /organisation/setup was still told "No
+            # logo on your organisation profile" here and the run never
+            # received it.
+            _uploaded_logo_label = ""
+            if not logo_url:
+                for _lg in getattr(active_prof, "brand_logos", None) or []:
+                    if str(_lg.get("mime", "")).startswith("image/"):
+                        _uploaded_logo_label = (
+                            _lg.get("label") or _lg.get("original_filename") or "uploaded logo"
+                        )
+                        break
             if logo_url:
                 _logo_disp = logo_url[:80] + ("\u2026" if len(logo_url) > 80 else "")
                 prof_logo_html = (
                     f'<p class="dim" style="margin:6px 0 0;font-size:12px">'
                     f'Logo: <code style="font-size:11px">'
                     f"{_h(_logo_disp)}</code></p>"
+                )
+            elif _uploaded_logo_label:
+                prof_logo_html = (
+                    f'<p class="dim" style="margin:6px 0 0;font-size:12px">'
+                    f'Logo: <code style="font-size:11px">{_h(_uploaded_logo_label[:80])}</code> '
+                    f"&mdash; flows through to every graphic.</p>"
                 )
             else:
                 prof_logo_html = (
@@ -8705,6 +8725,33 @@ def create_app() -> Flask:
                                 if "." not in tail:
                                     tail += ".png"
                                 profile_logo_name = tail
+                        except Exception:
+                            profile_logo_bytes = None
+                    # Fall back to a logo the user uploaded at
+                    # /organisation/setup. Those live on ``brand_logos``
+                    # as local files (the session-gated serve route can't
+                    # be fetched from this server-side context), so read
+                    # the first image variant straight off disk.
+                    if profile_logo_bytes is None:
+                        try:
+                            from mediahub.brand.logos import (
+                                resolve_logo_path as _resolve_logo_path,
+                            )
+
+                            for _lg in getattr(active_prof_for_run, "brand_logos", None) or []:
+                                if not str(_lg.get("mime", "")).startswith("image/"):
+                                    continue
+                                _lp = _resolve_logo_path(
+                                    active_prof_for_run.profile_id,
+                                    _lg.get("logo_id", ""),
+                                )
+                                if not _lp:
+                                    continue
+                                _lb = _lp.read_bytes()
+                                if _lb and len(_lb) < 5_000_000:
+                                    profile_logo_bytes = _lb
+                                    profile_logo_name = _lp.name
+                                    break
                         except Exception:
                             profile_logo_bytes = None
                 _bk_process(
