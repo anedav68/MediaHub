@@ -5193,19 +5193,19 @@ from mediahub.web.theme_tokens import (  # noqa: E402
 )
 from mediahub.web.responsive_guardrails import RESPONSIVE_GUARDRAILS_CSS as _MH_RG_CSS  # noqa: E402
 
-BASE_CSS = _MH_TT_CSS + BASE_CSS + _MH_TC_CSS + _MH_RG_CSS
-
 # I4 fix — persona cards ("Built for the people who already post the
 # results"). The inline SVGs use stroke="currentColor", so the icon glyph
 # only shows up if .mh-audience-icon carries a visible `color`. Pin it to
-# the lane accent here, appended last so it is the cascade's final word —
-# this matches the visible .mh-trust-cell svg / step-card accent treatment
-# and keeps the icons legible against the dark --surface card background
-# even if the external components layer drifts.
-BASE_CSS += (
+# the lane accent. It rides with the components layer (a class + descendant
+# selector out-specifies the bare `svg` reset in the guardrails, which set
+# no colour outside @media print), so the icons stay legible against the
+# dark --surface card background while RESPONSIVE_GUARDRAILS_CSS remains the
+# cascade's final layer (see test_theme_tokens::test_guardrails_appended_last).
+_MH_AUDIENCE_ICON_CSS = (
     "\n.mh-audience-icon { color: var(--lane); }"
     "\n.mh-audience-icon svg { color: var(--lane); }\n"
 )
+BASE_CSS = _MH_TT_CSS + BASE_CSS + _MH_TC_CSS + _MH_AUDIENCE_ICON_CSS + _MH_RG_CSS
 
 
 def _render_markdown(text: str) -> str:

@@ -78,7 +78,7 @@ def test_logos_pipeline_has_optional_vision_seam():
     from mediahub.brand import logos
     src = inspect.getsource(logos)
     assert "describe_logo_with_ai" in src
-    assert "describe_image" in src  # the llm-wrapper hook
+    assert "generate_vision" in src  # the multimodal llm-wrapper hook
 
 
 # ---------------------------------------------------------------------------
