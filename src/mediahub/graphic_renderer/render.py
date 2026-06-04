@@ -1978,9 +1978,7 @@ def _fill_action_photo_hero(brief, width: int, height: int, repl: dict[str, str]
             "RESULT_VALUE_RAW": html_escape(layers.get("result_value") or ""),
         }
     )
-    _rl, _rpx = _fit_ribbon_label(
-        layers.get("achievement_label") or "", int(height * 0.030), width
-    )
+    _rl, _rpx = _fit_ribbon_label(layers.get("achievement_label") or "", int(height * 0.030), width)
     repl["ACHIEVEMENT_LABEL"] = html_escape(_rl)
     repl["RIBBON_FONT_SIZE"] = str(_rpx)
     return repl

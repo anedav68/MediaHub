@@ -1002,9 +1002,7 @@ def auto_variation_seed_for(card_id: str | None) -> int:
 # any of these without needing extra data.
 # Text-led families need no athlete photo — the renderer fills the canvas with
 # type. Kept as one constant so every photo/no-photo gate agrees on the set.
-_TEXT_LED_FAMILIES: frozenset[str] = frozenset(
-    {"text_led_recap", "weekend_numbers", "stat_line"}
-)
+_TEXT_LED_FAMILIES: frozenset[str] = frozenset({"text_led_recap", "weekend_numbers", "stat_line"})
 
 _GENERIC_FAMILIES: tuple[str, ...] = (
     "individual_hero",

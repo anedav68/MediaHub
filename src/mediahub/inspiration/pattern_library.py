@@ -5,6 +5,7 @@ typography pairing, treatment) — these are how-to-arrange recipes, not
 copyrighted designs. The renderer picks one and instantiates it with the
 brand kit + real photos + verified data.
 """
+
 from __future__ import annotations
 
 PATTERNS: list[dict] = [
@@ -12,9 +13,18 @@ PATTERNS: list[dict] = [
         "id": "athlete_cutout_surname_bg",
         "label": "Athlete cutout · oversized surname BG",
         "family": "individual_hero",
-        "post_angles": ["confirmed_official_pb", "pb_improvement", "first_sub_barrier",
-                        "likely_pb", "finalist", "top_of_field", "qualifying_time",
-                        "biggest_drop", "fastest_since", "return_to_form"],
+        "post_angles": [
+            "confirmed_official_pb",
+            "pb_improvement",
+            "first_sub_barrier",
+            "likely_pb",
+            "finalist",
+            "top_of_field",
+            "qualifying_time",
+            "biggest_drop",
+            "fastest_since",
+            "return_to_form",
+        ],
         "format_priority": ["feed_portrait", "story", "feed_square"],
         "composition": (
             "Athlete cutout dominates lower-right. "
@@ -36,13 +46,13 @@ PATTERNS: list[dict] = [
             "Cutout has rim-light glow in accent or secondary colour."
         ),
         "text_hierarchy": [
-            "achievement_label",         # 1st: NEW PB
-            "athlete_surname",           # 2nd: oversized BG
-            "result_value",              # 3rd: chip
-            "event_name",                # 4th
-            "athlete_first_name",        # 5th
-            "meet_name",                 # 6th: small
-            "club_branding",             # 7th: corner
+            "achievement_label",  # 1st: NEW PB
+            "athlete_surname",  # 2nd: oversized BG
+            "result_value",  # 3rd: chip
+            "event_name",  # 4th
+            "athlete_first_name",  # 5th
+            "meet_name",  # 6th: small
+            "club_branding",  # 7th: corner
         ],
         "image_treatment": "real cutout, slight contrast lift, subtle drop shadow",
         "why_use_this": (
@@ -54,8 +64,13 @@ PATTERNS: list[dict] = [
         "id": "medal_card_centre",
         "label": "Medal centre badge · athlete left",
         "family": "medal_card",
-        "post_angles": ["medal_gold", "medal_silver", "medal_bronze", "medal_and_pb_combo",
-                        "relay_highlight"],
+        "post_angles": [
+            "medal_gold",
+            "medal_silver",
+            "medal_bronze",
+            "medal_and_pb_combo",
+            "relay_highlight",
+        ],
         "format_priority": ["feed_square", "story", "feed_portrait"],
         "composition": (
             "Two-column: left half athlete cutout against gradient. Right half centred "
@@ -72,7 +87,7 @@ PATTERNS: list[dict] = [
             "Background gradient: club primary → medal tint at 25% opacity."
         ),
         "text_hierarchy": [
-            "medal_label",               # GOLD / SILVER / BRONZE
+            "medal_label",  # GOLD / SILVER / BRONZE
             "athlete_name",
             "event_name",
             "result_value",
@@ -106,8 +121,8 @@ PATTERNS: list[dict] = [
         ),
         "text_hierarchy": [
             "meet_label",
-            "stat_value",                # repeated per tile
-            "stat_label",                # repeated per tile
+            "stat_value",  # repeated per tile
+            "stat_label",  # repeated per tile
             "club_branding",
         ],
         "image_treatment": "no athlete photo (text-led)",
@@ -172,8 +187,13 @@ PATTERNS: list[dict] = [
         "id": "sponsor_branded_strip",
         "label": "Sponsor footer · clean achievement",
         "family": "sponsor_branded",
-        "post_angles": ["confirmed_official_pb", "medal_gold", "medal_silver",
-                        "medal_bronze", "athlete_spotlight"],
+        "post_angles": [
+            "confirmed_official_pb",
+            "medal_gold",
+            "medal_silver",
+            "medal_bronze",
+            "athlete_spotlight",
+        ],
         "format_priority": ["feed_portrait", "feed_square", "story"],
         "composition": (
             "Same composition as athlete_cutout_surname_bg but reserves a clean 12% bottom "
@@ -224,8 +244,15 @@ PATTERNS: list[dict] = [
         "id": "story_card_simple",
         "label": "Story card · stack-friendly",
         "family": "story_card",
-        "post_angles": ["confirmed_official_pb", "medal_gold", "medal_silver", "medal_bronze",
-                        "first_sub_barrier", "finalist", "top_of_field"],
+        "post_angles": [
+            "confirmed_official_pb",
+            "medal_gold",
+            "medal_silver",
+            "medal_bronze",
+            "first_sub_barrier",
+            "finalist",
+            "top_of_field",
+        ],
         "format_priority": ["story", "feed_portrait"],
         "composition": (
             "1080x1920. Top 22% safe-zone left empty for IG UI. "
@@ -250,8 +277,12 @@ PATTERNS: list[dict] = [
         "id": "reel_cover_dramatic",
         "label": "Reel cover · dramatic cutout",
         "family": "reel_cover",
-        "post_angles": ["confirmed_official_pb", "medal_gold", "first_sub_barrier",
-                        "athlete_spotlight"],
+        "post_angles": [
+            "confirmed_official_pb",
+            "medal_gold",
+            "first_sub_barrier",
+            "athlete_spotlight",
+        ],
         "format_priority": ["story"],
         "composition": (
             "Vertical 1080x1920. Athlete cutout dominates frame, dramatic crop. "
@@ -272,110 +303,166 @@ PATTERNS: list[dict] = [
 ]
 
 
-PATTERNS.append({
-    "id": "big_number_hero",
-    "label": "Hero numeral — time/result as the dominant visual",
-    "family": "big_number_hero",
-    "post_angles": ["confirmed_official_pb", "pb_improvement", "first_sub_barrier",
-                    "likely_pb", "finalist", "top_of_field", "qualifying_time",
-                    "biggest_drop", "fastest_since", "gold_medal", "silver_medal",
-                    "bronze_medal", "podium_finish"],
-    "format_priority": ["feed_portrait", "feed_square", "story"],
-    "composition": (
-        "The result/time numeral fills ~55% of canvas height, centered. "
-        "Event name sits above as a small spaced-caps strip. Athlete name "
-        "sits below in Bebas display. Brand corner is centered along the "
-        "bottom with logo + club + meet. Two accent-coloured corner brackets "
-        "(top-left, bottom-right) frame the composition."
-    ),
-    "typography": {
-        "headline_font": "Anton (heavy condensed) for the numeral",
-        "body_font": "Inter / Bebas Neue",
-        "headline_weight": "900",
-        "body_weight": "600-700",
-        "tracking": "very tight on numeral, wide on event caps",
-    },
-    "colour_treatment": (
-        "Background: brand primary gradient with vignette. Numeral in white. "
-        "Event subtitle in accent colour. Corner brackets in accent at 35% opacity."
-    ),
-    "image_treatment": "no photo required — text-led, equally strong with or without an athlete cutout",
-    "text_layers": ["event_name", "result_value", "athlete_full_name", "meet_name", "club_full"],
-    "why_use_this": (
-        "When the result is the headline (PB, qualifying time, gold-medal time), the time itself "
-        "deserves to be the visual hero — competitor pattern from Holo/Predis/Blaze. Works "
-        "perfectly when no athlete photo is available."
-    ),
-})
+PATTERNS.append(
+    {
+        "id": "big_number_hero",
+        "label": "Hero numeral — time/result as the dominant visual",
+        "family": "big_number_hero",
+        "post_angles": [
+            "confirmed_official_pb",
+            "pb_improvement",
+            "first_sub_barrier",
+            "likely_pb",
+            "finalist",
+            "top_of_field",
+            "qualifying_time",
+            "biggest_drop",
+            "fastest_since",
+            "gold_medal",
+            "silver_medal",
+            "bronze_medal",
+            "podium_finish",
+        ],
+        "format_priority": ["feed_portrait", "feed_square", "story"],
+        "composition": (
+            "The result/time numeral fills ~55% of canvas height, centered. "
+            "Event name sits above as a small spaced-caps strip. Athlete name "
+            "sits below in Bebas display. Brand corner is centered along the "
+            "bottom with logo + club + meet. Two accent-coloured corner brackets "
+            "(top-left, bottom-right) frame the composition."
+        ),
+        "typography": {
+            "headline_font": "Anton (heavy condensed) for the numeral",
+            "body_font": "Inter / Bebas Neue",
+            "headline_weight": "900",
+            "body_weight": "600-700",
+            "tracking": "very tight on numeral, wide on event caps",
+        },
+        "colour_treatment": (
+            "Background: brand primary gradient with vignette. Numeral in white. "
+            "Event subtitle in accent colour. Corner brackets in accent at 35% opacity."
+        ),
+        "image_treatment": "no photo required — text-led, equally strong with or without an athlete cutout",
+        "text_layers": [
+            "event_name",
+            "result_value",
+            "athlete_full_name",
+            "meet_name",
+            "club_full",
+        ],
+        "why_use_this": (
+            "When the result is the headline (PB, qualifying time, gold-medal time), the time itself "
+            "deserves to be the visual hero — competitor pattern from Holo/Predis/Blaze. Works "
+            "perfectly when no athlete photo is available."
+        ),
+    }
+)
 
 
-PATTERNS.append({
-    "id": "action_photo_hero",
-    "label": "Action photo hero — full-bleed real photo + brand scrim",
-    "family": "action_photo_hero",
-    "post_angles": ["confirmed_official_pb", "pb_improvement", "first_sub_barrier",
-                    "likely_pb", "finalist", "top_of_field", "qualifying_time",
-                    "biggest_drop", "fastest_since", "medal_gold", "medal_silver",
-                    "medal_bronze", "athlete_spotlight"],
-    "format_priority": ["feed_portrait", "story", "feed_square"],
-    "composition": (
-        "A real athlete/action photo fills the whole frame. A brand-tinted scrim "
-        "ramps from clear at the top to a deep base, so a clean lower-third "
-        "lockup (first name, surname in the accent, result + event on an accent "
-        "rule) stays legible at thumbnail size. Achievement ribbon top-left, "
-        "brand corner bottom-left. Falls back to the brand gradient when no real "
-        "photo is supplied — it never fabricates a person."
-    ),
-    "typography": {
-        "headline_font": "Anton / Bebas Neue",
-        "body_font": "Space Grotesk; JetBrains Mono for the result",
-        "headline_weight": "900",
-        "body_weight": "600-800",
-    },
-    "colour_treatment": (
-        "Photo at full strength up top; brand-primary scrim at the base. "
-        "Surname + result in the club accent colour."
-    ),
-    "image_treatment": "real full-bleed photo (the original image, not a cutout); no synthetic people",
-    "text_layers": ["achievement_label", "athlete_first_name", "athlete_surname",
-                    "result_value", "event_name", "meet_name", "club_full"],
-    "why_use_this": (
-        "The clean, photographic social look (the lesson from studying Canva's "
-        "generator) while staying honest — it only ever uses a real photo the "
-        "club supplied."
-    ),
-})
+PATTERNS.append(
+    {
+        "id": "action_photo_hero",
+        "label": "Action photo hero — full-bleed real photo + brand scrim",
+        "family": "action_photo_hero",
+        "post_angles": [
+            "confirmed_official_pb",
+            "pb_improvement",
+            "first_sub_barrier",
+            "likely_pb",
+            "finalist",
+            "top_of_field",
+            "qualifying_time",
+            "biggest_drop",
+            "fastest_since",
+            "medal_gold",
+            "medal_silver",
+            "medal_bronze",
+            "athlete_spotlight",
+        ],
+        "format_priority": ["feed_portrait", "story", "feed_square"],
+        "composition": (
+            "A real athlete/action photo fills the whole frame. A brand-tinted scrim "
+            "ramps from clear at the top to a deep base, so a clean lower-third "
+            "lockup (first name, surname in the accent, result + event on an accent "
+            "rule) stays legible at thumbnail size. Achievement ribbon top-left, "
+            "brand corner bottom-left. Falls back to the brand gradient when no real "
+            "photo is supplied — it never fabricates a person."
+        ),
+        "typography": {
+            "headline_font": "Anton / Bebas Neue",
+            "body_font": "Space Grotesk; JetBrains Mono for the result",
+            "headline_weight": "900",
+            "body_weight": "600-800",
+        },
+        "colour_treatment": (
+            "Photo at full strength up top; brand-primary scrim at the base. "
+            "Surname + result in the club accent colour."
+        ),
+        "image_treatment": "real full-bleed photo (the original image, not a cutout); no synthetic people",
+        "text_layers": [
+            "achievement_label",
+            "athlete_first_name",
+            "athlete_surname",
+            "result_value",
+            "event_name",
+            "meet_name",
+            "club_full",
+        ],
+        "why_use_this": (
+            "The clean, photographic social look (the lesson from studying Canva's "
+            "generator) while staying honest — it only ever uses a real photo the "
+            "club supplied."
+        ),
+    }
+)
 
 
-PATTERNS.append({
-    "id": "stat_line",
-    "label": "Stat line — restrained editorial recap",
-    "family": "stat_line",
-    "post_angles": ["confirmed_official_pb", "pb_improvement", "first_sub_barrier",
-                    "likely_pb", "finalist", "top_of_field", "qualifying_time",
-                    "recap_mention", "weekend_recap"],
-    "format_priority": ["feed_portrait", "feed_square", "story"],
-    "composition": (
-        "Deliberate negative space: a small meet kicker, a stacked headline (the "
-        "hook, second line in the accent), ONE big autofit hero numeral on an "
-        "accent rule, then a tidy support row (swimmer / finish / club). Brand "
-        "corner bottom-left."
-    ),
-    "typography": {
-        "headline_font": "Anton",
-        "body_font": "Space Grotesk / Inter",
-        "headline_weight": "900",
-        "body_weight": "600-700",
-    },
-    "colour_treatment": "club primary gradient, white type, accent on the hook line + the rule",
-    "image_treatment": "no photo required (text-led)",
-    "text_layers": ["primary_hook", "result_value", "event_name", "athlete_full_name",
-                    "place", "meet_name", "club_full"],
-    "why_use_this": (
-        "A calm, premium recap for when a busy poster is too much — restraint as a "
-        "deliberate option alongside the bold layouts."
-    ),
-})
+PATTERNS.append(
+    {
+        "id": "stat_line",
+        "label": "Stat line — restrained editorial recap",
+        "family": "stat_line",
+        "post_angles": [
+            "confirmed_official_pb",
+            "pb_improvement",
+            "first_sub_barrier",
+            "likely_pb",
+            "finalist",
+            "top_of_field",
+            "qualifying_time",
+            "recap_mention",
+            "weekend_recap",
+        ],
+        "format_priority": ["feed_portrait", "feed_square", "story"],
+        "composition": (
+            "Deliberate negative space: a small meet kicker, a stacked headline (the "
+            "hook, second line in the accent), ONE big autofit hero numeral on an "
+            "accent rule, then a tidy support row (swimmer / finish / club). Brand "
+            "corner bottom-left."
+        ),
+        "typography": {
+            "headline_font": "Anton",
+            "body_font": "Space Grotesk / Inter",
+            "headline_weight": "900",
+            "body_weight": "600-700",
+        },
+        "colour_treatment": "club primary gradient, white type, accent on the hook line + the rule",
+        "image_treatment": "no photo required (text-led)",
+        "text_layers": [
+            "primary_hook",
+            "result_value",
+            "event_name",
+            "athlete_full_name",
+            "place",
+            "meet_name",
+            "club_full",
+        ],
+        "why_use_this": (
+            "A calm, premium recap for when a busy poster is too much — restraint as a "
+            "deliberate option alongside the bold layouts."
+        ),
+    }
+)
 
 
 def list_patterns() -> list[dict]:
@@ -394,8 +481,9 @@ def patterns_for_post_angle(post_angle: str) -> list[dict]:
     return [p for p in PATTERNS if post_angle in p.get("post_angles", [])]
 
 
-def best_pattern_for(post_angle: str, *, format_hint: str | None = None,
-                     prefer_family: str | None = None) -> dict:
+def best_pattern_for(
+    post_angle: str, *, format_hint: str | None = None, prefer_family: str | None = None
+) -> dict:
     """Pick the single best pattern for the inputs. Falls back to text_led_recap."""
     candidates = patterns_for_post_angle(post_angle)
     if not candidates:
@@ -405,8 +493,15 @@ def best_pattern_for(post_angle: str, *, format_hint: str | None = None,
         if match:
             candidates = match
     if format_hint:
-        scored = [(p, p["format_priority"].index(format_hint) if format_hint in p["format_priority"] else 99)
-                  for p in candidates]
+        scored = [
+            (
+                p,
+                p["format_priority"].index(format_hint)
+                if format_hint in p["format_priority"]
+                else 99,
+            )
+            for p in candidates
+        ]
         scored.sort(key=lambda x: x[1])
         return scored[0][0]
     return candidates[0]
