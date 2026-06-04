@@ -1011,9 +1011,7 @@ def _variant_jobs_gc_locked() -> None:
     """Drop expired / overflow jobs. Call with ``_VARIANT_JOBS_LOCK`` held."""
     now = time.time()
     for k in [
-        k
-        for k, v in _VARIANT_JOBS.items()
-        if now - v.get("created_at", 0.0) > _VARIANT_JOB_TTL_S
+        k for k, v in _VARIANT_JOBS.items() if now - v.get("created_at", 0.0) > _VARIANT_JOB_TTL_S
     ]:
         _VARIANT_JOBS.pop(k, None)
     while len(_VARIANT_JOBS) > _VARIANT_JOB_LIMIT:
@@ -5954,7 +5952,7 @@ def _short_hook(text: str, max_words: int = 3, max_chars: int = 22) -> str:
 
 
 _EMOJI_DISPLAY_RE = re.compile(
-    "[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0E\uFE0F\u200D]"
+    "[\U0001f000-\U0001faff\u2600-\u27bf\u2b00-\u2bff\ufe0e\ufe0f\u200d]"
 )
 
 
@@ -19937,9 +19935,7 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                     if bk is not None:
                         return bk
             except Exception:
-                log.warning(
-                    "run brand kit: owner profile %s unreadable, using fallback", owner
-                )
+                log.warning("run brand kit: owner profile %s unreadable, using fallback", owner)
         return _v8_brand_kit_for(profile_id, run_id=run_id)
 
     @app.route("/media-library")
@@ -20921,7 +20917,10 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                     directions = []
 
                 def _pin(prof):
-                    if _choice_families and getattr(prof, "layout_family", None) not in _choice_families:
+                    if (
+                        _choice_families
+                        and getattr(prof, "layout_family", None) not in _choice_families
+                    ):
                         try:
                             return _dc.replace(prof, layout_family=_choice_families[0])
                         except Exception:
@@ -21013,9 +21012,7 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                                 run_id, card_id, new_sig, brief_d.get("primary_hook") or ""
                             )
                     except _RenderBusy:
-                        entry["errors"] = [
-                            "renderer_busy: no render slot freed up in time"
-                        ]
+                        entry["errors"] = ["renderer_busy: no render slot freed up in time"]
                     except Exception as e:
                         entry["errors"] = [str(e)]
                     job["variants"].append(entry)
@@ -21025,9 +21022,7 @@ window.mhSortPackSection = function(btn, key, defaultDir) {{
                 else:
                     job["status"] = "error"
                     job["error"] = (
-                        "; ".join(
-                            e for v in job["variants"] for e in (v.get("errors") or [])
-                        )
+                        "; ".join(e for v in job["variants"] for e in (v.get("errors") or []))
                         or "all variants failed"
                     )
             except Exception as e:
