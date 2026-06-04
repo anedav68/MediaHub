@@ -23,6 +23,7 @@ When no provider is configured the caller falls back to
 ``generator.random_variation_profile()`` — the function in this module
 returns ``None`` and never crashes.
 """
+
 from __future__ import annotations
 
 import json
@@ -66,7 +67,8 @@ def _brand_context(brand_kit) -> str:
     if cols:
         bits.append(
             "Brand palette (DO NOT change the hex values, only their visual role): "
-            + ", ".join(cols) + "."
+            + ", ".join(cols)
+            + "."
         )
     return " ".join(bits)
 
@@ -101,24 +103,51 @@ def _achievement_summary(content_item: dict) -> str:
 # The full set the AI can pick from. Kept in lock-step with the
 # generator module's constants so the renderer can honour any choice.
 _BACKGROUND_STYLES = (
-    "water", "halftone", "diagonal", "radial", "geometric",
-    "clean", "stripes", "dots", "duotone", "grain",
+    "water",
+    "halftone",
+    "diagonal",
+    "radial",
+    "geometric",
+    "clean",
+    "stripes",
+    "dots",
+    "duotone",
+    "grain",
 )
 _ACCENT_STYLES = (
-    "brackets", "stripe", "badge", "frame",
-    "minimal", "ribbon", "arrow", "underline",
+    "brackets",
+    "stripe",
+    "badge",
+    "frame",
+    "minimal",
+    "ribbon",
+    "arrow",
+    "underline",
 )
 _TYPOGRAPHY_PAIRS = (
-    "anton-inter", "bebas-grotesk", "druk-inter",
-    "bowlby-inter", "archivo-inter", "oswald-inter",
+    "anton-inter",
+    "bebas-grotesk",
+    "druk-inter",
+    "bowlby-inter",
+    "archivo-inter",
+    "oswald-inter",
 )
 _COMPOSITIONS = ("right", "left", "center", "off-center")
 _PHOTO_TREATMENTS = (
-    "cutout", "vignette", "duotone", "frame", "halftone", "no-photo",
+    "cutout",
+    "vignette",
+    "duotone",
+    "frame",
+    "halftone",
+    "no-photo",
 )
 _LAYOUT_FAMILIES = (
-    "individual_hero", "big_number_hero", "text_led_recap",
-    "weekend_numbers", "athlete_spotlight", "story_card",
+    "individual_hero",
+    "big_number_hero",
+    "text_led_recap",
+    "weekend_numbers",
+    "athlete_spotlight",
+    "story_card",
     "medal_card",
 )
 
@@ -164,6 +193,9 @@ def _system_prompt(allowed_families: Optional[list[str]] = None) -> str:
         "  background_style at minimum.\n"
         "- The hook_phrase must be short, punchy, and never use the "
         "  athlete's name (the name appears separately in the layout).\n"
+        "- Avoid the words GOLD, SILVER and BRONZE in the hook_phrase — "
+        "  medal graphics already display the tier prominently, so the "
+        "  hook must add information instead of repeating it.\n"
         "- Output JSON ONLY."
     )
 
@@ -188,14 +220,12 @@ def _user_prompt(
     if recent_signatures:
         parts.append(
             "Recent variation signatures for this card (DO NOT repeat — "
-            "pick a different combination): "
-            + " | ".join(recent_signatures[-5:])
+            "pick a different combination): " + " | ".join(recent_signatures[-5:])
         )
     if recent_hooks:
         parts.append(
             "Recent hooks used for this card (DO NOT reuse, write a "
-            "different short phrase): "
-            + " | ".join(f'"{h}"' for h in recent_hooks[-5:])
+            "different short phrase): " + " | ".join(f'"{h}"' for h in recent_hooks[-5:])
         )
     # Per-call nonce so the provider can't return a cached identical
     # JSON object across two regenerations.
@@ -226,7 +256,7 @@ def _parse_strict_json(text: str) -> Optional[dict]:
     if start < 0 or end <= start:
         return None
     try:
-        obj = json.loads(s[start:end + 1])
+        obj = json.loads(s[start : end + 1])
         return obj if isinstance(obj, dict) else None
     except json.JSONDecodeError:
         return None
@@ -293,6 +323,7 @@ def ai_creative_direction(
         # empty string instead of raising. Surface that explicitly.
         try:
             from mediahub.media_ai.llm import _gemini_breaker_is_open
+
             breaker = "open" if _gemini_breaker_is_open() else "closed"
         except Exception:
             breaker = "unknown"
@@ -305,16 +336,22 @@ def ai_creative_direction(
     if obj is None:
         log.warning(
             "ai_director: could not parse JSON from provider output (len=%d): %s",
-            len(out or ""), (out or "")[:500],
+            len(out or ""),
+            (out or "")[:500],
         )
     else:
         # Hard-constrain the layout to the allowed set even if the model
         # ignored the prompt — caption-only graphics must stay text-led.
-        if allowed_families and str(obj.get("layout_family", "")).strip().lower() not in allowed_families:
+        if (
+            allowed_families
+            and str(obj.get("layout_family", "")).strip().lower() not in allowed_families
+        ):
             obj["layout_family"] = allowed_families[0]
         log.debug(
             "ai_director: parsed direction layout=%s hook=%s mood=%s",
-            obj.get("layout_family"), obj.get("hook_phrase"), obj.get("mood"),
+            obj.get("layout_family"),
+            obj.get("hook_phrase"),
+            obj.get("mood"),
         )
     return obj
 
@@ -340,8 +377,7 @@ def ai_fresh_hook(
     if recent_hooks:
         avoid = (
             "\nDo NOT reuse any of these recent hooks for this card; "
-            "pick something different: "
-            + " | ".join(f'"{h}"' for h in recent_hooks[-5:])
+            "pick something different: " + " | ".join(f'"{h}"' for h in recent_hooks[-5:])
         )
     sys = (
         "You write punchy graphic-headline hooks for sports content. "
@@ -374,4 +410,135 @@ def ai_fresh_hook(
     return hook
 
 
-__all__ = ["ai_creative_direction", "ai_fresh_hook"]
+def _parse_strict_json_array(text: str) -> Optional[list]:
+    """Extract the first JSON array of objects from ``text``.
+
+    Mirror of ``_parse_strict_json`` for the batch-direction call: peels
+    optional ```json fences``` and tolerates prose around the array.
+    """
+    if not text:
+        return None
+    s = text.strip()
+    if s.startswith("```"):
+        s = s.split("\n", 1)[1] if "\n" in s else s.lstrip("`")
+        if s.endswith("```"):
+            s = s[:-3]
+        s = s.strip()
+    start = s.find("[")
+    end = s.rfind("]")
+    if start < 0 or end <= start:
+        return None
+    try:
+        arr = json.loads(s[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(arr, list):
+        return None
+    return [d for d in arr if isinstance(d, dict)]
+
+
+def ai_creative_directions(
+    *,
+    content_item: dict,
+    brand_kit,
+    angle: str = "",
+    default_family: str = "individual_hero",
+    recent_signatures: Optional[list[str]] = None,
+    recent_hooks: Optional[list[str]] = None,
+    allowed_families: Optional[list[str]] = None,
+    count: int = 3,
+) -> Optional[list[dict]]:
+    """Ask the provider for ``count`` MUTUALLY-DISTINCT creative directions.
+
+    One call, one JSON array. This exists because the regenerate-variants
+    route used to fire N parallel single-direction calls with identical
+    prompts — the model returned the same "best" direction N times, so the
+    variant picker showed near-identical designs. Asking for all N in one
+    response lets the model see (and be held to) the distinctness rule.
+
+    Returns a list of direction dicts (possibly shorter than ``count`` if
+    the model under-delivers — callers must fill the gap with random
+    profiles), or ``None`` when no provider is configured / call fails.
+    """
+    try:
+        from mediahub.ai_core import ask, ProviderNotConfigured, ProviderError
+    except Exception as e:
+        log.debug("ai_director: ai_core import failed: %s", e)
+        return None
+
+    count = max(2, min(int(count or 3), 4))
+    summary = _achievement_summary(content_item)
+    brand_ctx = _brand_context(brand_kit)
+    sys = (
+        _system_prompt(allowed_families)
+        + "\n\nBATCH MODE: return a JSON ARRAY of exactly "
+        + str(count)
+        + " direction objects (schema above). Hard batch rules:\n"
+        + "- Every object must differ from every other in layout_family "
+        + "OR background_style, AND use a different hook_phrase.\n"
+        + "- Spread the directions: do not give three variations of the "
+        + "same idea. Output the JSON array ONLY."
+    )
+    user = _user_prompt(
+        summary=summary,
+        brand_ctx=brand_ctx,
+        angle=angle,
+        default_family=default_family or "individual_hero",
+        recent_signatures=recent_signatures or [],
+        recent_hooks=recent_hooks or [],
+    ).replace("Return ONE JSON object now.", f"Return the JSON array of {count} objects now.")
+    try:
+        out = ask(sys, user, max_tokens=1500)
+    except ProviderNotConfigured:
+        log.info("ai_director: no LLM provider configured — skipping batch direction")
+        return None
+    except ProviderError as e:
+        log.warning("ai_director: provider error (batch): %s", str(e)[:400])
+        return None
+    except Exception as e:
+        log.warning("ai_director: unexpected error (batch): %s", str(e)[:400])
+        return None
+    if not out:
+        log.warning("ai_director: provider returned empty output (batch)")
+        return None
+    arr = _parse_strict_json_array(out)
+    if not arr:
+        log.warning(
+            "ai_director: could not parse JSON array from provider output (len=%d): %s",
+            len(out or ""),
+            (out or "")[:500],
+        )
+        return None
+    cleaned: list[dict] = []
+    seen_pairs: set = set()
+    seen_hooks: set = set()
+    for obj in arr[: count + 2]:
+        if (
+            allowed_families
+            and str(obj.get("layout_family", "")).strip().lower() not in allowed_families
+        ):
+            obj["layout_family"] = allowed_families[0]
+        pair = (
+            str(obj.get("layout_family", "")).strip().lower(),
+            str(obj.get("background_style", "")).strip().lower(),
+        )
+        hook = str(obj.get("hook_phrase", "")).strip().upper()
+        # Enforce the batch rules model-side promises client-side too.
+        if pair in seen_pairs and hook in seen_hooks:
+            continue
+        seen_pairs.add(pair)
+        if hook:
+            seen_hooks.add(hook)
+        cleaned.append(obj)
+        if len(cleaned) >= count:
+            break
+    log.info(
+        "ai_director: batch returned %d/%d usable directions: %s",
+        len(cleaned),
+        count,
+        [(o.get("layout_family"), o.get("hook_phrase")) for o in cleaned],
+    )
+    return cleaned or None
+
+
+__all__ = ["ai_creative_direction", "ai_creative_directions", "ai_fresh_hook"]
