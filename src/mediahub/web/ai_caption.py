@@ -129,8 +129,7 @@ _NO_COURSE_ABBREV_INSTRUCTION: str = (
 )
 
 _SHARED_TONE_BANS: str = (
-    'Do not open with "Another …" or "What a …"; never use the phrase '
-    '"testament to".'
+    'Do not open with "Another …" or "What a …"; never use the phrase ' '"testament to".'
 )
 
 
@@ -189,10 +188,7 @@ def _locale_instruction(club_profile) -> str:
         "northern ireland",
     }
     if country.lower() in uk_names:
-        return (
-            "Write in British English (programme, recognise, centre, "
-            "organise; metres)."
-        )
+        return "Write in British English (programme, recognise, centre, " "organise; metres)."
     return f"Write in the natural English variant for {country}."
 
 
@@ -226,9 +222,7 @@ def _ngram_similarity(a: str, b: str, n: int = 3) -> float:
     return len(na & nb) / len(union) if union else 0.0
 
 
-def _is_near_duplicate(
-    candidate: str, reference_list: list[str], threshold: float = 0.55
-) -> bool:
+def _is_near_duplicate(candidate: str, reference_list: list[str], threshold: float = 0.55) -> bool:
     """Return True if candidate is too similar to any string in reference_list."""
     return any(_ngram_similarity(candidate, ref) >= threshold for ref in reference_list)
 
@@ -242,16 +236,14 @@ _PLATFORM_SPECS: dict[str, dict] = {
         "label": "Instagram/Facebook feed",
         "max_chars": 280,
         "guidance": (
-            "casual and warm, emoji welcome, 1–3 hashtags, reads naturally "
-            "in a feed scroll"
+            "casual and warm, emoji welcome, 1–3 hashtags, reads naturally " "in a feed scroll"
         ),
     },
     "story": {
         "label": "Instagram/TikTok story",
         "max_chars": 100,
         "guidance": (
-            "punchy single sentence, no hashtags, fits on a visual card, "
-            "immediate impact"
+            "punchy single sentence, no hashtags, fits on a visual card, " "immediate impact"
         ),
     },
     "x": {
@@ -314,9 +306,7 @@ def _voice_profile_prose(vp: Optional[dict]) -> str:
     avg = vp.get("sentence_length_avg")
     if avg:
         try:
-            bits.append(
-                f"Aim for sentences of about {int(round(float(avg)))} words on average."
-            )
+            bits.append(f"Aim for sentences of about {int(round(float(avg)))} words on average.")
         except (TypeError, ValueError):
             pass
     er = vp.get("emoji_rate_per_caption")
@@ -324,15 +314,11 @@ def _voice_profile_prose(vp: Optional[dict]) -> str:
         try:
             r = float(er)
             if r <= 0.1:
-                bits.append(
-                    "Avoid emoji entirely — use no emoji, this club doesn't use them."
-                )
+                bits.append("Avoid emoji entirely — use no emoji, this club doesn't use them.")
             elif r < 1.0:
                 bits.append("Use emoji sparingly (at most one per caption).")
             else:
-                bits.append(
-                    f"This club typically uses around {r:.1f} emoji per caption."
-                )
+                bits.append(f"This club typically uses around {r:.1f} emoji per caption.")
         except (TypeError, ValueError):
             pass
     ha = vp.get("hashtag_count_avg")
@@ -436,9 +422,7 @@ def generate_caption_for_tone(
     if locale_line:
         system_parts.append(locale_line)
     if recent_captions:
-        recent_block = "\n".join(
-            f"- {c.strip()}" for c in recent_captions[-5:] if c and c.strip()
-        )
+        recent_block = "\n".join(f"- {c.strip()}" for c in recent_captions[-5:] if c and c.strip())
         if recent_block:
             system_parts.append(
                 "Recent captions you wrote for this same card (DO NOT "
@@ -510,9 +494,7 @@ def generate_caption_for_tone(
         if dbits:
             system_parts.append(
                 "Creative direction for THIS card (honour the platform + "
-                "angle, but write the caption in your own fresh words): "
-                + "; ".join(dbits)
-                + "."
+                "angle, but write the caption in your own fresh words): " + "; ".join(dbits) + "."
             )
     # Any caller-supplied extra instructions get appended last so they
     # take precedence over generic guidance. Used by the sponsor-variant
@@ -718,9 +700,7 @@ def generate_platform_variants(
             capped = [e.strip() for e in few_shot_examples[-5:] if e and e.strip()]
             if capped:
                 block = "\n".join(f"- {e}" for e in capped)
-                system_parts.append(
-                    "Voice examples from this club (match their style):\n" + block
-                )
+                system_parts.append("Voice examples from this club (match their style):\n" + block)
         brand_prose = narrate_brand(club_brand)
         if brand_prose:
             system_parts.append("Brand voice: " + brand_prose)
