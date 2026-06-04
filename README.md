@@ -28,7 +28,7 @@
 MediaHub is delivered as a hosted web application. Customers sign in to the deployed URL provided by their operator and use it through any modern browser — no install, no local setup.
 
 1. Open the deployment URL in a browser.
-2. Click **Upload**, drop in a results file (PDF, HY3, SDIF, ZIP, or HTML).
+2. Click **Upload**, drop in a results file (PDF, HY3, SDIF, ZIP, or HTML) — or **paste a results-page link** and MediaHub reads the whole competition off the site (see [`docs/RESULTS_FROM_URL.md`](docs/RESULTS_FROM_URL.md)).
 3. The cloud pipeline interprets, recognises, ranks, renders, and captions in the background.
 4. Review the generated cards on the run's review page, edit captions, approve, and download the content pack.
 
@@ -38,7 +38,7 @@ The hosted service performs all AI calls (captioning, brand interpretation, crea
 
 ## What it does
 
-1. **Upload** any results file — HY3, SDIF, PDF, HTML, ZIP.
+1. **Upload** any results file — HY3, SDIF, PDF, HTML, ZIP — or **paste a results-page link** ([how it works](docs/RESULTS_FROM_URL.md)).
 2. **Interpret** — the [interpreter](docs/SYSTEM_FLOW.md#interpreter) auto-detects the format and induces a typed schema.
 3. **Recognise** — the [detector bus](docs/DETECTOR_BUS.md) flags PBs, qualifying times, medal finals, and other achievements.
 4. **Verify** — the [PB engine](docs/PB_VERIFICATION.md) cross-checks against swimmingresults.org with a trust ledger.

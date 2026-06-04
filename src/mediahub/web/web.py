@@ -2996,8 +2996,19 @@ def _start_run(
     use_pb_cache: bool,
     fetch_pbs: bool,
     club_filter: Optional[str] = None,
+    source_url: Optional[str] = None,
 ) -> str:
     run_id = uuid.uuid4().hex[:12]
+    # When the input came from a pasted results link, record its origin as an
+    # optional sidecar so the review page can show "Source: <host>" and offer a
+    # re-fetch. Never mutates finished runs; just this new run's directory.
+    if source_url:
+        try:
+            run_dir = RUNS_DIR / run_id
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "source_url.txt").write_text(source_url, encoding="utf-8")
+        except Exception:
+            pass
     started_at = datetime.now(timezone.utc).isoformat()
     with _active_lock:
         _active_runs[run_id] = {
@@ -3135,6 +3146,27 @@ _url_jobs: dict[str, dict] = {}
 _url_jobs_lock = threading.Lock()
 _URL_JOBS_MAX = 32
 
+# Per-session rate limit on the fetch route — a headless browser crawl is a real
+# cost, so cap how many a single session can kick off in a window.
+_url_fetch_rate: dict[str, list[float]] = {}
+_URL_FETCH_RATE_MAX = 6
+_URL_FETCH_RATE_WINDOW_S = 300
+
+
+def _url_fetch_rate_ok(key: str) -> bool:
+    now = time.time()
+    with _url_jobs_lock:
+        hits = [t for t in _url_fetch_rate.get(key, []) if now - t < _URL_FETCH_RATE_WINDOW_S]
+        if len(hits) >= _URL_FETCH_RATE_MAX:
+            _url_fetch_rate[key] = hits
+            return False
+        hits.append(now)
+        _url_fetch_rate[key] = hits
+        if len(_url_fetch_rate) > 256:  # opportunistic cleanup
+            for k in list(_url_fetch_rate)[:128]:
+                _url_fetch_rate.pop(k, None)
+        return True
+
 
 def _results_url_enabled() -> bool:
     """Kill-switch: ``MEDIAHUB_RESULTS_FETCH_ENABLED=0`` hides the input and 404s
@@ -3162,6 +3194,22 @@ def _url_job_get(job_id: str) -> Optional[dict]:
     with _url_jobs_lock:
         entry = _url_jobs.get(job_id)
         return dict(entry) if entry else None
+
+
+def _run_source_url(run_id: str) -> Optional[str]:
+    """The results-page URL a run was fetched from, or None for file uploads.
+
+    Read from the optional ``source_url.txt`` sidecar ``_start_run`` writes. Lets
+    the review page show provenance and offer a re-fetch as a fresh run.
+    """
+    try:
+        path = RUNS_DIR / run_id / "source_url.txt"
+        if path.is_file():
+            val = path.read_text(encoding="utf-8").strip()
+            return val or None
+    except Exception:
+        pass
+    return None
 
 
 def _stage_results_zip(zip_bytes: bytes, source_url: str, profile_id: Optional[str]) -> str:
@@ -8851,6 +8899,16 @@ def create_app() -> Flask:
                 )
         except Exception:
             pass
+        # Per-session rate limit (a real headless-browser crawl is a real cost).
+        sid = session.get("mh_sid")
+        if not sid:
+            sid = uuid.uuid4().hex
+            session["mh_sid"] = sid
+        if not _url_fetch_rate_ok(sid):
+            return (
+                jsonify({"error": "Too many fetches just now — wait a minute and try again."}),
+                429,
+            )
         prof = _active_profile()
         profile_id = prof.profile_id if prof is not None else None
         job_id = _start_url_fetch_job(url, profile_id)
@@ -8963,6 +9021,7 @@ def create_app() -> Flask:
                 use_cache,
                 fetch_pbs,
                 club_filter=club_filter,
+                source_url=meta.get("source_url"),
             )
 
             # Persist the brand kit (colours) for the new run id. The
