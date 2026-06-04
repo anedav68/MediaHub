@@ -22,3 +22,4 @@ Load this before touching any text that lands on a rendered graphic: layout temp
 
 Regression tests live in tests/test_graphic_text_quality.py - extend them when adding a slot or a fill. For a manual check, render each layout with a long surname ("REEKIE-AYALA"), a long meet name, an event with "(SC)", and an emoji-only sentence, then confirm nothing clips, overflows, or reads as filler.
 
+
