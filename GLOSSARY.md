@@ -97,6 +97,10 @@ break the program. Each of these folders also has its own short `README.md`.
   it's drawn.
 - **`context_engine`** — Works out who and what a meet is about (the club, the event,
   the back-story) so the posts make sense.
+- **`results_fetch`** — Reads a competition's results straight from a web link,
+  the way a person with a browser would, and turns the whole site into a file the
+  rest of MediaHub already understands. See
+  [`docs/RESULTS_FROM_URL.md`](docs/RESULTS_FROM_URL.md).
 - **`web_research`** — A helper that looks things up on the internet when MediaHub
   needs extra facts.
 

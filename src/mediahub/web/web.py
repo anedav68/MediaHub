@@ -3100,8 +3100,19 @@ def _start_run(
     use_pb_cache: bool,
     fetch_pbs: bool,
     club_filter: Optional[str] = None,
+    source_url: Optional[str] = None,
 ) -> str:
     run_id = uuid.uuid4().hex[:12]
+    # When the input came from a pasted results link, record its origin as an
+    # optional sidecar so the review page can show "Source: <host>" and offer a
+    # re-fetch. Never mutates finished runs; just this new run's directory.
+    if source_url:
+        try:
+            run_dir = RUNS_DIR / run_id
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "source_url.txt").write_text(source_url, encoding="utf-8")
+        except Exception:
+            pass
     started_at = datetime.now(timezone.utc).isoformat()
     with _active_lock:
         _active_runs[run_id] = {
@@ -3225,6 +3236,197 @@ def _start_run(
     t = threading.Thread(target=_worker, daemon=True)
     t.start()
     return run_id
+
+
+# ---------------------------------------------------------------------
+# Results-from-a-link — background fetch job (Step 7)
+# ---------------------------------------------------------------------
+# Paste a results URL → a background thread reads the site (static →
+# rendered → AI page-read), packages a mirror ZIP, and stages it exactly
+# like an uploaded file so the URL path converges at /upload/configure.
+# The file-upload path is untouched.
+
+_url_jobs: dict[str, dict] = {}
+_url_jobs_lock = threading.Lock()
+_URL_JOBS_MAX = 32
+
+# Per-session rate limit on the fetch route — a headless browser crawl is a real
+# cost, so cap how many a single session can kick off in a window.
+_url_fetch_rate: dict[str, list[float]] = {}
+_URL_FETCH_RATE_MAX = 6
+_URL_FETCH_RATE_WINDOW_S = 300
+
+
+def _url_fetch_rate_ok(key: str) -> bool:
+    now = time.time()
+    with _url_jobs_lock:
+        hits = [t for t in _url_fetch_rate.get(key, []) if now - t < _URL_FETCH_RATE_WINDOW_S]
+        if len(hits) >= _URL_FETCH_RATE_MAX:
+            _url_fetch_rate[key] = hits
+            return False
+        hits.append(now)
+        _url_fetch_rate[key] = hits
+        if len(_url_fetch_rate) > 256:  # opportunistic cleanup
+            for k in list(_url_fetch_rate)[:128]:
+                _url_fetch_rate.pop(k, None)
+        return True
+
+
+def _results_url_enabled() -> bool:
+    """Kill-switch: ``MEDIAHUB_RESULTS_FETCH_ENABLED=0`` hides the input and 404s
+    the route. Default on."""
+    return os.environ.get("MEDIAHUB_RESULTS_FETCH_ENABLED", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "off",
+    )
+
+
+def _url_job_set(job_id: str, **fields) -> None:
+    with _url_jobs_lock:
+        entry = _url_jobs.setdefault(job_id, {})
+        entry.update(fields)
+        entry["heartbeat"] = time.time()
+        if len(_url_jobs) > _URL_JOBS_MAX:
+            finished = [j for j, e in _url_jobs.items() if e.get("status") in ("done", "error")]
+            for j in finished[: max(0, len(_url_jobs) - _URL_JOBS_MAX)]:
+                _url_jobs.pop(j, None)
+
+
+def _url_job_get(job_id: str) -> Optional[dict]:
+    with _url_jobs_lock:
+        entry = _url_jobs.get(job_id)
+        return dict(entry) if entry else None
+
+
+def _run_source_url(run_id: str) -> Optional[str]:
+    """The results-page URL a run was fetched from, or None for file uploads.
+
+    Read from the optional ``source_url.txt`` sidecar ``_start_run`` writes. Lets
+    the review page show provenance and offer a re-fetch as a fresh run.
+    """
+    try:
+        path = RUNS_DIR / run_id / "source_url.txt"
+        if path.is_file():
+            val = path.read_text(encoding="utf-8").strip()
+            return val or None
+    except Exception:
+        pass
+    return None
+
+
+def _stage_results_zip(zip_bytes: bytes, source_url: str, profile_id: Optional[str]) -> str:
+    """Write the mirror ZIP as a staged upload (mirrors ``upload()``) and return
+    the temp run id for ``/upload/configure``. Adds ``source_url`` to the meta."""
+    from urllib.parse import urlparse
+
+    temp_run_id = uuid.uuid4().hex[:12]
+    tmp_dir = RUNS_DIR / temp_run_id
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    (tmp_dir / "input.bin").write_bytes(zip_bytes)
+
+    parsed = urlparse(source_url)
+    host = (parsed.hostname or "site").replace(":", "_")
+    path_slug = (parsed.path or "").strip("/").replace("/", "-")[:40] or "results"
+    meta = {
+        "filename": f"{host}-{path_slug}.zip",
+        "profile_id": profile_id,
+        "use_cache": True,
+        "fetch_pbs": True,
+        "display_name": "",
+        "source_url": source_url,
+    }
+    # Same light-parse for clubs / meet name as the file-upload path.
+    try:
+        from mediahub.interpreter import interpret_document
+
+        interpreted = interpret_document(zip_bytes, hint=None)
+        clubs: list[str] = []
+        seen: set[str] = set()
+        for ev in interpreted.events:
+            for sw in ev.swims:
+                c = (sw.club or "").strip()
+                if c and c.lower() not in seen:
+                    seen.add(c.lower())
+                    clubs.append(c)
+        meta["clubs"] = sorted(clubs, key=str.lower)
+        meta["meet_name"] = interpreted.meet_name or ""
+        meta["n_events"] = len(interpreted.events)
+        meta["file_byte_size"] = len(zip_bytes)
+    except Exception as exc:
+        meta["clubs"] = []
+        meta["parse_error"] = str(exc)
+        meta["file_byte_size"] = len(zip_bytes)
+    (tmp_dir / "upload_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return temp_run_id
+
+
+def _run_url_fetch_job(job_id: str, url: str, profile_id: Optional[str]) -> None:
+    """Crawl → (AI-read) → package → stage. Updates the job's status dict so the
+    upload page can poll tier-aware progress. Honest errors, never a 500."""
+    _url_job_set(job_id, status="running", phase="fetching", progress="Reading the site…")
+    try:
+        from mediahub.media_ai.llm import ClaudeUnavailableError
+        from mediahub.results_fetch.ai_read import ai_read_candidates
+        from mediahub.results_fetch.crawl import crawl_results_site
+        from mediahub.results_fetch.package import package_mirror
+
+        crawl = crawl_results_site(url)
+        summary = (
+            f"Fetched {crawl.pages_visited} pages · {crawl.kept} kept · "
+            f"{crawl.total_bytes // 1024} KB"
+        )
+        if crawl.render_budget_hit:
+            summary += " · render budget reached"
+        _url_job_set(job_id, phase="reading", progress=summary)
+
+        ai_extractions: list = []
+        if crawl.ai_candidates:
+            try:
+                ai_extractions = ai_read_candidates(crawl.ai_candidates)
+            except ClaudeUnavailableError:
+                if crawl.is_empty:
+                    _url_job_set(
+                        job_id,
+                        status="error",
+                        error=(
+                            "This site's results are only in images, and no AI vision "
+                            "provider is configured to read them. Ask your administrator "
+                            "to set a Gemini or Anthropic API key."
+                        ),
+                    )
+                    return
+                # Deterministic results exist — proceed without Tier C.
+
+        if crawl.is_empty and not ai_extractions:
+            _url_job_set(
+                job_id,
+                status="error",
+                error=(
+                    "No competition results were found on that page. It may be "
+                    "login-walled, or the results live on a different URL."
+                ),
+            )
+            return
+
+        _url_job_set(job_id, phase="packaging", progress=summary + " · packaging")
+        zip_bytes = package_mirror(crawl, ai_extractions)
+        temp_run_id = _stage_results_zip(zip_bytes, url, profile_id)
+        _url_job_set(job_id, status="done", run_id=temp_run_id, progress=summary)
+    except Exception as e:  # noqa: BLE001 — surface as an honest job error, not a 500
+        import traceback
+
+        traceback.print_exc()
+        _url_job_set(job_id, status="error", error=str(e))
+
+
+def _start_url_fetch_job(url: str, profile_id: Optional[str]) -> str:
+    job_id = uuid.uuid4().hex[:12]
+    _url_job_set(job_id, status="queued", phase="queued", progress="Queued", source_url=url)
+    t = threading.Thread(target=_run_url_fetch_job, args=(job_id, url, profile_id), daemon=True)
+    t.start()
+    return job_id
 
 
 # ---------------------------------------------------------------------
@@ -5095,19 +5297,19 @@ from mediahub.web.theme_tokens import (  # noqa: E402
 )
 from mediahub.web.responsive_guardrails import RESPONSIVE_GUARDRAILS_CSS as _MH_RG_CSS  # noqa: E402
 
-BASE_CSS = _MH_TT_CSS + BASE_CSS + _MH_TC_CSS + _MH_RG_CSS
-
 # I4 fix — persona cards ("Built for the people who already post the
 # results"). The inline SVGs use stroke="currentColor", so the icon glyph
 # only shows up if .mh-audience-icon carries a visible `color`. Pin it to
-# the lane accent here, appended last so it is the cascade's final word —
-# this matches the visible .mh-trust-cell svg / step-card accent treatment
-# and keeps the icons legible against the dark --surface card background
-# even if the external components layer drifts.
-BASE_CSS += (
+# the lane accent. It rides with the components layer (a class + descendant
+# selector out-specifies the bare `svg` reset in the guardrails, which set
+# no colour outside @media print), so the icons stay legible against the
+# dark --surface card background while RESPONSIVE_GUARDRAILS_CSS remains the
+# cascade's final layer (see test_theme_tokens::test_guardrails_appended_last).
+_MH_AUDIENCE_ICON_CSS = (
     "\n.mh-audience-icon { color: var(--lane); }"
     "\n.mh-audience-icon svg { color: var(--lane); }\n"
 )
+BASE_CSS = _MH_TT_CSS + BASE_CSS + _MH_TC_CSS + _MH_AUDIENCE_ICON_CSS + _MH_RG_CSS
 
 
 def _render_markdown(text: str) -> str:
@@ -8376,6 +8578,71 @@ def create_app() -> Flask:
         except Exception:
             recent_html = ""
 
+        # Results-from-a-link: second input mode (Step 7). Gated by the
+        # kill-switch; the card is interpolated into the body as a value, so its
+        # braces are literal (no f-string escaping needed).
+        results_url_card = ""
+        if _results_url_enabled():
+            _post_url = url_for("upload_from_url")
+            _status_base = url_for("upload_from_url_status", job_id="JOBID")
+            results_url_card = (
+                (
+                    """
+<div class="card" style="margin-top:var(--sp-4)">
+  <h3 style="margin-top:0;font-family:var(--font-mono);font-size:var(--fs-10);letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:var(--sp-3)">Or paste a results link</h3>
+  <p class="lede" style="font-size:var(--fs-14);margin-bottom:var(--sp-4)">Works with results sites for any sport &mdash; including modern app-style sites. We&rsquo;ll gather every result on the site.</p>
+  <div style="display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:stretch">
+    <input id="mh-url-input" type="url" inputmode="url" autocomplete="off" placeholder="https://results.example.org/championships/2026/" aria-label="Results page URL" style="flex:1;min-width:260px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:inherit;font-family:inherit;font-size:15px;box-sizing:border-box" />
+    <button id="mh-url-fetch" class="btn" type="button">Fetch results &rarr;</button>
+  </div>
+  <div id="mh-url-status" role="status" aria-live="polite" hidden style="margin-top:var(--sp-3);padding:10px 12px;border-radius:8px;background:rgba(212,255,58,0.06);border:1px solid rgba(212,255,58,0.22);font-family:var(--font-mono);font-size:13px;color:var(--ink-muted)"></div>
+  <div id="mh-url-error" class="mh-field-error" role="alert" hidden style="margin-top:var(--sp-3)"></div>
+</div>
+<script>
+(function(){
+  var btn = document.getElementById('mh-url-fetch');
+  var input = document.getElementById('mh-url-input');
+  var statusEl = document.getElementById('mh-url-status');
+  var errEl = document.getElementById('mh-url-error');
+  if (!btn || !input) return;
+  function show(el, msg){ el.textContent = msg; el.hidden = false; }
+  function hide(el){ el.hidden = true; }
+  function go(){
+    var url = (input.value || '').trim();
+    hide(errEl);
+    if (!/^https?:\\/\\//i.test(url)) { show(errEl, 'Enter a full URL starting with http:// or https://'); return; }
+    btn.disabled = true; input.disabled = true; show(statusEl, 'Starting\\u2026');
+    var fd = new FormData(); fd.append('url', url);
+    fetch('__POST_URL__', { method: 'POST', body: fd })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+      .then(function(res){
+        if (!res.ok || res.j.error) { throw new Error(res.j.error || 'Could not start the fetch.'); }
+        poll(res.j.job_id);
+      })
+      .catch(function(e){ btn.disabled = false; input.disabled = false; hide(statusEl); show(errEl, e.message); });
+  }
+  function poll(jobId){
+    var statusUrl = '__STATUS_BASE__'.replace('JOBID', jobId);
+    var tick = function(){
+      fetch(statusUrl).then(function(r){ return r.json(); }).then(function(j){
+        if (j.status === 'done' && j.redirect) { show(statusEl, 'Done \\u2014 opening configure\\u2026'); window.location.href = j.redirect; return; }
+        if (j.status === 'error') { btn.disabled = false; input.disabled = false; hide(statusEl); show(errEl, j.error || 'The fetch failed.'); return; }
+        show(statusEl, j.progress || 'Reading the site\\u2026');
+        setTimeout(tick, 1500);
+      }).catch(function(){ setTimeout(tick, 2500); });
+    };
+    tick();
+  }
+  btn.addEventListener('click', go);
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); go(); } });
+})();
+</script>
+"""
+                )
+                .replace("__POST_URL__", _post_url)
+                .replace("__STATUS_BASE__", _status_base)
+            )
+
         body = f"""
 <section class="mh-hero" data-lane="01" style="padding-top:var(--sp-8);padding-bottom:var(--sp-6);margin-bottom:var(--sp-4)">
   <span class="mh-hero-eyebrow">Upload meet file</span>
@@ -8421,7 +8688,7 @@ def create_app() -> Flask:
     </div>
   </form>
 </div>
-
+{results_url_card}
 <div class="mh-next-strip" aria-label="What happens next">
   <div class="cell"><span class="num">2</span><span class="text"><b>Configure</b><br>Pick your club from the parsed list, upload your logo, choose tone, and drop in photos.</span></div>
   <div class="cell"><span class="num">3</span><span class="text"><b>Pipeline runs</b><br>The engine spots PBs, medals, first-times and comebacks. About 30 to 60 seconds.</span></div>
@@ -8842,6 +9109,68 @@ def create_app() -> Flask:
 """
         return _layout("Configure run", body, active="create")
 
+    @app.route("/upload/from-url", methods=["POST"])
+    def upload_from_url():
+        """Kick off a background results-from-a-link fetch. Returns a job id the
+        upload page polls; on success the job stages a ZIP and the page redirects
+        to the EXISTING configure step."""
+        if not _results_url_enabled():
+            return jsonify({"error": "Results-from-a-link is disabled on this deployment."}), 404
+        from urllib.parse import urlparse
+
+        url = (request.values.get("url") or "").strip()
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            return (
+                jsonify(
+                    {"error": "Enter a full results-page URL starting with http:// or https://"}
+                ),
+                400,
+            )
+        # Early SSRF reject (every fetch inside the crawl is re-validated too).
+        try:
+            from mediahub.web_research.safe_fetch import is_url_safe
+
+            if not is_url_safe(url):
+                return (
+                    jsonify({"error": "That address can't be reached (private/invalid host)."}),
+                    400,
+                )
+        except Exception:
+            pass
+        # Per-session rate limit (a real headless-browser crawl is a real cost).
+        sid = session.get("mh_sid")
+        if not sid:
+            sid = uuid.uuid4().hex
+            session["mh_sid"] = sid
+        if not _url_fetch_rate_ok(sid):
+            return (
+                jsonify({"error": "Too many fetches just now — wait a minute and try again."}),
+                429,
+            )
+        prof = _active_profile()
+        profile_id = prof.profile_id if prof is not None else None
+        job_id = _start_url_fetch_job(url, profile_id)
+        return jsonify({"job_id": job_id})
+
+    @app.route("/api/upload/from-url/<job_id>/status")
+    def upload_from_url_status(job_id):
+        if not re.fullmatch(r"[0-9a-f]{12}", job_id or ""):
+            return jsonify({"status": "unknown", "error": "Bad job id"}), 400
+        entry = _url_job_get(job_id)
+        if entry is None:
+            return jsonify({"status": "unknown"}), 404
+        payload = {
+            "status": entry.get("status", "unknown"),
+            "phase": entry.get("phase", ""),
+            "progress": entry.get("progress", ""),
+        }
+        if entry.get("status") == "done" and entry.get("run_id"):
+            payload["redirect"] = url_for("upload_configure", run_id=entry["run_id"])
+        elif entry.get("status") == "error":
+            payload["error"] = entry.get("error", "The fetch failed.")
+        return jsonify(payload)
+
     @app.route("/upload/configure", methods=["GET", "POST"])
     def upload_configure():
         run_id = request.values.get("run_id", "").strip()
@@ -8931,6 +9260,7 @@ def create_app() -> Flask:
                 use_cache,
                 fetch_pbs,
                 club_filter=club_filter,
+                source_url=meta.get("source_url"),
             )
 
             # Persist the brand kit (colours) for the new run id. The
