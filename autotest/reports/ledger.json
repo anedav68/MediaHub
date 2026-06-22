@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "generated_at": "2026-06-22T17:58:45+00:00",
+  "generated_at": "2026-06-22T23:07:36+00:00",
   "bugs": {
     "e6f9dc3b346d": {
       "fingerprint": "e6f9dc3b346d",
@@ -26,7 +26,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e883e6f0bbc7": {
@@ -61,7 +61,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "71e02f586c45": {
@@ -96,7 +96,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "5cebfcb079da": {
@@ -123,7 +123,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "55093f7335f8": {
@@ -150,7 +150,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "76196fe6a36b": {
@@ -178,7 +178,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-06T09:16:28+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -209,7 +209,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-07T10:16:47+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -248,7 +248,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "c078dfe0fd10": {
@@ -278,7 +278,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "1a292d42c2a2": {
@@ -308,7 +308,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "ee92220cff28": {
@@ -343,7 +343,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e9e98e5f2b67": {
@@ -373,7 +373,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "510d8919d03e": {
@@ -403,7 +403,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "b07572c63c13": {
@@ -432,7 +432,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "3f77367bbf6c": {
@@ -460,7 +460,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -489,7 +489,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -517,7 +517,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "f07b0a820cda": {
@@ -544,7 +544,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "1db920390f08": {
@@ -574,7 +574,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "a95a57febaa6": {
@@ -604,7 +604,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "bfc627098c98": {
@@ -639,7 +639,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "c9862d27b7c0": {
@@ -667,7 +667,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -695,7 +695,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e8455cdfdedb": {
@@ -730,7 +730,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7c66fb1350e3": {
@@ -765,7 +765,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "aff50d6aa9db": {
@@ -795,7 +795,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "b47311d05103": {
@@ -823,7 +823,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -854,7 +854,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7eeacfc2cb14": {
@@ -882,7 +882,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -911,7 +911,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -939,7 +939,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7d64d57158d0": {
@@ -969,7 +969,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "f39cf22df1f0": {
@@ -999,7 +999,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "0622ce8f5bb6": {
@@ -1027,7 +1027,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1058,7 +1058,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "1e132430ab96": {
@@ -1086,7 +1086,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1115,7 +1115,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1144,7 +1144,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1176,7 +1176,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "5e0405b2f9bd": {
@@ -1204,7 +1204,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1232,7 +1232,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "35ff22e13091": {
@@ -1263,7 +1263,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "8ab0ccd13904": {
@@ -1298,7 +1298,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "76ad189abd62": {
@@ -1328,7 +1328,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e79087027f38": {
@@ -1357,7 +1357,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1386,7 +1386,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1415,7 +1415,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1443,7 +1443,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "b51047bfbf12": {
@@ -1471,7 +1471,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "83bce121b5f8": {
@@ -1499,7 +1499,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-06T09:16:28+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -1531,7 +1531,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e0fa559c5718": {
@@ -1559,7 +1559,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1590,7 +1590,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "29a7575d591e": {
@@ -1618,7 +1618,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -1647,7 +1647,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "ec9c93777b73": {
@@ -1675,7 +1675,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e38c136559e9": {
@@ -1706,7 +1706,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "33868b7dcd6e": {
@@ -1736,7 +1736,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "0fa38c738838": {
@@ -1766,7 +1766,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "5e3472d6dbaf": {
@@ -1794,7 +1794,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "9625591d5a68": {
@@ -1821,7 +1821,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "a70617621ebf": {
@@ -1852,7 +1852,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "3e82b43412ba": {
@@ -1887,7 +1887,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "b3fcfc7348e7": {
@@ -1917,7 +1917,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "02d8cfb3993c": {
@@ -1947,7 +1947,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "a5b0c6b6d911": {
@@ -1977,7 +1977,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e3829b484a1f": {
@@ -2005,7 +2005,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2034,7 +2034,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2063,7 +2063,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2091,7 +2091,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "4f1d8d41781e": {
@@ -2126,7 +2126,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d5e8229ef41c": {
@@ -2157,7 +2157,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "fd111afb7b70": {
@@ -2188,7 +2188,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "3dab958fe4dd": {
@@ -2219,7 +2219,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "0875b0ed5356": {
@@ -2247,7 +2247,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2276,7 +2276,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2306,7 +2306,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2336,7 +2336,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2366,7 +2366,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "25cd61befbd6": {
@@ -2389,14 +2389,14 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 49,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": "https://github.com/elijahkendrick04/MediaHub/pull/209",
       "fix_branch": "autotest/fix-25cd61befbd6",
       "fix_attempts": 1,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "a12292408770": {
@@ -2419,14 +2419,14 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 49,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": "https://github.com/elijahkendrick04/MediaHub/pull/210",
       "fix_branch": "autotest/fix-a12292408770",
       "fix_attempts": 1,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "0fc5bf4cd758": {
@@ -2456,7 +2456,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "a31b1bda242d": {
@@ -2486,7 +2486,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "343e7a7dbbd7": {
@@ -2515,7 +2515,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2546,7 +2546,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "97ee0fe53ae7": {
@@ -2575,7 +2575,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 40,
+      "absent_streak": 41,
       "auto_closed_at": "2026-06-05T18:32:22+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2605,7 +2605,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2635,7 +2635,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2663,7 +2663,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2691,7 +2691,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2722,7 +2722,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2752,7 +2752,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2782,7 +2782,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2812,7 +2812,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2842,7 +2842,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2872,7 +2872,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2902,7 +2902,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2932,7 +2932,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2962,7 +2962,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -2992,7 +2992,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3022,7 +3022,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3052,7 +3052,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3080,7 +3080,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3110,7 +3110,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3140,7 +3140,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3170,7 +3170,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3200,7 +3200,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3230,7 +3230,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3260,7 +3260,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3290,7 +3290,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3320,7 +3320,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3350,7 +3350,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3380,7 +3380,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3408,7 +3408,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3438,7 +3438,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3468,7 +3468,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3496,7 +3496,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3524,7 +3524,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3554,7 +3554,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3585,7 +3585,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": null
     },
     "de60580f5f59": {
@@ -3614,7 +3614,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3644,7 +3644,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3674,7 +3674,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3702,7 +3702,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-06T09:16:28+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3732,7 +3732,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3762,7 +3762,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3792,7 +3792,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": "2026-06-03T04:28:48+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -3823,7 +3823,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": "2026-06-06T16:01:24+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -3854,7 +3854,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -3885,7 +3885,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -3916,7 +3916,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -3947,7 +3947,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-07T10:16:47+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -3969,9 +3969,9 @@
       "screenshot": "",
       "status": "regressed",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 48,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 49,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4001,9 +4001,9 @@
       "screenshot": "",
       "status": "regressed",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 48,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 49,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4033,9 +4033,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4063,9 +4063,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4093,9 +4093,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4123,9 +4123,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4153,9 +4153,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4183,9 +4183,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 72,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 73,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4213,9 +4213,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 72,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 73,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4243,9 +4243,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 72,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 73,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4273,9 +4273,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 37,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 38,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4303,9 +4303,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 37,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 38,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4333,9 +4333,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4363,9 +4363,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4393,9 +4393,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4423,9 +4423,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 54,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 55,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4453,9 +4453,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 54,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 55,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4483,9 +4483,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4513,9 +4513,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4543,9 +4543,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 62,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 63,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4573,9 +4573,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 54,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 55,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4603,9 +4603,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 54,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 55,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4633,9 +4633,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 59,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 60,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4663,9 +4663,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 59,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 60,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4693,9 +4693,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 59,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 60,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4723,9 +4723,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 39,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 40,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4753,9 +4753,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 39,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 40,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4783,9 +4783,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4813,9 +4813,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4843,9 +4843,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4882,7 +4882,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -4913,7 +4913,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 22,
+      "absent_streak": 23,
       "auto_closed_at": "2026-06-14T17:03:53+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -4935,9 +4935,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 65,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 66,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -4974,7 +4974,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5005,7 +5005,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 22,
+      "absent_streak": 23,
       "auto_closed_at": "2026-06-14T17:03:53+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5036,7 +5036,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-07T10:16:47+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5067,7 +5067,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5098,7 +5098,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-07T10:16:47+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5129,7 +5129,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5160,7 +5160,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-07T10:16:47+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps",
       "regressed_at": "2026-06-11T23:13:19+00:00"
@@ -5192,7 +5192,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5223,7 +5223,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -5248,13 +5248,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "72b7ed57451a": {
@@ -5278,13 +5278,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "1543e35d09a7": {
@@ -5308,13 +5308,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 42,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "23251352dab1": {
@@ -5338,13 +5338,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 42,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "3aac47d9591b": {
@@ -5368,13 +5368,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "0b1fe3b65747": {
@@ -5403,7 +5403,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260602T143545Z-d1f9",
       "first_pending_at": "2026-06-02T14:40:53+00:00",
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": "2026-06-05T11:53:26+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5433,7 +5433,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260602T143545Z-d1f9",
       "first_pending_at": "2026-06-02T14:40:53+00:00",
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": "2026-06-05T11:53:26+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5461,7 +5461,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260602T143545Z-d1f9",
       "first_pending_at": "2026-06-02T14:40:53+00:00",
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": "2026-06-05T11:53:26+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5491,7 +5491,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260602T163757Z-5175",
       "first_pending_at": "2026-06-02T16:43:29+00:00",
-      "absent_streak": 40,
+      "absent_streak": 41,
       "auto_closed_at": "2026-06-05T18:32:22+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5519,7 +5519,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260602T163757Z-5175",
       "first_pending_at": "2026-06-02T16:43:29+00:00",
-      "absent_streak": 40,
+      "absent_streak": 41,
       "auto_closed_at": "2026-06-05T18:32:22+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5541,9 +5541,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-03T04:28:48+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5571,9 +5571,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-03T04:28:48+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5601,9 +5601,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-03T04:28:48+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5631,9 +5631,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-03T04:28:48+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5661,9 +5661,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-03T04:28:48+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5699,7 +5699,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260603T042239Z-0163",
       "first_pending_at": "2026-06-03T04:28:48+00:00",
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-06T09:16:28+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5729,7 +5729,7 @@
       "confirmations": 0,
       "first_pending_run_id": "20260603T042239Z-0163",
       "first_pending_at": "2026-06-03T04:28:48+00:00",
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-06T09:16:28+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5759,7 +5759,7 @@
       "confirmations": 1,
       "first_pending_run_id": "20260603T042239Z-0163",
       "first_pending_at": "2026-06-03T04:28:48+00:00",
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": "2026-06-06T09:16:28+00:00",
       "archived_reason": "decayed: not reproduced for 3 consecutive sweeps"
     },
@@ -5781,9 +5781,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-05T11:53:26+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 78,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 79,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5811,9 +5811,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-05T11:53:26+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 78,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 79,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5841,9 +5841,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-05T11:53:26+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 78,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 79,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5871,9 +5871,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-05T11:53:26+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 78,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 79,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5901,9 +5901,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-05T11:53:26+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 78,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 79,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -5934,13 +5934,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "9bd4cc2d3544": {
@@ -5964,13 +5964,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "15237b62a84b": {
@@ -5994,13 +5994,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "432c837c0f96": {
@@ -6024,13 +6024,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "3803be40dbd7": {
@@ -6054,13 +6054,13 @@
       "last_seen": "2026-06-22T17:58:45+00:00",
       "seen_count": 39,
       "last_run_id": "20260622T175703Z-734e",
-      "present_last_run": true,
+      "present_last_run": false,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 0,
+      "absent_streak": 1,
       "auto_closed_at": null
     },
     "4fc6114844ea": {
@@ -6090,7 +6090,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6121,7 +6121,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6152,7 +6152,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6183,7 +6183,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6214,7 +6214,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6245,7 +6245,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6264,20 +6264,21 @@
         "Open https://mediahub-gzwc.onrender.com/"
       ],
       "screenshot": "autotest/screenshots/cce3cceae744.png",
-      "status": "auto-closed",
+      "status": "regressed",
       "first_seen": "2026-06-09T19:37:48+00:00",
-      "last_seen": "2026-06-09T19:37:48+00:00",
-      "seen_count": 1,
-      "last_run_id": "20260609T193619Z-5acc",
-      "present_last_run": false,
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 0,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
-      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
+      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps",
+      "regressed_at": "2026-06-22T23:07:36+00:00"
     },
     "cf82e34c7de4": {
       "fingerprint": "cf82e34c7de4",
@@ -6294,20 +6295,21 @@
         "Open https://mediahub-gzwc.onrender.com/"
       ],
       "screenshot": "",
-      "status": "auto-closed",
+      "status": "regressed",
       "first_seen": "2026-06-09T19:37:48+00:00",
-      "last_seen": "2026-06-09T19:37:48+00:00",
-      "seen_count": 1,
-      "last_run_id": "20260609T193619Z-5acc",
-      "present_last_run": false,
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 0,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
-      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
+      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps",
+      "regressed_at": "2026-06-22T23:07:36+00:00"
     },
     "0129586cb27f": {
       "fingerprint": "0129586cb27f",
@@ -6324,20 +6326,21 @@
         "Open https://mediahub-gzwc.onrender.com/activity"
       ],
       "screenshot": "autotest/screenshots/0129586cb27f.png",
-      "status": "auto-closed",
+      "status": "regressed",
       "first_seen": "2026-06-09T19:37:48+00:00",
-      "last_seen": "2026-06-09T19:37:48+00:00",
-      "seen_count": 1,
-      "last_run_id": "20260609T193619Z-5acc",
-      "present_last_run": false,
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 0,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
-      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
+      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps",
+      "regressed_at": "2026-06-22T23:07:36+00:00"
     },
     "9d0c7f6e0577": {
       "fingerprint": "9d0c7f6e0577",
@@ -6354,20 +6357,21 @@
         "Open https://mediahub-gzwc.onrender.com/activity"
       ],
       "screenshot": "",
-      "status": "auto-closed",
+      "status": "regressed",
       "first_seen": "2026-06-09T19:37:48+00:00",
-      "last_seen": "2026-06-09T19:37:48+00:00",
-      "seen_count": 1,
-      "last_run_id": "20260609T193619Z-5acc",
-      "present_last_run": false,
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 0,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
-      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
+      "archived_reason": "decayed: not reproduced for 6 consecutive sweeps",
+      "regressed_at": "2026-06-22T23:07:36+00:00"
     },
     "5ad3a88f84e2": {
       "fingerprint": "5ad3a88f84e2",
@@ -6395,7 +6399,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6425,7 +6429,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6455,7 +6459,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6485,7 +6489,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6515,7 +6519,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6545,7 +6549,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6575,7 +6579,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6605,7 +6609,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6635,7 +6639,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6665,7 +6669,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6695,7 +6699,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6725,7 +6729,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": "2026-06-12T23:05:09+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6756,7 +6760,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6786,7 +6790,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 12,
+      "absent_streak": 13,
       "auto_closed_at": "2026-06-20T10:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6816,7 +6820,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 25,
+      "absent_streak": 26,
       "auto_closed_at": "2026-06-13T17:04:02+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6847,7 +6851,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6878,7 +6882,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6909,7 +6913,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 23,
+      "absent_streak": 24,
       "auto_closed_at": "2026-06-14T10:55:52+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6940,7 +6944,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -6971,7 +6975,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7002,7 +7006,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7033,7 +7037,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7064,7 +7068,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7095,7 +7099,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7126,7 +7130,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7157,7 +7161,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7188,7 +7192,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7219,7 +7223,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7250,7 +7254,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7281,7 +7285,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7312,7 +7316,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7343,7 +7347,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7374,7 +7378,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7405,7 +7409,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7436,7 +7440,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7467,7 +7471,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7497,7 +7501,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 12,
+      "absent_streak": 13,
       "auto_closed_at": "2026-06-20T10:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7528,7 +7532,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7559,7 +7563,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 19,
+      "absent_streak": 20,
       "auto_closed_at": "2026-06-16T18:22:19+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7590,7 +7594,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 10,
+      "absent_streak": 11,
       "auto_closed_at": "2026-06-20T21:59:20+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7621,7 +7625,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 2,
+      "absent_streak": 3,
       "auto_closed_at": null
     },
     "769eb5e62fb5": {
@@ -7650,7 +7654,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 7,
+      "absent_streak": 8,
       "auto_closed_at": "2026-06-21T22:24:31+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7680,7 +7684,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 7,
+      "absent_streak": 8,
       "auto_closed_at": "2026-06-21T22:24:31+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7711,7 +7715,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 15,
+      "absent_streak": 16,
       "auto_closed_at": "2026-06-19T00:14:49+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7742,7 +7746,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 10,
+      "absent_streak": 11,
       "auto_closed_at": "2026-06-20T21:59:20+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7772,7 +7776,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 14,
+      "absent_streak": 15,
       "auto_closed_at": "2026-06-19T16:21:32+00:00",
       "archived_reason": "decayed: not reproduced for 6 consecutive sweeps"
     },
@@ -7802,7 +7806,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 2,
+      "absent_streak": 3,
       "auto_closed_at": null
     },
     "ffd223201acf": {
@@ -7831,7 +7835,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 3,
+      "absent_streak": 4,
       "auto_closed_at": null
     },
     "5802cd8b75a1": {
@@ -7860,7 +7864,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 2,
+      "absent_streak": 3,
       "auto_closed_at": null
     },
     "538145d0ba46": {
@@ -7889,7 +7893,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 3,
+      "absent_streak": 4,
       "auto_closed_at": null
     },
     "33f8a7df74e9": {
@@ -7918,7 +7922,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 3,
+      "absent_streak": 4,
       "auto_closed_at": null
     },
     "059a34d95987": {
@@ -7947,7 +7951,819 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 3,
+      "absent_streak": 4,
+      "auto_closed_at": null
+    },
+    "233886b0d41c": {
+      "fingerprint": "233886b0d41c",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /organisation/setup",
+      "route": "/organisation/setup",
+      "expected": "/organisation/setup returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/organisation/setup"
+      ],
+      "screenshot": "autotest/screenshots/233886b0d41c.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "78df667c2c0e": {
+      "fingerprint": "78df667c2c0e",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /organisation/setup",
+      "route": "/organisation/setup",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/organisation/setup",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/organisation/setup\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/organisation/setup"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "9ac44b53669e": {
+      "fingerprint": "9ac44b53669e",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /privacy",
+      "route": "/privacy",
+      "expected": "/privacy returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/privacy"
+      ],
+      "screenshot": "autotest/screenshots/9ac44b53669e.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "a8e01b055abd": {
+      "fingerprint": "a8e01b055abd",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /privacy",
+      "route": "/privacy",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/privacy",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/privacy\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/privacy"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "48be5a5a80a7": {
+      "fingerprint": "48be5a5a80a7",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /research",
+      "route": "/research",
+      "expected": "/research returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/research"
+      ],
+      "screenshot": "autotest/screenshots/48be5a5a80a7.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "de818a25ab16": {
+      "fingerprint": "de818a25ab16",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /research",
+      "route": "/research",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/research",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/research\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/research"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "beac31c30988": {
+      "fingerprint": "beac31c30988",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /session-update",
+      "route": "/session-update",
+      "expected": "/session-update returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/session-update"
+      ],
+      "screenshot": "autotest/screenshots/beac31c30988.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "47c3aea32521": {
+      "fingerprint": "47c3aea32521",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /session-update",
+      "route": "/session-update",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/session-update",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/session-update\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/session-update"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "88b5f34a7279": {
+      "fingerprint": "88b5f34a7279",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /settings",
+      "route": "/settings",
+      "expected": "/settings returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/settings"
+      ],
+      "screenshot": "autotest/screenshots/88b5f34a7279.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "a872a6280548": {
+      "fingerprint": "a872a6280548",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /settings",
+      "route": "/settings",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/settings",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/settings\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/settings"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "b94aca29a96c": {
+      "fingerprint": "b94aca29a96c",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /sign-in",
+      "route": "/sign-in",
+      "expected": "/sign-in returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/sign-in"
+      ],
+      "screenshot": "autotest/screenshots/b94aca29a96c.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "ceb2528a5f37": {
+      "fingerprint": "ceb2528a5f37",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /sign-in",
+      "route": "/sign-in",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/sign-in",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/sign-in\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/sign-in"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "40fc50d12071": {
+      "fingerprint": "40fc50d12071",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /sponsor-post",
+      "route": "/sponsor-post",
+      "expected": "/sponsor-post returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/sponsor-post"
+      ],
+      "screenshot": "autotest/screenshots/40fc50d12071.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "780b6ffe1929": {
+      "fingerprint": "780b6ffe1929",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /sponsor-post",
+      "route": "/sponsor-post",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/sponsor-post",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/sponsor-post\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/sponsor-post"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "302181175b81": {
+      "fingerprint": "302181175b81",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /spotlight",
+      "route": "/spotlight",
+      "expected": "/spotlight returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/spotlight"
+      ],
+      "screenshot": "autotest/screenshots/302181175b81.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "2a116a9ec162": {
+      "fingerprint": "2a116a9ec162",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /spotlight",
+      "route": "/spotlight",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/spotlight",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/spotlight\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/spotlight"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "d5f2dc41d6f3": {
+      "fingerprint": "d5f2dc41d6f3",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /status",
+      "route": "/status",
+      "expected": "/status returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/status"
+      ],
+      "screenshot": "autotest/screenshots/d5f2dc41d6f3.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "1497a097cdbf": {
+      "fingerprint": "1497a097cdbf",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /status",
+      "route": "/status",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/status",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/status\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/status"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 2,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "2e29fa5aaefe": {
+      "fingerprint": "2e29fa5aaefe",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /sw.js",
+      "route": "/sw.js",
+      "expected": "/sw.js returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/sw.js"
+      ],
+      "screenshot": "autotest/screenshots/2e29fa5aaefe.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "d049fd54db91": {
+      "fingerprint": "d049fd54db91",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /sw.js",
+      "route": "/sw.js",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/sw.js",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/sw.js\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/sw.js"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "8079d4cfbba1": {
+      "fingerprint": "8079d4cfbba1",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /upload",
+      "route": "/upload",
+      "expected": "/upload returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/upload"
+      ],
+      "screenshot": "autotest/screenshots/8079d4cfbba1.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "e55edfcd03f9": {
+      "fingerprint": "e55edfcd03f9",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /upload",
+      "route": "/upload",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/upload",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/upload\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/upload"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "57ce9a48e9f9": {
+      "fingerprint": "57ce9a48e9f9",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /upload/configure",
+      "route": "/upload/configure",
+      "expected": "/upload/configure returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/upload/configure"
+      ],
+      "screenshot": "autotest/screenshots/57ce9a48e9f9.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "61236d7c4ecb": {
+      "fingerprint": "61236d7c4ecb",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /upload/configure",
+      "route": "/upload/configure",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/upload/configure",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/upload/configure\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/upload/configure"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "52230ab1ba3b": {
+      "fingerprint": "52230ab1ba3b",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /web-research",
+      "route": "/web-research",
+      "expected": "/web-research returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/web-research"
+      ],
+      "screenshot": "autotest/screenshots/52230ab1ba3b.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "c06bea77e818": {
+      "fingerprint": "c06bea77e818",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /web-research",
+      "route": "/web-research",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/web-research",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/web-research\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/web-research"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "5ad1410b96a6": {
+      "fingerprint": "5ad1410b96a6",
+      "category": "http_5xx",
+      "severity": "high",
+      "title": "HTTP 502 at /weekend-preview",
+      "route": "/weekend-preview",
+      "expected": "/weekend-preview returns a 2xx/3xx response",
+      "actual": "HTTP 502",
+      "evidence": "<!DOCTYPE html><html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>502</title>\n    <style>@font-face {\n  font-family: \"Roobert\";\n  font-weight: 500;\n  font-style: normal;\n  font-stretch: normal;\n  src: url(\"data:font/woff2;base64,d09GMk9UVE8AAKewAAwAAAABa6QAAKdfAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYKmehqCHhuC4UocpRQGYACLBgE2AiQDkygEBgWFRwcgW8pqkQKZcr0u0nk2H+gc25rBL5CqkDOqYXNqo87dNmL1mgByHi4yIGwcgLFJz2f/////f/pSkaHKgl52HEgorIWX0m0/lzuLglQtUxbMiGh9qonlnolc+1JbmihzmbbylQ/Xs2Knu/rUH62ibhOWZkpgVpo4nLnvzMOZ87/06Lk2hMnbe1EpM1cUezJlZtqCZIKYIPYeoS6VhFPJXNa5j7Y8LmH67MF2qJYI49/FNzQbwX7cqeRUbzyDffdLybw5cxRTIbdy4y5BVskcP6vu3uo+6GtnQl/up3nkVnDZmKlEpYHB1w/usr46inVsWjdEIE2gBgoC36WYsC4qXJjwYb9YbH9vayYROp/tXkp72nOEOvigu6g0+gsN/z6hg7+Ga7wNb8j2p2kypxDmhZipdHuzSaKxAmIassxsPiDbztOUdESnEj+YhrsptpjfP0Hqxu9m0n7j/zGR6I7LbDy56KLRVoGx6yFqcqyz6j2en9u998cYY4wxBowxxhjRI2rAqBAp6RKUahWwULEQCwsLURAJI7GwEBUQEbERFaMoFbH8cO4rM0neNG3/64f8LjCoVbsH5AAVoJck1Am96tS5Ewp5/mF/fL/2uW8SlSAksKRJEJMRiTj+oOqP9PRt+r2XqlLltmKcWHH6TePrrCjDuW1E1+Rwc7uLp0Y7RKah1PglWKQC0fXMo55+7/+vZ+37yMGHaBE2ZfcLB44vHEqhQSjQOuQzQG775+BYcg6W4IKTebAdEwfgWicJolLiRrRt23qkaT71l61FtqRhYy5t+Bpr/6is9/jn+3t+a58//z6NEs6TBPNAm0QSSNOE0oAiPfrfsmXq3t38JLtDK7IIzUNV4QROoVAoFMbd/Jr66cnLNcf+5VNw3oqIye6cBFBpEfIEs25//m2OYpvurr26vKLeojZnH4tFsYCH4AkeIWITm8iI2icKxtruvRkk0WyNELuGEpipmlpOXUlOtfelKy3MVHcvIARtmSVFHAuALQOHwRAwYiwzhMhaIGy5ZuH//5+uv1lZ3Zd18tes5OlJEC0qBSZATfEiNdSD2B06npEy42UkmK0KNbkV",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/weekend-preview"
+      ],
+      "screenshot": "autotest/screenshots/5ad1410b96a6.png",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
+      "auto_closed_at": null
+    },
+    "d0d94cb61ba3": {
+      "fingerprint": "d0d94cb61ba3",
+      "category": "network_error",
+      "severity": "high",
+      "title": "document 502 on /weekend-preview",
+      "route": "/weekend-preview",
+      "expected": "All same-origin sub-requests succeed",
+      "actual": "document \u2192 502: https://mediahub-gzwc.onrender.com/weekend-preview",
+      "evidence": "{\n  \"url\": \"https://mediahub-gzwc.onrender.com/weekend-preview\",\n  \"status\": 502,\n  \"type\": \"document\"\n}",
+      "suspect": "",
+      "rationale": "",
+      "repro": [
+        "Open https://mediahub-gzwc.onrender.com/weekend-preview"
+      ],
+      "screenshot": "",
+      "status": "open",
+      "first_seen": "2026-06-22T23:07:36+00:00",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 1,
+      "last_run_id": "20260622T230625Z-2ef2",
+      "present_last_run": true,
+      "fix_pr": null,
+      "fix_branch": null,
+      "confirmations": 0,
+      "first_pending_run_id": null,
+      "first_pending_at": null,
+      "absent_streak": 0,
       "auto_closed_at": null
     }
   },
@@ -7975,7 +8791,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "1623e36e552d": {
@@ -8001,7 +8817,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "ee03ff2dd60f": {
@@ -8029,7 +8845,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "22cedc9ab58e": {
@@ -8057,7 +8873,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "b01ec07d798f": {
@@ -8085,7 +8901,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "8c7e2f131136": {
@@ -8113,7 +8929,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "2e8206e8d413": {
@@ -8141,7 +8957,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "239ef8737bff": {
@@ -8169,7 +8985,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "8f631e60cb24": {
@@ -8197,7 +9013,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "803f7ead5bd4": {
@@ -8225,7 +9041,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d9e34eb08529": {
@@ -8253,7 +9069,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "de59899fef57": {
@@ -8281,7 +9097,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7473a4492b44": {
@@ -8309,7 +9125,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "644fc7499a4c": {
@@ -8337,7 +9153,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7a51dcd95351": {
@@ -8365,7 +9181,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "2f70e2b4c101": {
@@ -8393,7 +9209,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "275f6d4f3c15": {
@@ -8421,7 +9237,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "32d69a65464d": {
@@ -8449,7 +9265,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "9ffb1407aa9a": {
@@ -8477,7 +9293,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "3ade0339374f": {
@@ -8505,7 +9321,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7a7277e72a08": {
@@ -8533,7 +9349,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "eaf548e4779d": {
@@ -8561,7 +9377,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d58c7a1e26cc": {
@@ -8589,7 +9405,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "ba01044e7a74": {
@@ -8617,7 +9433,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d608851b2781": {
@@ -8645,7 +9461,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d41c878a26ff": {
@@ -8673,7 +9489,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "f29e70937168": {
@@ -8701,7 +9517,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "cca6366a7284": {
@@ -8729,7 +9545,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "24c7592e551f": {
@@ -8757,7 +9573,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "5f1dc5573bb4": {
@@ -8785,7 +9601,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "7ce7d896bdc1": {
@@ -8813,7 +9629,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "b9b1d1489eab": {
@@ -8841,7 +9657,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "2ed05fd31fdc": {
@@ -8869,7 +9685,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "dbf1ef9c7960": {
@@ -8897,7 +9713,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "c648d657b9f2": {
@@ -8925,7 +9741,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "88143d7dbdc3": {
@@ -8953,7 +9769,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "8cbd6ee668e7": {
@@ -8981,7 +9797,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "ca7e3aa815e1": {
@@ -9009,7 +9825,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "0e5a6362deea": {
@@ -9037,7 +9853,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "6948abc641ad": {
@@ -9065,7 +9881,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "78b7d2ae36ae": {
@@ -9093,7 +9909,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e17b439b1876": {
@@ -9121,7 +9937,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d5e8229ef41c": {
@@ -9149,7 +9965,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "348b520bd1a9": {
@@ -9177,7 +9993,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "94cce88fa8c6": {
@@ -9205,7 +10021,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "f780498f188c": {
@@ -9233,7 +10049,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "d9624ec031b8": {
@@ -9260,7 +10076,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "0010aae6b21e": {
@@ -9287,7 +10103,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "f1d03a4691ef": {
@@ -9314,7 +10130,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "511b4b91e7f1": {
@@ -9343,7 +10159,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "34b79a72ffb7": {
@@ -9361,9 +10177,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-05-31T13:50:54+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -9388,9 +10204,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-05-31T13:50:54+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -9415,9 +10231,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-05-31T13:50:54+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 40,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 41,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -9442,9 +10258,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-05-31T13:50:54+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 50,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 51,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -9480,7 +10296,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "35902274d0f3": {
@@ -9509,7 +10325,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "1b99ae947072": {
@@ -9538,7 +10354,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "565de4f13ed8": {
@@ -9567,7 +10383,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 40,
+      "absent_streak": 41,
       "auto_closed_at": null
     },
     "b715d3fafaea": {
@@ -9596,7 +10412,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "89482f637688": {
@@ -9625,7 +10441,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "3dab958fe4dd": {
@@ -9654,7 +10470,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "1d3b3c7e8998": {
@@ -9683,7 +10499,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "5a31ed912673": {
@@ -9712,7 +10528,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "e47516eb477b": {
@@ -9741,7 +10557,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 42,
+      "absent_streak": 43,
       "auto_closed_at": null
     },
     "fa62e12448e1": {
@@ -9759,9 +10575,9 @@
       "screenshot": "",
       "status": "open",
       "first_seen": "2026-06-02T14:40:53+00:00",
-      "last_seen": "2026-06-22T17:58:45+00:00",
-      "seen_count": 42,
-      "last_run_id": "20260622T175703Z-734e",
+      "last_seen": "2026-06-22T23:07:36+00:00",
+      "seen_count": 43,
+      "last_run_id": "20260622T230625Z-2ef2",
       "present_last_run": true,
       "fix_pr": null,
       "fix_branch": null,
@@ -9797,7 +10613,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": null
     },
     "15afd4cb1ec9": {
@@ -9826,7 +10642,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 41,
+      "absent_streak": 42,
       "auto_closed_at": null
     },
     "16d2f5583b18": {
@@ -9855,7 +10671,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 40,
+      "absent_streak": 41,
       "auto_closed_at": null
     },
     "94c7e7123a76": {
@@ -9884,7 +10700,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "0b3b30c41274": {
@@ -9913,7 +10729,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 39,
+      "absent_streak": 40,
       "auto_closed_at": null
     },
     "4c22fff713bc": {
@@ -9940,7 +10756,7 @@
       "confirmations": 0,
       "first_pending_run_id": null,
       "first_pending_at": null,
-      "absent_streak": 27,
+      "absent_streak": 28,
       "auto_closed_at": null
     }
   }
